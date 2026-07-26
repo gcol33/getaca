@@ -33,7 +33,7 @@ wfo <- resource(
               "https://mirror.invalid/wfo-2026-06.zip"),
   sha256  = strrep("9f", 32),
   size    = 4.1e9,
-  licence = "CC-BY-4.0"
+  license = "CC-BY-4.0"
 )
 
 wfo
@@ -128,7 +128,7 @@ getaca_info("wfo", package = "taxify")
 #>   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.zip
 #>   sha256      9f9f9f...
 #>   size        4,100,000,000 bytes
-#>   licence     CC-BY-4.0
+#>   license     CC-BY-4.0
 #>   resolved by bundled registry, revision 1
 #>   source url  https://primary.invalid/wfo-2026-06.zip
 #>   fetched     2026-07-26 11:02:13
@@ -139,8 +139,17 @@ getaca_info("wfo", package = "taxify")
 Four timestamps, kept apart on purpose. "Verified" means the bytes were
 re-hashed then, not that somebody looked at the file at some point.
 
-`getaca_catalogue()` gives the same information for everything cached, as a
-data frame suitable for a reproducibility appendix.
+`getaca_catalogue()` widens that to a data frame covering both halves: every
+resource the installed packages declare, and every copy the cache holds.
+
+```{r}
+getaca_catalogue(registry = reg)[, c("name", "version", "declared", "cached")]
+```
+
+`declared` and `cached` answer different questions. A row with
+`declared = TRUE, cached = FALSE` is work still to do on this machine. A row
+with `declared = FALSE` is a copy of a version nothing asks for any more, which
+is what the retention sweeps reclaim first.
 
 ## Where things are stored
 

@@ -7,6 +7,21 @@ local_cache <- function(env = parent.frame()) {
   dir
 }
 
+# Registry lookups and remote fetches are cached for the session, so any test
+# that exercises either starts and finishes with a clean slate.
+local_registries <- function(env = parent.frame()) {
+  getaca::getaca_refresh()
+  withr::defer(getaca::getaca_refresh(), envir = env)
+}
+
+# Skips unless this is a run where reaching the network is both allowed and
+# possible, and releases the check clamp for the duration.
+online_only <- function(env = parent.frame()) {
+  testthat::skip_on_cran()
+  testthat::skip_if_offline()
+  withr::local_envvar(list(NOT_CRAN = "true"), .local_envir = env)
+}
+
 # A real file with a real checksum, so verification is exercised rather than
 # stubbed.
 seed_file <- function(dir, contents = "backbone", name = "res.csv") {

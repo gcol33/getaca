@@ -49,7 +49,7 @@ as.character.getaca_id <- function(x, ...) format(x)
 #' @param sha256 Lowercase hex SHA-256 of the file as served.
 #' @param size Expected size in bytes, or `NA`. Used to detect truncated
 #'   transfers before hashing.
-#' @param licence Licence identifier for the data, for example `"CC-BY-4.0"`.
+#' @param license License identifier for the data, for example `"CC-BY-4.0"`.
 #' @param description One-line human description.
 #' @param upstream Optional named list identifying what these bytes were built
 #'   from, when the artefact is derived rather than an original release. A
@@ -67,10 +67,10 @@ as.character.getaca_id <- function(x, ...) format(x)
 #'   urls = "https://example.org/wfo-2026.1.parquet",
 #'   sha256 = strrep("a", 64),
 #'   size = 1048576,
-#'   licence = "CC-BY-4.0"
+#'   license = "CC-BY-4.0"
 #' )
 resource <- function(name, version, urls, sha256,
-                     size = NA_real_, licence = NA_character_,
+                     size = NA_real_, license = NA_character_,
                      description = NA_character_, upstream = NULL,
                      processor = NULL) {
   rec <- structure(
@@ -80,7 +80,7 @@ resource <- function(name, version, urls, sha256,
       urls = as.character(urls),
       sha256 = tolower(sha256),
       size = if (is.na(size)) NA_real_ else as.numeric(size),
-      licence = licence,
+      license = license,
       description = description,
       upstream = upstream,
       processor = processor
@@ -117,7 +117,7 @@ validate_resource <- function(x) {
 #' @export
 format.getaca_resource <- function(x, ...) {
   sprintf("%s@%s  %s  [%s]", x$name, x$version,
-          substr(x$sha256, 1, 12), x$licence)
+          substr(x$sha256, 1, 12), x$license)
 }
 
 #' @export
@@ -127,7 +127,7 @@ print.getaca_resource <- function(x, ...) {
   cat("  version   ", x$version, "\n", sep = "")
   cat("  sha256    ", x$sha256, "\n", sep = "")
   cat("  size      ", if (is.na(x$size)) "unknown" else format(x$size, big.mark = ","), "\n", sep = "")
-  cat("  licence   ", x$licence, "\n", sep = "")
+  cat("  license   ", x$license, "\n", sep = "")
   cat("  urls      ", paste(x$urls, collapse = "\n             "), "\n", sep = "")
   if (!is.null(x$upstream)) {
     cat("  built from\n")

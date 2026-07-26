@@ -61,18 +61,24 @@ select_record <- function(channel, name, version = NULL) {
 
 remote_cache <- new.env(parent = emptyenv())
 
-remote_channel <- function(reg) {
+# The registry transport, separated from the decision of whether to trust what
+# it returns. Which registry state wins is the part worth testing, and it is
+# testable without a network because the transport is injectable.
+fetch_registry <- function(url, dest) {
+  tryCatch({
+    curl::curl_download(url, dest, quiet = TRUE, handle = new_handle_for(url))
+    TRUE
+  }, error = function(e) FALSE)
+}
+
+remote_channel <- function(reg, fetch = fetch_registry) {
   if (is.null(reg$remote)) return(reg)
   key <- paste0(reg$package, "|", reg$remote)
   if (!is.null(remote_cache[[key]])) return(remote_cache[[key]])
 
   tmp <- tempfile(fileext = ".rds")
   on.exit(unlink(tmp), add = TRUE)
-  ok <- tryCatch({
-    curl::curl_download(reg$remote, tmp, quiet = TRUE,
-                        handle = new_handle_for(reg$remote))
-    TRUE
-  }, error = function(e) FALSE)
+  ok <- isTRUE(fetch(reg$remote, tmp))
 
   if (!ok) {
     message(sprintf(

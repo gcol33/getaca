@@ -141,6 +141,27 @@ registry_for <- function(package) {
   reg
 }
 
+#' Forget cached registry state
+#'
+#' Registries are read once per session: the one a package ships is cached
+#' after the first `system.file()` lookup, and a remote registry is cached
+#' after the first fetch. Call this after installing a new version of a
+#' declaring package, or to make the `"current"` policy consult the remote
+#' again within the same session.
+#'
+#' Cached *resources* are untouched. This forgets declarations, not data.
+#'
+#' @return `NULL`, invisibly.
+#' @export
+#'
+#' @examples
+#' getaca_refresh()
+getaca_refresh <- function() {
+  rm(list = ls(registry_cache, all.names = TRUE), envir = registry_cache)
+  rm(list = ls(remote_cache, all.names = TRUE), envir = remote_cache)
+  invisible(NULL)
+}
+
 #' Convert an authoring format into a registry
 #'
 #' Accepts the list shape a YAML or JSON registry parses into. Requires the
@@ -163,7 +184,8 @@ as_registry <- function(x, package, ...) {
       urls = unlist(spec$urls %||% spec$url, use.names = FALSE),
       sha256 = spec$sha256,
       size = spec$size %||% NA_real_,
-      licence = spec$licence %||% spec$license %||% NA_character_,
+      # Authoring formats accept either spelling; the model has one field.
+      license = spec$license %||% spec$licence %||% NA_character_,
       description = spec$description %||% NA_character_
     )
   })

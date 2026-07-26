@@ -45,11 +45,11 @@ test_that("YAML authoring produces the same model as the R constructor", {
     "  urls:",
     "    - https://example.invalid/res-1.0.csv",
     paste0("  sha256: '", strrep("a", 64), "'"),
-    "  licence: CC-BY-4.0"
+    "  license: CC-BY-4.0"
   ), path)
 
   reg <- as_registry(path, package = "demopkg")
   expect_equal(reg$resources$res$sha256, strrep("a", 64))
-  expect_equal(reg$resources$res$licence, "CC-BY-4.0")
+  expect_equal(reg$resources$res$license, "CC-BY-4.0")
   expect_equal(reg$resources$res$urls, "https://example.invalid/res-1.0.csv")
 })

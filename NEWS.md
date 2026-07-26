@@ -5,7 +5,7 @@ released.
 
 ## Declaration
 * `resource()`: immutable record of exact bytes, with version, mirrors,
-  SHA-256, size, licence, upstream identity and optional processor.
+  SHA-256, size, license, upstream identity and optional processor.
 * `registry()`, `registry_write()`, `registry_read()`, `registry_for()`:
   package-scoped declarations, discovered by convention at
   `inst/getaca/registry.rds`.
@@ -13,6 +13,9 @@ released.
   time so neither becomes a hard dependency.
 * `processor()`: post-verification transformation with a stable id, so the
   derived result gets its own cache slot and provenance.
+* `getaca_refresh()`: forget cached registry state, so a reinstalled declaring
+  package or an updated remote registry is picked up without restarting the
+  session.
 
 ## Resolution
 * `getaca_policy()`: `bundled`, `current`, `pinned` and `offline` policies.
@@ -45,4 +48,7 @@ released.
   abandoned transfers, superseded versions past retention, then LRU eviction
   only above the size ceiling.
 * `getaca_keep()` to exempt a resource.
-* `getaca_catalogue()` and `getaca_info()` for provenance.
+* `getaca_catalogue()`: one table covering what packages declare and what the
+  cache holds, including declared resources never downloaded and cached
+  versions no longer declared.
+* `getaca_info()`: full provenance for one cached resource.

@@ -69,6 +69,7 @@ reference:
   - registry_write
   - registry_for
   - as_registry
+  - getaca_refresh
 - title: Resolution
   desc: Which record a name resolves to
   contents:

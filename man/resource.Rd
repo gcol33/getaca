@@ -10,7 +10,7 @@ resource(
   urls,
   sha256,
   size = NA_real_,
-  licence = NA_character_,
+  license = NA_character_,
   description = NA_character_,
   upstream = NULL,
   processor = NULL
@@ -29,7 +29,7 @@ must be \verb{https://}.}
 \item{size}{Expected size in bytes, or \code{NA}. Used to detect truncated
 transfers before hashing.}
 
-\item{licence}{Licence identifier for the data, for example \code{"CC-BY-4.0"}.}
+\item{license}{License identifier for the data, for example \code{"CC-BY-4.0"}.}
 
 \item{description}{One-line human description.}
 
@@ -56,6 +56,6 @@ resource(
   urls = "https://example.org/wfo-2026.1.parquet",
   sha256 = strrep("a", 64),
   size = 1048576,
-  licence = "CC-BY-4.0"
+  license = "CC-BY-4.0"
 )
 }

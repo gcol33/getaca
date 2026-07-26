@@ -93,7 +93,7 @@ new_entry <- function(id, record, path, observed_sha, source, revision,
       declared_sha256 = record$sha256,
       observed_sha256 = observed_sha,
       size = file_size(path),
-      licence = record$licence,
+      license = record$license,
       upstream = record$upstream,
       source = source,
       revision = revision,
@@ -132,7 +132,7 @@ print.getaca_entry <- function(x, ...) {
   cat("  path        ", x$path, "\n", sep = "")
   cat("  sha256      ", x$observed_sha256, "\n", sep = "")
   cat("  size        ", format(x$size, big.mark = ","), " bytes\n", sep = "")
-  cat("  licence     ", x$licence, "\n", sep = "")
+  cat("  license     ", x$license, "\n", sep = "")
   if (!is.null(x$upstream)) {
     for (nm in names(x$upstream)) {
       cat("  built from  ", nm, ": ", as.character(x$upstream[[nm]]), "\n", sep = "")

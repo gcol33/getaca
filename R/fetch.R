@@ -143,7 +143,7 @@ err_offline <- function(id, why, call = NULL) {
 #' Answers, for a cached resource: which package declared it, which registry
 #' revision and which policy resolved it, the exact version, declared and
 #' observed checksums, which mirror served it, when it was fetched and when it
-#' was last fully verified, its licence, any processor applied, and the local
+#' was last fully verified, its license, any processor applied, and the local
 #' path. Suitable for a reproducibility appendix or a bug report.
 #'
 #' @inheritParams getaca
@@ -159,42 +159,129 @@ getaca_info <- function(name, package = NULL, registry = NULL, version = NULL,
 
 #' What is declared, and what is cached
 #'
+#' Reports both halves. Declared resources appear whether or not they have ever
+#' been downloaded, so "what does this package need, and what do I already
+#' have" is one table rather than two. Cached copies of versions that are no
+#' longer declared appear as well, since those are what [getaca_clean()]
+#' reclaims.
+#'
 #' @param package Restrict to one declaring package. `NULL` reports every
-#'   package with cached resources.
-#' @return A data frame, one row per resource, with cache state.
+#'   installed package that ships a registry, together with any package holding
+#'   cached resources.
+#' @param registry A [registry()] object, for standalone use without an
+#'   installed declaring package.
+#'
+#' @return A data frame, one row per resource version. `declared` is `TRUE`
+#'   when the registry in force names that version, `FALSE` when it does not,
+#'   and `NA` when no registry could be read for the package. `cached` says
+#'   whether a local copy is recorded; the provenance columns are `NA` for
+#'   declared resources that are not cached.
 #' @export
-getaca_catalogue <- function(package = NULL) {
-  pkgs <- package %||% list_cached_packages()
+#'
+#' @examples
+#' reg <- registry("demo", list(
+#'   resource("example", "1.0",
+#'            urls = "https://example.org/example-1.0.csv",
+#'            sha256 = strrep("c", 64))
+#' ))
+#' getaca_catalogue(registry = reg)
+getaca_catalogue <- function(package = NULL, registry = NULL) {
+  rows <- if (!is.null(registry)) {
+    catalogue_rows(registry$package, registry)
+  } else {
+    pkgs <- package %||% sort(unique(c(packages_declaring_resources(),
+                                       list_cached_packages())))
+    do.call(rbind, lapply(pkgs, catalogue_rows))
+  }
+  if (is.null(rows) || !nrow(rows)) return(empty_catalogue())
+  rownames(rows) <- NULL
+  rows
+}
+
+# One package's declarations joined to its cache, keyed on name@version. The
+# join runs in declaration order so the table reads the way the registry does.
+catalogue_rows <- function(package, registry = NULL) {
+  reg <- registry %||% tryCatch(registry_for(package), error = function(e) NULL)
+  entries <- read_index(package)
+  keys <- vapply(entries, function(e) paste0(e$id$name, "@", e$id$version),
+                 character(1))
+
   rows <- list()
-  for (p in pkgs) {
-    for (e in read_index(p)) {
-      rows[[length(rows) + 1L]] <- data.frame(
-        package = e$package,
-        name = e$id$name,
-        version = e$id$version,
-        processor = e$processor_id %||% NA_character_,
-        size = e$size,
-        licence = e$licence %||% NA_character_,
-        source = e$source,
-        revision = e$revision,
-        verified_at = e$verified_at,
-        accessed_at = e$accessed_at,
-        pinned = isTRUE(e$pinned),
-        path = e$path,
-        stringsAsFactors = FALSE
-      )
+  declared_keys <- character()
+  if (!is.null(reg)) {
+    for (rec in reg$resources) {
+      key <- paste0(rec$name, "@", rec$version)
+      declared_keys <- c(declared_keys, key)
+      hits <- entries[keys == key]
+      if (length(hits)) {
+        for (e in hits) rows[[length(rows) + 1L]] <- entry_row(e, TRUE)
+      } else {
+        rows[[length(rows) + 1L]] <- declared_row(package, rec)
+      }
     }
   }
-  if (!length(rows)) {
-    return(data.frame(
-      package = character(), name = character(), version = character(),
-      processor = character(), size = numeric(), licence = character(),
-      source = character(), revision = integer(),
-      verified_at = as.POSIXct(character()), accessed_at = as.POSIXct(character()),
-      pinned = logical(), path = character(), stringsAsFactors = FALSE
-    ))
+
+  # Cached under a version the registry no longer names, or under a package
+  # whose registry could not be read at all. Those are different claims.
+  for (e in entries[!keys %in% declared_keys]) {
+    rows[[length(rows) + 1L]] <- entry_row(e, if (is.null(reg)) NA else FALSE)
   }
+
+  if (!length(rows)) return(NULL)
   do.call(rbind, rows)
+}
+
+entry_row <- function(e, declared) {
+  data.frame(
+    package = e$package,
+    name = e$id$name,
+    version = e$id$version,
+    processor = e$processor_id %||% NA_character_,
+    declared = declared,
+    cached = TRUE,
+    size = e$size,
+    license = e$license %||% NA_character_,
+    source = e$source,
+    revision = e$revision,
+    verified_at = e$verified_at,
+    accessed_at = e$accessed_at,
+    pinned = isTRUE(e$pinned),
+    path = e$path,
+    stringsAsFactors = FALSE
+  )
+}
+
+declared_row <- function(package, rec) {
+  data.frame(
+    package = package,
+    name = rec$name,
+    version = rec$version,
+    processor = if (is.null(rec$processor)) NA_character_ else rec$processor$id,
+    declared = TRUE,
+    cached = FALSE,
+    size = as.numeric(rec$size),
+    license = rec$license %||% NA_character_,
+    source = NA_character_,
+    revision = NA_integer_,
+    verified_at = na_time(),
+    accessed_at = na_time(),
+    pinned = FALSE,
+    path = NA_character_,
+    stringsAsFactors = FALSE
+  )
+}
+
+na_time <- function(n = 1L) .POSIXct(rep(NA_real_, n))
+
+empty_catalogue <- function() {
+  data.frame(
+    package = character(), name = character(), version = character(),
+    processor = character(), declared = logical(), cached = logical(),
+    size = numeric(), license = character(),
+    source = character(), revision = integer(),
+    verified_at = na_time(0L), accessed_at = na_time(0L),
+    pinned = logical(), path = character(), stringsAsFactors = FALSE
+  )
 }
 
 list_cached_packages <- function() {
@@ -202,6 +289,19 @@ list_cached_packages <- function() {
   if (!dir.exists(root)) return(character())
   d <- list.dirs(root, full.names = FALSE, recursive = FALSE)
   d[!startsWith(d, ".")]
+}
+
+# Discovery is by convention: a package declares resources by shipping
+# inst/getaca/registry.rds, so finding declarations is a file test across the
+# library paths rather than a registration call or a load hook.
+packages_declaring_resources <- function() {
+  found <- character()
+  for (lib in .libPaths()) {
+    pkgs <- list.dirs(lib, full.names = FALSE, recursive = FALSE)
+    if (!length(pkgs)) next
+    found <- c(found, pkgs[file.exists(file.path(lib, pkgs, "getaca", "registry.rds"))])
+  }
+  unique(found)
 }
 
 #' Warm the cache ahead of time
