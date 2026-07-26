@@ -4,6 +4,22 @@ template:
   bootstrap: 5
   bootswatch: sandstone
   light-switch: yes
+  includes:
+    in_header: |
+      <script>
+      (function () {
+        var D = String.fromCharCode(36);
+        window.MathJax = {
+          tex: {
+            inlineMath: [[D, D], ["\\(", "\\)"]],
+            displayMath: [[D + D, D + D], ["\\[", "\\]"]]
+          },
+          chtml: { linebreaks: { automatic: true, width: "90% container" } },
+          svg: { linebreaks: { automatic: true, width: "90% container" } },
+          options: { renderActions: { addMenu: [] } }
+        };
+      })();
+      </script>
 home:
   title: 'getaca: Reproducible External Data Dependencies for R Packages'
   description: |
@@ -80,8 +96,7 @@ reference:
   - getaca_cache_dir
 - title: Conditions
   desc: The failure taxonomy
-  contents:
-  - getaca-conditions
+  contents: getaca-conditions
 articles:
 - title: Getting Started
   navbar: ~

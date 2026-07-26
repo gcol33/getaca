@@ -64,7 +64,9 @@ at the requested version, in a cache slot `getaca` owns. What happens on the
 way there depends on what is already true:
 
 - cached and intact, the path comes back immediately after a size check
+
 - cached but past the re-verification interval, the bytes are re-hashed first
+
 - absent, the mirrors are tried in order, into a temporary file, which is
   hashed before it is moved into place
 

@@ -64,6 +64,7 @@ requires graceful degradation when an Internet resource is unavailable.
 What the remote channel may do:
 
 - repair or add mirrors for a record that already exists
+
 - publish new versions, and point the channel at one
 
 What it may not do: change the checksum attached to a version that already
@@ -137,6 +138,7 @@ wfo:
   version: "2026-06"
   urls:
     - https://primary.invalid/wfo-2026-06.zip
+
     - https://mirror.invalid/wfo-2026-06.zip
   sha256: "9f9f..."
   licence: CC-BY-4.0
@@ -178,9 +180,13 @@ about where to put files, not a feature.
 ## Before you ship
 
 - [ ] `inst/getaca/registry.rds` written by `registry_write()`
+
 - [ ] every checksum computed from the file as served, not from a local copy
       you built
 - [ ] at least one mirror, ideally on a host you control
+
 - [ ] tests use `getaca_skip_if_unavailable()`
+
 - [ ] examples use `getaca_optional()`, or `\donttest{}` for large resources
+
 - [ ] `R CMD check` passes with no network available
