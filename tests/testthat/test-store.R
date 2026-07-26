@@ -235,15 +235,26 @@ test_that("a slot holding the wrong bytes is refetched rather than adopted", {
   expect_equal(getaca:::sha256_file(path), f$sha256)
 })
 
-test_that("removal restores write permission, which Windows requires", {
+test_that("removal restores write permission", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  blob <- getaca:::admit(staged(f), f$sha256)
+
+  expect_true(getaca:::remove_path(blob))
+  expect_false(file.exists(blob))
+})
+
+# The reason remove_path() exists. On a Unix filesystem the write bit on the
+# containing directory governs removal, so unlink() takes a sealed blob out
+# whatever its own mode says.
+test_that("a bare unlink() leaves a sealed blob in place on Windows", {
+  skip_on_os(c("mac", "linux", "solaris"))
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir())
   blob <- getaca:::admit(staged(f), f$sha256)
 
   expect_equal(unlink(blob), 1L)
   expect_true(file.exists(blob))
-  expect_true(getaca:::remove_path(blob))
-  expect_false(file.exists(blob))
 })
 
 test_that("a sealed file inside a directory does not block its removal", {
