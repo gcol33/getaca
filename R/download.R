@@ -31,15 +31,19 @@ partial_path <- function(record) {
 
 # Try each mirror in order. Records what each one produced so that the caller
 # can tell "nobody answered" from "everybody answered with the same wrong
-# bytes", which are author-actionable and user-actionable respectively.
-fetch_to_temp <- function(id, record, quiet = FALSE) {
+# bytes", which are user-actionable and author-actionable respectively.
+#
+# `transport` is the seam between which mirror to trust and how bytes move.
+# Adjudication is the part worth testing, and it is testable without a
+# network because the transport is injectable.
+fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one) {
   dest <- partial_path(record)
   unreachable <- character()
   reasons <- character()
   observed_hashes <- character()
 
   for (url in record$urls) {
-    res <- try_one(url, dest, quiet = quiet)
+    res <- transport(url, dest, quiet = quiet)
     if (!isTRUE(res$success)) {
       unreachable <- c(unreachable, url)
       reasons <- c(reasons, res$reason)
@@ -120,6 +124,11 @@ promote <- function(id, record, temp_path) {
 }
 
 url_basename <- function(url) {
-  base <- basename(sub("[?#].*$", "", url))
-  if (!nzchar(base)) "resource.bin" else base
+  path <- sub("[?#].*$", "", url)
+  # Drop scheme and authority, so a URL with no path does not name the cached
+  # file after the host.
+  path <- sub("^[A-Za-z][A-Za-z0-9+.-]*://[^/]*", "", path)
+  path <- sub("/+$", "", path)
+  base <- basename(path)
+  if (!nzchar(base) || identical(base, "/")) "resource.bin" else base
 }
