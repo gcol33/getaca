@@ -1,0 +1,94 @@
+url: https://gillescolling.com/getaca/
+destination: docs
+template:
+  bootstrap: 5
+  bootswatch: sandstone
+  light-switch: yes
+home:
+  title: 'getaca: Reproducible External Data Dependencies for R Packages'
+  description: |
+    Declare, retrieve, verify, track and actively manage external data dependencies for R packages. Pinned to exact bytes, resolvable offline, safe during R CMD check.
+authors:
+  Gilles Colling:
+    href: https://github.com/gcol33
+navbar:
+  structure:
+    left:
+    - intro
+    - reference
+    - articles
+    - news
+    right:
+    - search
+    - lightswitch
+    - github
+  components:
+    intro:
+      text: Get Started
+      href: articles/quickstart.html
+    articles:
+      text: Articles
+      menu:
+      - text: Quick Start
+        href: articles/quickstart.html
+      - text: Declaring Resources
+        href: articles/declaring.html
+    github:
+      icon: fab fa-github
+      href: https://github.com/gcol33/getaca
+      aria-label: GitHub
+reference:
+- title: Retrieval
+  desc: The single front door
+  contents:
+  - getaca
+  - getaca_prefetch
+- title: Declaration
+  desc: What a package says it needs
+  contents:
+  - resource
+  - resource_id
+  - processor
+  - registry
+  - registry_write
+  - registry_for
+  - as_registry
+- title: Resolution
+  desc: Which record a name resolves to
+  contents:
+  - resolve_resource
+  - getaca_policy
+  - getaca_pin
+- title: Checks and Offline Use
+  desc: Behaving during R CMD check
+  contents:
+  - getaca-checks
+  - getaca_available
+  - getaca_optional
+  - getaca_skip_if_unavailable
+- title: Provenance
+  desc: Where a file came from
+  contents:
+  - getaca_info
+  - getaca_catalogue
+- title: Cache Management
+  desc: Retention and removal
+  contents:
+  - getaca-gc
+  - getaca_clean
+  - getaca_keep
+  - getaca_cache_dir
+- title: Conditions
+  desc: The failure taxonomy
+  contents:
+  - getaca-conditions
+articles:
+- title: Getting Started
+  navbar: ~
+  contents:
+  - quickstart
+  - declaring
+footer:
+  structure:
+    left: developed_by
+    right: built_with

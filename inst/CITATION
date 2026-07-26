@@ -1,0 +1,7 @@
+bibentry(
+  bibtype  = "Manual",
+  title    = "getaca: Reproducible External Data Dependencies for R Packages",
+  author   = person("Gilles", "Colling"),
+  year     = "2026",
+  url      = "https://github.com/gcol33/getaca"
+)

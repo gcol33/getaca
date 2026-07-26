@@ -1,0 +1,176 @@
+#' Resolve a name to an immutable resource record
+#'
+#' Separates the two things that must not be conflated: an immutable resource
+#' record, and the mutable channel that maps a logical name onto one. This
+#' function walks the channel; everything downstream deals only in records.
+#'
+#' @param name Resource name.
+#' @param package Declaring package. Ignored when `registry` is supplied.
+#' @param registry A [registry()] object, for standalone use.
+#' @param policy Resolution policy, defaulting to [getaca_policy()].
+#' @param version Optional explicit version, bypassing channel resolution.
+#'
+#' @return A list with `id`, `record`, `source` and `revision`.
+#' @export
+resolve_resource <- function(name, package = NULL, registry = NULL,
+                             policy = NULL, version = NULL) {
+  reg <- registry %||% registry_for(package)
+  if (is.null(reg)) {
+    err_invalid_registry(
+      sprintf("package '%s' ships no getaca registry at inst/getaca/registry.rds", package),
+      package = package
+    )
+  }
+  policy <- policy %||% effective_policy(reg$policy)
+
+  channel <- switch(policy,
+    bundled = reg,
+    offline = reg,
+    current = remote_channel(reg),
+    pinned  = pinned_channel(reg)
+  )
+
+  rec <- select_record(channel, name, version)
+  if (is.null(rec)) {
+    err_invalid_registry(
+      sprintf("package '%s' declares no resource named '%s' (has: %s)",
+              reg$package, name,
+              paste(unique(vapply(channel$resources, function(r) r$name, character(1))),
+                    collapse = ", ")),
+      package = reg$package
+    )
+  }
+
+  list(
+    id = resource_id(reg$package, rec$name, rec$version),
+    record = rec,
+    source = if (policy %in% c("bundled", "offline")) "bundled" else policy,
+    revision = channel$revision
+  )
+}
+
+select_record <- function(channel, name, version = NULL) {
+  hits <- Filter(function(r) identical(r$name, name), channel$resources)
+  if (!length(hits)) return(NULL)
+  if (!is.null(version)) {
+    hits <- Filter(function(r) identical(r$version, version), hits)
+    return(if (length(hits)) hits[[1]] else NULL)
+  }
+  hits[[length(hits)]]
+}
+
+remote_cache <- new.env(parent = emptyenv())
+
+remote_channel <- function(reg) {
+  if (is.null(reg$remote)) return(reg)
+  key <- paste0(reg$package, "|", reg$remote)
+  if (!is.null(remote_cache[[key]])) return(remote_cache[[key]])
+
+  tmp <- tempfile(fileext = ".rds")
+  on.exit(unlink(tmp), add = TRUE)
+  ok <- tryCatch({
+    curl::curl_download(reg$remote, tmp, quiet = TRUE,
+                        handle = new_handle_for(reg$remote))
+    TRUE
+  }, error = function(e) FALSE)
+
+  if (!ok) {
+    message(sprintf(
+      "getaca: could not reach the remote registry for '%s'; using the bundled registry.",
+      reg$package
+    ))
+    return(reg)
+  }
+
+  fetched <- tryCatch(registry_read(tmp), error = function(e) NULL)
+  if (is.null(fetched)) {
+    message(sprintf(
+      "getaca: the remote registry for '%s' is unreadable; using the bundled registry.",
+      reg$package
+    ))
+    return(reg)
+  }
+  if (!identical(fetched$package, reg$package)) {
+    err_invalid_registry(
+      sprintf("remote registry at %s declares package '%s'", reg$remote, fetched$package),
+      package = reg$package
+    )
+  }
+  assert_immutable(reg, fetched)
+  remote_cache[[key]] <- fetched
+  fetched
+}
+
+# A remote channel may repair mirrors and add versions. It may never redefine
+# what a published version means.
+assert_immutable <- function(bundled, fetched) {
+  key <- function(r) paste0(r$name, "@", r$version)
+  old <- stats::setNames(vapply(bundled$resources, function(r) r$sha256, character(1)),
+                         vapply(bundled$resources, key, character(1)))
+  new <- stats::setNames(vapply(fetched$resources, function(r) r$sha256, character(1)),
+                         vapply(fetched$resources, key, character(1)))
+  shared <- intersect(names(old), names(new))
+  bad <- shared[old[shared] != new[shared]]
+  if (length(bad)) {
+    err_invalid_registry(
+      c(sprintf("the remote registry redefines published version %s", bad),
+        "A version identifies exact bytes. Publish a new version instead."),
+      package = bundled$package
+    )
+  }
+  invisible(TRUE)
+}
+
+pinned_channel <- function(reg) {
+  path <- pin_file()
+  if (!file.exists(path)) {
+    err_invalid_registry(
+      c(sprintf("policy is \"pinned\" but no pin file exists at %s", path),
+        "Create one with getaca_pin()."),
+      package = reg$package
+    )
+  }
+  pins <- readRDS(path)
+  hit <- pins[[reg$package]]
+  if (is.null(hit)) {
+    err_invalid_registry(
+      sprintf("the pin file records nothing for package '%s'", reg$package),
+      package = reg$package
+    )
+  }
+  assert_immutable(reg, hit)
+  hit
+}
+
+pin_file <- function() {
+  getOption("getaca.pin_file", file.path(getwd(), "getaca.pins.rds"))
+}
+
+#' Freeze current resolution into a pin file
+#'
+#' Records, for each named package, the registry state currently in effect.
+#' Under the `"pinned"` policy those records are what resolution uses, so an
+#' analysis keeps resolving the versions it was written against.
+#'
+#' @param packages Character vector of package names.
+#' @param path Where to write the pin file.
+#'
+#' @return `path`, invisibly.
+#' @export
+getaca_pin <- function(packages, path = pin_file()) {
+  pins <- if (file.exists(path)) readRDS(path) else list()
+  for (p in packages) {
+    reg <- registry_for(p)
+    if (is.null(reg)) {
+      warning(sprintf("package '%s' ships no getaca registry; skipped", p), call. = FALSE)
+      next
+    }
+    pins[[p]] <- if (identical(effective_policy(reg$policy), "current")) {
+      remote_channel(reg)
+    } else {
+      reg
+    }
+  }
+  saveRDS(pins, path, version = 3)
+  invisible(path)
+}

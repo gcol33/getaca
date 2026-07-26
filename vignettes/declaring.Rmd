@@ -1,0 +1,186 @@
+---
+title: "Declaring Resources"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Declaring Resources}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(getaca)
+```
+
+For package authors: what to declare, where to put it, and which policy to
+choose.
+
+## Records and channels
+
+Two things that must not be conflated.
+
+A **resource record** is immutable. `taxify / wfo / 2026-06` names exact bytes,
+permanently. If the publisher reissues that file with different contents, that
+is an upstream mutation and `getaca` refuses it.
+
+A **channel** maps a logical name onto a record, and channels move. Where the
+channel is read from is the resolution policy.
+
+| Policy | Reads the channel from | Use when |
+|---|---|---|
+| `bundled` | the registry inside the installed package | default |
+| `current` | the author's remote registry, falling back to bundled | data releases outpace your CRAN releases |
+| `pinned` | a frozen local snapshot | an analysis must stay put |
+| `offline` | nothing; cache and bundled information only | no network permitted |
+
+`bundled` is the default because a dependency that resolves differently on
+different days is not a dependency. See
+`dev_notes/adr-001-registry-resolution.md` in the source for the reasoning.
+
+## Choosing `current`
+
+Set it once, in the registry, if your data genuinely release on their own
+schedule:
+
+```{r}
+reg <- registry(
+  package = "taxify",
+  policy  = "current",
+  remote  = "https://gcol33.github.io/taxify/getaca-registry.rds",
+  resources = list(
+    resource("wfo", "2026-06",
+             urls   = "https://primary.invalid/wfo-2026-06.zip",
+             sha256 = strrep("9f", 32),
+             licence = "CC-BY-4.0")
+  )
+)
+```
+
+The remote file is a static artefact on GitHub Pages, r-universe or
+institutional hosting. It is not a service, and it does not need to be up: an
+unreachable remote registry falls back to bundled with a message, because CRAN
+requires graceful degradation when an Internet resource is unavailable.
+
+What the remote channel may do:
+
+- repair or add mirrors for a record that already exists
+- publish new versions, and point the channel at one
+
+What it may not do: change the checksum attached to a version that already
+exists. That is rejected as an invalid registry, attributed to you rather than
+to the publisher.
+
+## Versions are labels
+
+`getaca` does not order version strings, because they are not semantic
+versions. `2026-06` and `source-2026-06_build-3` are labels. The channel head
+is the last matching record in declaration order, so list versions oldest
+first, and let users hold a specific one explicitly:
+
+```{r, eval = FALSE}
+getaca("wfo", package = "taxify", version = "2026-06")
+```
+
+## Derived artefacts
+
+Publishing a prepared database rather than the raw upstream release is often
+the better deal for users, who then skip the expensive preprocessing. Record
+both identities so provenance keeps them:
+
+```{r}
+resource(
+  name    = "wfo-db",
+  version = "source-2026-06_build-3",
+  urls    = "https://example.invalid/wfo-db-3.duckdb",
+  sha256  = strrep("ab", 32),
+  licence = "CC-BY-4.0",
+  upstream = list(
+    wfo_release    = "2026-06",
+    taxifydb_build = "3"
+  )
+)
+```
+
+`getaca` does not care whether bytes are an official release or something you
+built. It retrieves and verifies what you declared; your package owns their
+scientific meaning.
+
+## Processors
+
+A processor turns one verified path into another. It carries a stable id, so
+the derived result gets its own cache slot and its own provenance rather than
+being confused with the archive it came from.
+
+```{r}
+unpack <- processor("unzip", function(input, output_dir) {
+  utils::unzip(input, exdir = output_dir)
+  output_dir
+})
+```
+
+Changing what the transformation does means changing the id, which invalidates
+previously processed copies. `getaca(..., processed = FALSE)` returns the raw
+artefact.
+
+## Authoring in YAML
+
+The stored form is an R object, so no parser is ever a hard dependency. YAML
+and JSON are accepted at authoring time and gated at call time:
+
+```{r, eval = FALSE}
+reg <- as_registry("data-raw/resources.yml", package = "taxify")
+registry_write(reg, "inst/getaca/registry.rds")
+```
+
+```yaml
+wfo:
+  version: "2026-06"
+  urls:
+    - https://primary.invalid/wfo-2026-06.zip
+    - https://mirror.invalid/wfo-2026-06.zip
+  sha256: "9f9f..."
+  licence: CC-BY-4.0
+```
+
+## Handing errors to your users
+
+Every failure is classed, and carries an `actor` field naming who can act.
+Catch the ones your users will meet and say something domain-specific:
+
+```{r, eval = FALSE}
+install_backbone <- function(name = "wfo") {
+  path <- tryCatch(
+    getaca(name, package = "taxify"),
+    getaca_error_unavailable = function(e) {
+      stop("The WFO backbone is not installed and cannot be downloaded ",
+           "because no network connection is available.\n",
+           "Connect to the internet and run:\n",
+           "  taxify::install_backbone(\"wfo\")", call. = FALSE)
+    }
+  )
+  open_backbone(path)
+}
+```
+
+`getaca_error_offline` is a subclass of `getaca_error_unavailable`, so the
+handler above catches both, and a narrower handler can separate them.
+
+## Hosting
+
+Immutable hosting makes all of this easier, and Zenodo gives it away: a
+versioned DOI resolves to bytes that cannot change under you. Deposit the
+data, pin the version DOI's file URL, and the upstream-mutation case stops
+being possible.
+
+`getaca` has no Zenodo client and will not grow one. It is a recommendation
+about where to put files, not a feature.
+
+## Before you ship
+
+- [ ] `inst/getaca/registry.rds` written by `registry_write()`
+- [ ] every checksum computed from the file as served, not from a local copy
+      you built
+- [ ] at least one mirror, ideally on a host you control
+- [ ] tests use `getaca_skip_if_unavailable()`
+- [ ] examples use `getaca_optional()`, or `\donttest{}` for large resources
+- [ ] `R CMD check` passes with no network available

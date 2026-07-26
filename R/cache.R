@@ -1,0 +1,149 @@
+#' Cache layout
+#'
+#' Everything is scoped by declaring package, then resource name, then
+#' version. Two packages that happen to declare the same resource name never
+#' share a slot, and a version can never be silently overwritten by another.
+#'
+#' ```
+#' <cache>/
+#'   .locks/                        per-resource locks
+#'   .tmp/                          in-flight downloads, never visible as cache
+#'   <package>/
+#'     index.rds                    provenance for this package only
+#'     <name>/<version>/
+#'       raw/<file>                 verified bytes as served
+#'       proc-<processor-id>/       processed result, own provenance
+#' ```
+#'
+#' @name getaca-cache
+#' @keywords internal
+NULL
+
+cache_pkg_dir <- function(package) file.path(getaca_cache_dir(), package)
+
+cache_version_dir <- function(id) {
+  file.path(cache_pkg_dir(id$package), id$name, id$version)
+}
+
+cache_raw_dir <- function(id) file.path(cache_version_dir(id), "raw")
+
+cache_proc_dir <- function(id, processor_id) {
+  file.path(cache_version_dir(id), paste0("proc-", processor_id))
+}
+
+cache_tmp_dir <- function() {
+  d <- file.path(getaca_cache_dir(), ".tmp")
+  dir.create(d, recursive = TRUE, showWarnings = FALSE)
+  d
+}
+
+index_path <- function(package) file.path(cache_pkg_dir(package), "index.rds")
+
+read_index <- function(package) {
+  p <- index_path(package)
+  if (!file.exists(p)) return(list())
+  tryCatch(readRDS(p), error = function(e) list())
+}
+
+# Written to a sibling temporary file and renamed, so a reader never observes
+# a half-written index.
+write_index <- function(package, index) {
+  dir.create(cache_pkg_dir(package), recursive = TRUE, showWarnings = FALSE)
+  p <- index_path(package)
+  tmp <- paste0(p, ".tmp-", Sys.getpid())
+  saveRDS(index, tmp, version = 3)
+  if (file.exists(p)) unlink(p)
+  ok <- file.rename(tmp, p)
+  if (!ok) {
+    unlink(tmp)
+    warning("getaca: could not update the cache index", call. = FALSE)
+  }
+  invisible(p)
+}
+
+entry_key <- function(id, processor_id = NULL) {
+  paste0(id$name, "@", id$version, if (!is.null(processor_id)) paste0("#", processor_id))
+}
+
+get_entry <- function(id, processor_id = NULL) {
+  read_index(id$package)[[entry_key(id, processor_id)]]
+}
+
+put_entry <- function(entry) {
+  index <- read_index(entry$package)
+  index[[entry_key(entry$id, entry$processor_id)]] <- entry
+  write_index(entry$package, index)
+  invisible(entry)
+}
+
+drop_entry <- function(id, processor_id = NULL) {
+  index <- read_index(id$package)
+  index[[entry_key(id, processor_id)]] <- NULL
+  write_index(id$package, index)
+}
+
+new_entry <- function(id, record, path, observed_sha, source, revision,
+                      url_used, processor_id = NULL) {
+  now <- Sys.time()
+  structure(
+    list(
+      package = id$package,
+      id = id,
+      path = path,
+      declared_sha256 = record$sha256,
+      observed_sha256 = observed_sha,
+      size = file_size(path),
+      licence = record$licence,
+      upstream = record$upstream,
+      source = source,
+      revision = revision,
+      url_used = url_used,
+      processor_id = processor_id,
+      fetched_at = now,
+      verified_at = now,
+      checked_at = now,
+      accessed_at = now,
+      pinned = FALSE
+    ),
+    class = "getaca_entry"
+  )
+}
+
+touch_entry <- function(entry, verified = FALSE) {
+  now <- Sys.time()
+  entry$accessed_at <- now
+  entry$checked_at <- now
+  if (verified) entry$verified_at <- now
+  put_entry(entry)
+  entry
+}
+
+file_size <- function(path) {
+  if (dir.exists(path)) {
+    sum(file.info(list.files(path, recursive = TRUE, full.names = TRUE))$size, na.rm = TRUE)
+  } else {
+    unname(file.info(path)$size)
+  }
+}
+
+#' @export
+print.getaca_entry <- function(x, ...) {
+  cat("<getaca cache entry> ", format(x$id), "\n", sep = "")
+  cat("  path        ", x$path, "\n", sep = "")
+  cat("  sha256      ", x$observed_sha256, "\n", sep = "")
+  cat("  size        ", format(x$size, big.mark = ","), " bytes\n", sep = "")
+  cat("  licence     ", x$licence, "\n", sep = "")
+  if (!is.null(x$upstream)) {
+    for (nm in names(x$upstream)) {
+      cat("  built from  ", nm, ": ", as.character(x$upstream[[nm]]), "\n", sep = "")
+    }
+  }
+  cat("  resolved by ", x$source, " registry, revision ", x$revision, "\n", sep = "")
+  cat("  source url  ", x$url_used, "\n", sep = "")
+  if (!is.null(x$processor_id)) cat("  processor   ", x$processor_id, "\n", sep = "")
+  cat("  fetched     ", format(x$fetched_at, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
+  cat("  verified    ", format(x$verified_at, "%Y-%m-%d %H:%M:%S"), " (full re-hash)\n", sep = "")
+  cat("  checked     ", format(x$checked_at, "%Y-%m-%d %H:%M:%S"), " (size and mtime)\n", sep = "")
+  if (isTRUE(x$pinned)) cat("  pinned      yes (never garbage collected)\n")
+  invisible(x)
+}

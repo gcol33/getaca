@@ -1,0 +1,16 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^\.github$
+^codecov\.yml$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.claude$
+^CONTRIBUTING\.md$
+^CODE_OF_CONDUCT\.md$
+^cran-comments\.md$
+^dev_notes$
+^doc$
+^Meta$
+^getaca_.*\.tar\.gz$
