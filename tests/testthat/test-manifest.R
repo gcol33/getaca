@@ -77,7 +77,7 @@ test_that("a processor contributes its id, not its closure", {
 
   # The reason the manifest exists: hashing the serialised object would make a
   # registry's identity depend on the closure it happens to be carrying.
-  serialised <- function(x) tools::sha256sum(bytes = serialize(x, NULL))
+  serialised <- function(x) getaca:::sha256_bytes(serialize(x, NULL))
   expect_false(identical(serialised(same[[1]]), serialised(same[[2]])))
 })
 

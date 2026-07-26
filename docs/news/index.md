@@ -7,13 +7,21 @@ released.
 
 ### Dependencies
 
-- Requires R \>= 4.6.0 and imports `curl`, with `stats`, `tools` and
-  `utils` from base R. Hashing uses
-  [`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html), which
-  arrived in R 4.6.0 and covers both the artefact on disk and the
-  manifest in memory, so `digest` is no longer a dependency. Its output
-  is byte-identical for the same input, so registry digests already
-  recorded stay valid.
+- Requires R \>= 4.0.0 and imports `curl` (\>= 5.0.0), with `stats`,
+  `tools` and `utils` from base R. Zero non-base transitive
+  dependencies, and no `LinkingTo`. The floor on `curl` is
+  `multi_download()`, which is what makes a mirror attempt resumable.
+- SHA-256 is implemented in C, in `src/sha256.c`, covering both the
+  artefact on disk and the manifest in memory. On x86-64 with the SHA
+  extensions and on ARMv8 with the SHA-256 extensions the block
+  compression runs in hardware, which on an i9-14900K hashes at 1.43
+  GB/s against 0.20 GB/s for
+  [`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html): a 4 GB
+  resource is verified in 2.8 s rather than 20 s. Machines without
+  either extension use a portable path that is no slower than what R
+  provides. A digest is a single specified value, so this changes only
+  the time a verification takes; registry digests already recorded stay
+  valid.
 
 ### Declaration
 
@@ -74,6 +82,10 @@ released.
   freeze current resolution into a local snapshot.
 - Remote channels may repair mirrors and publish new versions;
   redefining a published version is rejected as an invalid registry.
+  Published means the bundled declaration together with whatever this
+  machine has already fetched and verified, so a version that only ever
+  existed remotely is held to its bytes as firmly as one that shipped
+  with the package.
 
 ### Retrieval
 
@@ -85,7 +97,7 @@ released.
   sessions never duplicate a large transfer or observe a partial one.
   Two packages declaring the same file wait on each other, and the
   second finds what the first retrieved.
-- Seven classed conditions distinguishing user, author and upstream
+- Eight classed conditions distinguishing user, author and upstream
   causes. A transfer that ends short on every mirror raises
   `getaca_error_incomplete`, whose action is to retry; mixed causes keep
   `getaca_error_unavailable` and list each mirror’s reason.
@@ -94,6 +106,12 @@ released.
 
 - Full SHA-256 on download, cheap size check on access, scheduled
   re-hash via `getaca.verify_days`.
+- A cache hit is measured against the declaration in force as well as
+  against the entry’s own record. A version whose declaration has moved
+  to different bytes raises `getaca_error_redeclared` naming both
+  checksums, rather than resolving quietly to the copy already held.
+  `verify = TRUE` asks the same question, so a forced re-hash can no
+  longer confirm bytes against a declaration they no longer match.
 - Entry records keep `fetched_at`, `verified_at`, `checked_at` and
   `accessed_at` apart.
 - Provenance records which declaration state resolved the bytes

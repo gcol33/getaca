@@ -26,6 +26,7 @@
 #' so a cached file names the exact declaration state that resolved it.
 #'
 #' @keywords internal
+#' @useDynLib getaca, .registration = TRUE, .fixes = "C_"
 "_PACKAGE"
 
 ## usethis namespace: start

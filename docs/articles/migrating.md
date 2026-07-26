@@ -161,8 +161,7 @@ the file with
 no registration call, no `.onLoad()` hook, and no load-order question.
 
 Add `getaca` to `Imports`. It brings `curl`, with nothing beneath it,
-and an R \>= 4.6.0 floor for
-[`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html).
+and one C file that a source install compiles.
 
 ## Step 3: rewrite the front door
 

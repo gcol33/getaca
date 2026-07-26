@@ -75,8 +75,14 @@ recursive footprint (`tools::package_dependencies(recursive = TRUE)`)
 and the line of code that requires it. Optional features go in
 `Suggests` and are gated with `need_suggested()`.
 
-Hashing goes through `sha256_file()` and `tools::sha256sum(bytes = )`.
-That function is what sets the R 4.6.0 floor.
+Hashing goes through `sha256_file()` and `sha256_bytes()`, both of which
+reach one C implementation in `src/sha256.c`. A change there is held
+against the FIPS 180-4 vectors, against
+[`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html) where the
+R running the tests has it, and against every other compression path
+compiled into the same build: `test-digest.R` drives each path
+explicitly, since a host selects one and would otherwise never exercise
+the rest.
 
 ## Workflow
 

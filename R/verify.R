@@ -23,8 +23,24 @@
 #' @keywords internal
 NULL
 
+# Both call shapes reach one implementation, in src/sha256.c, which absorbs a
+# block with the host's SHA-256 instructions where it has them. A path that
+# could not be read digests to NA, so an unreadable file compares unequal to a
+# declared checksum rather than raising from inside the comparison.
 sha256_file <- function(path) {
-  unname(tools::sha256sum(path))
+  .Call(C_sha256_file, path.expand(path))
+}
+
+sha256_bytes <- function(bytes, backend = NULL) {
+  .Call(C_sha256_raw, bytes, backend)
+}
+
+sha256_backend <- function() {
+  .Call(C_sha256_backend)
+}
+
+sha256_backends <- function() {
+  .Call(C_sha256_backends)
 }
 
 # Cheap: catches truncation, replacement by a different-sized file, and most

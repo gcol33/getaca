@@ -70,7 +70,8 @@
 <p>First development version. The v1 boundary is set; nothing here has been released.</p>
 <div class="section level3">
 <h3 id="dependencies-0-0-0-9000">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies-0-0-0-9000"></a></h3>
-<ul><li>Requires R &gt;= 4.6.0 and imports <code>curl</code>, with <code>stats</code>, <code>tools</code> and <code>utils</code> from base R. Hashing uses <code><a href="https://rdrr.io/r/tools/sha256sum.html" class="external-link">tools::sha256sum()</a></code>, which arrived in R 4.6.0 and covers both the artefact on disk and the manifest in memory, so <code>digest</code> is no longer a dependency. Its output is byte-identical for the same input, so registry digests already recorded stay valid.</li>
+<ul><li>Requires R &gt;= 4.0.0 and imports <code>curl</code> (&gt;= 5.0.0), with <code>stats</code>, <code>tools</code> and <code>utils</code> from base R. Zero non-base transitive dependencies, and no <code>LinkingTo</code>. The floor on <code>curl</code> is <code>multi_download()</code>, which is what makes a mirror attempt resumable.</li>
+<li>SHA-256 is implemented in C, in <code>src/sha256.c</code>, covering both the artefact on disk and the manifest in memory. On x86-64 with the SHA extensions and on ARMv8 with the SHA-256 extensions the block compression runs in hardware, which on an i9-14900K hashes at 1.43 GB/s against 0.20 GB/s for <code><a href="https://rdrr.io/r/tools/sha256sum.html" class="external-link">tools::sha256sum()</a></code>: a 4 GB resource is verified in 2.8 s rather than 20 s. Machines without either extension use a portable path that is no slower than what R provides. A digest is a single specified value, so this changes only the time a verification takes; registry digests already recorded stay valid.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="declaration-0-0-0-9000">Declaration<a class="anchor" aria-label="anchor" href="#declaration-0-0-0-9000"></a></h3>
@@ -102,7 +103,7 @@
 <code><a href="../reference/resolve_resource.html">resolve_resource()</a></code> reports the policy in force, and <code><a href="../reference/getaca.html">getaca()</a></code> reads it, so <code>policy = "offline"</code> on a single call keeps that call off the network whatever the session is set to.</li>
 <li>
 <code><a href="../reference/getaca_pin.html">getaca_pin()</a></code>: freeze current resolution into a local snapshot.</li>
-<li>Remote channels may repair mirrors and publish new versions; redefining a published version is rejected as an invalid registry.</li>
+<li>Remote channels may repair mirrors and publish new versions; redefining a published version is rejected as an invalid registry. Published means the bundled declaration together with whatever this machine has already fetched and verified, so a version that only ever existed remotely is held to its bytes as firmly as one that shipped with the package.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="retrieval-0-0-0-9000">Retrieval<a class="anchor" aria-label="anchor" href="#retrieval-0-0-0-9000"></a></h3>
@@ -110,11 +111,12 @@
 <code><a href="../reference/getaca.html">getaca()</a></code>: the single retrieval verb. Returns a local path.</li>
 <li>Resumable transfers into a temporary area, sized and hashed before an atomic move into the cache.</li>
 <li>Directory locking keyed on the declared checksum, so concurrent sessions never duplicate a large transfer or observe a partial one. Two packages declaring the same file wait on each other, and the second finds what the first retrieved.</li>
-<li>Seven classed conditions distinguishing user, author and upstream causes. A transfer that ends short on every mirror raises <code>getaca_error_incomplete</code>, whose action is to retry; mixed causes keep <code>getaca_error_unavailable</code> and list each mirror’s reason.</li>
+<li>Eight classed conditions distinguishing user, author and upstream causes. A transfer that ends short on every mirror raises <code>getaca_error_incomplete</code>, whose action is to retry; mixed causes keep <code>getaca_error_unavailable</code> and list each mirror’s reason.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="verification-0-0-0-9000">Verification<a class="anchor" aria-label="anchor" href="#verification-0-0-0-9000"></a></h3>
 <ul><li>Full SHA-256 on download, cheap size check on access, scheduled re-hash via <code>getaca.verify_days</code>.</li>
+<li>A cache hit is measured against the declaration in force as well as against the entry’s own record. A version whose declaration has moved to different bytes raises <code>getaca_error_redeclared</code> naming both checksums, rather than resolving quietly to the copy already held. <code>verify = TRUE</code> asks the same question, so a forced re-hash can no longer confirm bytes against a declaration they no longer match.</li>
 <li>Entry records keep <code>fetched_at</code>, <code>verified_at</code>, <code>checked_at</code> and <code>accessed_at</code> apart.</li>
 <li>Provenance records which declaration state resolved the bytes (<code>registry_digest</code>), when that state was published (<code>registry_created</code>) and which getaca acted on it (<code>getaca_version</code>).</li>
 </ul></div>

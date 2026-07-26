@@ -18,9 +18,9 @@ BugReports: https://github.com/gcol33/getaca/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
-    R (>= 4.6.0)
+    R (>= 4.0.0)
 Imports:
-    curl,
+    curl (>= 5.0.0),
     stats,
     tools,
     utils

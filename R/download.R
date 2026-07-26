@@ -33,7 +33,7 @@ new_handle_for <- function(url) {
 partial_path <- function(record, url) {
   sprintf("%s/%s-%s.part", cache_tmp_dir(),
           substr(record$sha256, 1, 16),
-          substr(unname(tools::sha256sum(bytes = charToRaw(enc2utf8(url)))), 1, 8))
+          substr(sha256_bytes(charToRaw(enc2utf8(url))), 1, 8))
 }
 
 # Try each mirror in order. Records what each one produced so that the caller

@@ -451,9 +451,8 @@ question the sentence provokes.
 
 `getaca` goes in `Imports`, since the declaration is useless without it,
 and the recursive footprint it adds is `curl` with nothing beneath it.
-Hashing is
-[`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html), so
-`getaca` needs R \>= 4.6.0 and your package inherits that floor.
+`getaca` carries compiled code, so a source install compiles one C file;
+it declares no `LinkingTo`, so nothing has to be built before it.
 
 ## CRAN checklist
 

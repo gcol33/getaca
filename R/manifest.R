@@ -119,7 +119,7 @@ registry_digest <- function(registry) {
   # upstream field would otherwise hash to whatever the session's native
   # encoding made of it, which differs between platforms.
   bytes <- charToRaw(enc2utf8(text))
-  paste0("sha256:", unname(tools::sha256sum(bytes = bytes)))
+  paste0("sha256:", sha256_bytes(bytes))
 }
 
 # Enough hex to identify a state at a glance, matching what a resource record

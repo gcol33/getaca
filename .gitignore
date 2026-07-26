@@ -8,3 +8,6 @@ doc
 Meta
 *.tar.gz
 *.Rcheck
+src/*.o
+src/*.so
+src/*.dll

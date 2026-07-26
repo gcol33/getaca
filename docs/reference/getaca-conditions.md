@@ -25,6 +25,11 @@ message text.
   The cached copy no longer matches its own entry record. actor: user
   (refetch).
 
+- `getaca_error_redeclared`:
+
+  The declaration now names different bytes for a version already held,
+  so the two cannot both be that version. actor: author.
+
 - `getaca_error_invalid_registry`:
 
   Malformed or internally inconsistent registry. actor: author.

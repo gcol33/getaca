@@ -160,8 +160,8 @@ Nothing else is needed to make the package discoverable. `getaca` finds the
 file with `system.file()`, so there is no registration call, no `.onLoad()`
 hook, and no load-order question.
 
-Add `getaca` to `Imports`. It brings `curl`, with nothing beneath it, and an
-R >= 4.6.0 floor for `tools::sha256sum()`.
+Add `getaca` to `Imports`. It brings `curl`, with nothing beneath it, and one C
+file that a source install compiles.
 
 ## Step 3: rewrite the front door
 

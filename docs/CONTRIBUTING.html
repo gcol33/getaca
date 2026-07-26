@@ -115,7 +115,7 @@ dev_notes/          design record and architecture decisions</code></pre>
 <div class="section level2">
 <h2 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a></h2>
 <p><code>Imports</code> is a hard budget: <code>curl</code>, and <code>stats</code>, <code>tools</code> and <code>utils</code> from base R. A pull request adding an <code>Imports</code> entry needs the recursive footprint (<code>tools::package_dependencies(recursive = TRUE)</code>) and the line of code that requires it. Optional features go in <code>Suggests</code> and are gated with <code>need_suggested()</code>.</p>
-<p>Hashing goes through <code>sha256_file()</code> and <code>tools::sha256sum(bytes = )</code>. That function is what sets the R 4.6.0 floor.</p>
+<p>Hashing goes through <code>sha256_file()</code> and <code>sha256_bytes()</code>, both of which reach one C implementation in <code>src/sha256.c</code>. A change there is held against the FIPS 180-4 vectors, against <code><a href="https://rdrr.io/r/tools/sha256sum.html" class="external-link">tools::sha256sum()</a></code> where the R running the tests has it, and against every other compression path compiled into the same build: <code>test-digest.R</code> drives each path explicitly, since a host selects one and would otherwise never exercise the rest.</p>
 </div>
 <div class="section level2">
 <h2 id="workflow">Workflow<a class="anchor" aria-label="anchor" href="#workflow"></a></h2>

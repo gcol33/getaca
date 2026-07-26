@@ -14,7 +14,7 @@ from a CI cache action, or looking at it with a file browser all work.
 ``` r
 
 getaca_cache_dir()
-#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpILxKyu/getaca-cache-vignette"
+#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpeAj1wj/getaca-cache-vignette"
 ```
 
 That is the sandbox this vignette runs in. The default is

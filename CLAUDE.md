@@ -37,8 +37,11 @@ Regenerate the network fixture (see Testing below):
 Rscript tests/testthat/fixtures/make-remote-registry.R
 ```
 
-CI runs `R-CMD-check` on a 5-way matrix and a separate coverage job that sets
-`NOT_CRAN: true`, which is the only place the live-network tests execute.
+CI runs `R-CMD-check` on a six-row matrix (macOS release, Windows release, Ubuntu
+r-devel, release, `oldrel-1` and `oldrel-2`) and a separate coverage job that sets
+`NOT_CRAN: true`, which is the only place the live-network tests execute. The
+`oldrel` rows are what hold the `Depends: R (>= 4.0.0)` floor honest, since the only
+R installed locally is far above it.
 
 ## Architecture
 
@@ -164,8 +167,13 @@ when touching the mirror loop in `R/download.R`.
 
 - `Imports` is a hard budget: `curl`, plus `stats`/`tools`/`utils` from base R. Zero non-base
   transitive deps. Optional formats and helpers go in `Suggests`, gated with `need_suggested()`.
-- All hashing goes through `tools::sha256sum()` (`files=` for paths, `bytes=` for raw vectors).
-  That function is R 4.6.0, which is what sets the `Depends: R (>= 4.6.0)` floor.
+- All hashing goes through `sha256_file()` (paths) and `sha256_bytes()` (raw vectors) in
+  `R/verify.R`, both of which `.Call` into `src/sha256.c`. No `LinkingTo`, no Rcpp, no
+  `configure`: the x86 SHA-NI path is a `target` attribute selected by CPUID at load, and the
+  ARMv8 path compiles only where the compiler already targets the extension. A change to any
+  compression path must keep `test-digest.R` green, which holds each compiled path against the
+  FIPS 180-4 vectors, against every other path, and against `tools::sha256sum()` on R >= 4.6.0.
+- `Depends: R (>= 4.0.0)`, set by `tools::R_user_dir()`. Nothing in `R/` needs more.
 - Base R, no pipes, explicit `package::function()` for anything outside base.
 - Comments explain domain reasoning only. Design decisions and history belong in
   `dev_notes/design.md`, `dev_notes/adr-*.md`, `dev_notes/open-questions.md`, or the commit
