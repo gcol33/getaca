@@ -14,7 +14,8 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       # The transport is the one layer a fake cannot stand in for, so the
-      # coverage run is the place the network tests have to execute.
+      # network tests have to execute here. setup-r-dependencies sets this
+      # too; stated explicitly so coverage does not depend on that.
       NOT_CRAN: true
 
     steps:

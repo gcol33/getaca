@@ -15,10 +15,12 @@ local_registries <- function(env = parent.frame()) {
 }
 
 # Skips unless this is a run where reaching the network is both allowed and
-# possible, and releases the check clamp for the duration.
+# possible, and releases the check clamp for the duration. The host tested is
+# the one the fixtures are served from, so an outage there skips rather than
+# reporting a transport bug that is not there.
 online_only <- function(env = parent.frame()) {
   testthat::skip_on_cran()
-  testthat::skip_if_offline()
+  testthat::skip_if_offline("raw.githubusercontent.com")
   withr::local_envvar(list(NOT_CRAN = "true"), .local_envir = env)
 }
 
