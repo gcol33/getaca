@@ -25,8 +25,15 @@ new_handle_for <- function(url) {
   h
 }
 
-partial_path <- function(record) {
-  file.path(cache_tmp_dir(), paste0(substr(record$sha256, 1, 16), ".part"))
+# A partial transfer is resumable only against the mirror that produced it, so
+# each mirror gets its own temporary file. Sharing one file across mirrors
+# means a failed attempt at the first is resumed onto by the second, and the
+# resulting corruption is indistinguishable from the publisher having changed
+# the bytes.
+partial_path <- function(record, url) {
+  sprintf("%s/%s-%s.part", cache_tmp_dir(),
+          substr(record$sha256, 1, 16),
+          substr(digest::digest(url, algo = "sha256", serialize = FALSE), 1, 8))
 }
 
 # Try each mirror in order. Records what each one produced so that the caller
@@ -37,34 +44,23 @@ partial_path <- function(record) {
 # Adjudication is the part worth testing, and it is testable without a
 # network because the transport is injectable.
 fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one) {
-  dest <- partial_path(record)
   unreachable <- character()
   reasons <- character()
   observed_hashes <- character()
 
   for (url in record$urls) {
-    res <- transport(url, dest, quiet = quiet)
-    if (!isTRUE(res$success)) {
+    dest <- partial_path(record, url)
+    out <- attempt_mirror(url, dest, record, transport, quiet)
+
+    if (identical(out$status, "ok")) {
+      return(list(path = dest, url = url, sha256 = out$sha256))
+    }
+    if (identical(out$status, "mismatch")) {
+      observed_hashes <- c(observed_hashes, stats::setNames(out$sha256, url))
+    } else {
       unreachable <- c(unreachable, url)
-      reasons <- c(reasons, res$reason)
-      next
+      reasons <- c(reasons, out$reason)
     }
-
-    size <- file_size(dest)
-    if (!is.na(record$size) && size < record$size) {
-      unlink(dest)
-      unreachable <- c(unreachable, url)
-      reasons <- c(reasons, sprintf("truncated (%s of %s bytes)", size, record$size))
-      next
-    }
-
-    observed <- sha256_file(dest)
-    if (identical(observed, record$sha256)) {
-      return(list(path = dest, url = url, sha256 = observed))
-    }
-
-    observed_hashes <- c(observed_hashes, stats::setNames(observed, url))
-    unlink(dest)
   }
 
   # Every mirror that answered agreed with the others and disagreed with the
@@ -78,6 +74,40 @@ fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one) {
   err_unavailable(id, unreachable, reasons)
 }
 
+# One mirror, with the partial file it owns. A resumed transfer that completes
+# but does not verify indicts the partial rather than the publisher, so the
+# same mirror is asked once more from empty. Without that, one stale temporary
+# file makes a resource permanently unfetchable and blames upstream for it.
+attempt_mirror <- function(url, dest, record, transport, quiet) {
+  out <- one_pass(url, dest, record, transport, quiet)
+  if (identical(out$status, "mismatch") && out$resumed) {
+    unlink(dest)
+    out <- one_pass(url, dest, record, transport, quiet)
+  }
+  if (identical(out$status, "mismatch")) unlink(dest)
+  out
+}
+
+one_pass <- function(url, dest, record, transport, quiet) {
+  resumed <- file.exists(dest)
+  res <- transport(url, dest, quiet = quiet)
+
+  if (!isTRUE(res$success)) {
+    return(list(status = "unreachable", reason = res$reason, resumed = resumed))
+  }
+
+  size <- file_size(dest)
+  if (!is.na(record$size) && size < record$size) {
+    unlink(dest)
+    return(list(status = "unreachable", resumed = resumed,
+                reason = sprintf("truncated (%s of %s bytes)", size, record$size)))
+  }
+
+  observed <- sha256_file(dest)
+  status <- if (identical(observed, record$sha256)) "ok" else "mismatch"
+  list(status = status, sha256 = observed, resumed = resumed)
+}
+
 try_one <- function(url, dest, quiet = FALSE) {
   out <- tryCatch(
     curl::multi_download(
@@ -89,16 +119,23 @@ try_one <- function(url, dest, quiet = FALSE) {
     error = function(e) NULL
   )
   if (is.null(out)) return(list(success = FALSE, reason = "transfer failed"))
+  status <- out$status_code[1]
   if (!isTRUE(out$success[1])) {
+    # An interrupted transfer keeps what it managed to write, so the next
+    # attempt resumes rather than starting a large download over.
     reason <- if (!is.na(out$error[1]) && nzchar(out$error[1])) {
       out$error[1]
     } else {
-      paste("HTTP", out$status_code[1])
+      paste("HTTP", status)
     }
     return(list(success = FALSE, reason = reason))
   }
-  if (!is.na(out$status_code[1]) && out$status_code[1] >= 400) {
-    return(list(success = FALSE, reason = paste("HTTP", out$status_code[1])))
+  if (!is.na(status) && status >= 400) {
+    # The body of an error response is not resource bytes, and a range request
+    # this server refused is not resumable either. Neither may survive as a
+    # partial file.
+    unlink(dest)
+    return(list(success = FALSE, reason = paste("HTTP", status)))
   }
   list(success = TRUE, reason = NA_character_)
 }

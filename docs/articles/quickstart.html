@@ -111,7 +111,7 @@ can be found.</p>
 <span>              <span class="st">"https://mirror.invalid/wfo-2026-06.zip"</span><span class="op">)</span>,</span>
 <span>  sha256  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"9f"</span>, <span class="fl">32</span><span class="op">)</span>,</span>
 <span>  size    <span class="op">=</span> <span class="fl">4.1e9</span>,</span>
-<span>  licence <span class="op">=</span> <span class="st">"CC-BY-4.0"</span></span>
+<span>  license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">wfo</span></span>
@@ -120,7 +120,7 @@ can be found.</p>
 <span><span class="co">#&gt;   version   2026-06</span></span>
 <span><span class="co">#&gt;   sha256    9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f</span></span>
 <span><span class="co">#&gt;   size      4.1e+09</span></span>
-<span><span class="co">#&gt;   licence   CC-BY-4.0</span></span>
+<span><span class="co">#&gt;   license   CC-BY-4.0</span></span>
 <span><span class="co">#&gt;   urls      https://primary.invalid/wfo-2026-06.zip</span></span>
 <span><span class="co">#&gt;              https://mirror.invalid/wfo-2026-06.zip</span></span></code></pre></div>
 <p>Records live in a registry, which is scoped to the declaring
@@ -201,7 +201,7 @@ has already been seeded.</p>
 <span><span class="co">#&gt;   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.zip</span></span>
 <span><span class="co">#&gt;   sha256      9f9f9f...</span></span>
 <span><span class="co">#&gt;   size        4,100,000,000 bytes</span></span>
-<span><span class="co">#&gt;   licence     CC-BY-4.0</span></span>
+<span><span class="co">#&gt;   license     CC-BY-4.0</span></span>
 <span><span class="co">#&gt;   resolved by bundled registry, revision 1</span></span>
 <span><span class="co">#&gt;   source url  https://primary.invalid/wfo-2026-06.zip</span></span>
 <span><span class="co">#&gt;   fetched     2026-07-26 11:02:13</span></span>
@@ -210,14 +210,23 @@ has already been seeded.</p>
 <p>Four timestamps, kept apart on purpose. “Verified” means the bytes
 were re-hashed then, not that somebody looked at the file at some
 point.</p>
-<p><code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> gives the same information for
-everything cached, as a data frame suitable for a reproducibility
-appendix.</p>
+<p><code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> widens that to a data frame covering
+both halves: every resource the installed packages declare, and every
+copy the cache holds.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span>registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"version"</span>, <span class="st">"declared"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   name version declared cached</span></span>
+<span><span class="co">#&gt; 1  wfo 2026-06     TRUE  FALSE</span></span></code></pre></div>
+<p><code>declared</code> and <code>cached</code> answer different
+questions. A row with <code>declared = TRUE, cached = FALSE</code> is
+work still to do on this machine. A row with
+<code>declared = FALSE</code> is a copy of a version nothing asks for
+any more, which is what the retention sweeps reclaim first.</p>
 </div>
 <div class="section level2">
 <h2 id="where-things-are-stored">Where things are stored<a class="anchor" aria-label="anchor" href="#where-things-are-stored"></a>
 </h2>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_cache_dir.html">getaca_cache_dir</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "C:\\Users\\Gilles Colling\\AppData\\Local/R/cache/R/getaca"</span></span></code></pre></div>
 <p><code>tools::R_user_dir("getaca", "cache")</code> by default, which

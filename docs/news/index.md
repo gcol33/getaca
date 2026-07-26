@@ -9,7 +9,7 @@ released.
 
 - [`resource()`](https://gillescolling.com/getaca/reference/resource.md):
   immutable record of exact bytes, with version, mirrors, SHA-256, size,
-  licence, upstream identity and optional processor.
+  license, upstream identity and optional processor.
 - [`registry()`](https://gillescolling.com/getaca/reference/registry.md),
   [`registry_write()`](https://gillescolling.com/getaca/reference/registry_write.md),
   [`registry_read()`](https://gillescolling.com/getaca/reference/registry_write.md),
@@ -22,6 +22,9 @@ released.
 - [`processor()`](https://gillescolling.com/getaca/reference/processor.md):
   post-verification transformation with a stable id, so the derived
   result gets its own cache slot and provenance.
+- [`getaca_refresh()`](https://gillescolling.com/getaca/reference/getaca_refresh.md):
+  forget cached registry state, so a reinstalled declaring package or an
+  updated remote registry is picked up without restarting the session.
 
 ### Resolution
 
@@ -68,7 +71,9 @@ released.
   above the size ceiling.
 - [`getaca_keep()`](https://gillescolling.com/getaca/reference/getaca_keep.md)
   to exempt a resource.
-- [`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)
-  and
-  [`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.md)
-  for provenance.
+- [`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md):
+  one table covering what packages declare and what the cache holds,
+  including declared resources never downloaded and cached versions no
+  longer declared.
+- [`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.md):
+  full provenance for one cached resource.

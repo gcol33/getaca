@@ -15,7 +15,7 @@ resource(
   urls,
   sha256,
   size = NA_real_,
-  licence = NA_character_,
+  license = NA_character_,
   description = NA_character_,
   upstream = NULL,
   processor = NULL
@@ -46,9 +46,9 @@ resource(
   Expected size in bytes, or `NA`. Used to detect truncated transfers
   before hashing.
 
-- licence:
+- license:
 
-  Licence identifier for the data, for example `"CC-BY-4.0"`.
+  License identifier for the data, for example `"CC-BY-4.0"`.
 
 - description:
 
@@ -80,6 +80,6 @@ resource(
   urls = "https://example.org/wfo-2026.1.parquet",
   sha256 = strrep("a", 64),
   size = 1048576,
-  licence = "CC-BY-4.0"
+  license = "CC-BY-4.0"
 )
 ```

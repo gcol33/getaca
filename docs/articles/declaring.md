@@ -41,7 +41,7 @@ reg <- registry(
     resource("wfo", "2026-06",
              urls   = "https://primary.invalid/wfo-2026-06.zip",
              sha256 = strrep("9f", 32),
-             licence = "CC-BY-4.0")
+             license = "CC-BY-4.0")
   )
 )
 ```
@@ -87,7 +87,7 @@ resource(
   version = "source-2026-06_build-3",
   urls    = "https://example.invalid/wfo-db-3.duckdb",
   sha256  = strrep("ab", 32),
-  licence = "CC-BY-4.0",
+  license = "CC-BY-4.0",
   upstream = list(
     wfo_release    = "2026-06",
     taxifydb_build = "3"
@@ -98,7 +98,7 @@ resource(
 #>   version   source-2026-06_build-3
 #>   sha256    abababababababababababababababababababababababababababababababab
 #>   size      unknown
-#>   licence   CC-BY-4.0
+#>   license   CC-BY-4.0
 #>   urls      https://example.invalid/wfo-db-3.duckdb
 #>   built from
 #>     wfo_release: 2026-06
@@ -146,7 +146,7 @@ wfo:
 
     - https://mirror.invalid/wfo-2026-06.zip
   sha256: "9f9f..."
-  licence: CC-BY-4.0
+  license: CC-BY-4.0
 ```
 
 ## Handing errors to your users

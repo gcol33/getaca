@@ -44,6 +44,8 @@ test_that("a missing path is an HTTP failure, not wrong content", {
 
   expect_false(res$success)
   expect_match(res$reason, "404")
+  # The error body must not survive as something a later attempt resumes onto.
+  expect_false(file.exists(dest))
 })
 
 test_that("an unresolvable host is a transfer failure", {

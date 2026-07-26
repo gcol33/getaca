@@ -28,6 +28,8 @@ What a package says it needs
   : Find the registry a package ships
 - [`as_registry()`](https://gillescolling.com/getaca/reference/as_registry.md)
   : Convert an authoring format into a registry
+- [`getaca_refresh()`](https://gillescolling.com/getaca/reference/getaca_refresh.md)
+  : Forget cached registry state
 
 ## Resolution
 

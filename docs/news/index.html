@@ -63,13 +63,15 @@
 <div class="section level3">
 <h3 id="declaration-0-0-0-9000">Declaration<a class="anchor" aria-label="anchor" href="#declaration-0-0-0-9000"></a></h3>
 <ul><li>
-<code><a href="../reference/resource.html">resource()</a></code>: immutable record of exact bytes, with version, mirrors, SHA-256, size, licence, upstream identity and optional processor.</li>
+<code><a href="../reference/resource.html">resource()</a></code>: immutable record of exact bytes, with version, mirrors, SHA-256, size, license, upstream identity and optional processor.</li>
 <li>
 <code><a href="../reference/registry.html">registry()</a></code>, <code><a href="../reference/registry_write.html">registry_write()</a></code>, <code><a href="../reference/registry_write.html">registry_read()</a></code>, <code><a href="../reference/registry_for.html">registry_for()</a></code>: package-scoped declarations, discovered by convention at <code>inst/getaca/registry.rds</code>.</li>
 <li>
 <code><a href="../reference/as_registry.html">as_registry()</a></code>: YAML and JSON accepted as authoring formats, gated at call time so neither becomes a hard dependency.</li>
 <li>
 <code><a href="../reference/processor.html">processor()</a></code>: post-verification transformation with a stable id, so the derived result gets its own cache slot and provenance.</li>
+<li>
+<code><a href="../reference/getaca_refresh.html">getaca_refresh()</a></code>: forget cached registry state, so a reinstalled declaring package or an updated remote registry is picked up without restarting the session.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="resolution-0-0-0-9000">Resolution<a class="anchor" aria-label="anchor" href="#resolution-0-0-0-9000"></a></h3>
@@ -106,7 +108,9 @@
 <li>
 <code><a href="../reference/getaca_keep.html">getaca_keep()</a></code> to exempt a resource.</li>
 <li>
-<code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> and <code><a href="../reference/getaca_info.html">getaca_info()</a></code> for provenance.</li>
+<code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code>: one table covering what packages declare and what the cache holds, including declared resources never downloaded and cached versions no longer declared.</li>
+<li>
+<code><a href="../reference/getaca_info.html">getaca_info()</a></code>: full provenance for one cached resource.</li>
 </ul></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

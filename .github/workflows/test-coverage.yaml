@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      # The transport is the one layer a fake cannot stand in for, so the
+      # coverage run is the place the network tests have to execute.
+      NOT_CRAN: true
 
     steps:
       - uses: actions/checkout@v4

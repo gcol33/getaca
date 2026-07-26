@@ -112,10 +112,23 @@ apply_processor <- function(id, proc, raw) {
     stop(sprintf("getaca: could not promote the processed result for %s", format(id)),
          call. = FALSE)
   }
-  sub(paste0("^", escape_re(staging)), out, result)
+  reroot(result, staging, out, proc$id, id)
 }
 
-escape_re <- function(x) gsub("([.\\\\^$|()\\[\\]{}*+?])", "\\\\\\1", x)
+# A processor works in a staging directory that is renamed once it succeeds, so
+# the paths it returned have to follow. Prefix surgery on the string, not a
+# pattern: a cache path is full of characters a regular expression would read
+# as syntax.
+reroot <- function(path, from, to, processor_id, id) {
+  outside <- !startsWith(path, from)
+  if (any(outside)) {
+    stop(sprintf(
+      "getaca: processor '%s' returned a path outside its output directory for %s:\n  %s",
+      processor_id, format(id), path[outside][1]
+    ), call. = FALSE)
+  }
+  paste0(to, substring(path, nchar(from) + 1L))
+}
 
 err_offline <- function(id, why, call = NULL) {
   cond <- list(

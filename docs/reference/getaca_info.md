@@ -3,7 +3,7 @@
 Answers, for a cached resource: which package declared it, which
 registry revision and which policy resolved it, the exact version,
 declared and observed checksums, which mirror served it, when it was
-fetched and when it was last fully verified, its licence, any processor
+fetched and when it was last fully verified, its license, any processor
 applied, and the local path. Suitable for a reproducibility appendix or
 a bug report.
 

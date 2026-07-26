@@ -31,7 +31,7 @@ registry(
                       "https://mirror/wfo-2026-06.zip"),
              sha256 = "9f2c...",
              size = 4.1e9,
-             licence = "CC-BY-4.0")
+             license = "CC-BY-4.0")
   )
 )
 
@@ -119,6 +119,8 @@ invalid registry rather than accepting a silent substitution.
   full provenance for a cached resource
 - **[`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)**
   what is declared, what is cached
+- **[`getaca_refresh()`](https://gillescolling.com/getaca/reference/getaca_refresh.md)**
+  forget cached registry state within a session
 - **[`getaca_prefetch()`](https://gillescolling.com/getaca/reference/getaca_prefetch.md)**
   warm a cache before going offline
 - **[`getaca_pin()`](https://gillescolling.com/getaca/reference/getaca_pin.md)**
@@ -164,7 +166,7 @@ second observes the first’s success instead of downloading again.
 | Release cadence | coupled to code releases | independent of them |
 | Shape | naturally R objects | any file, any format |
 | Granularity | all of it, always | users take what they need |
-| Licence | redistribution permitted | download permitted, redistribution discouraged |
+| License | redistribution permitted | download permitted, redistribution discouraged |
 
 A companion package can itself use `getaca`, but that is rarely the
 first recommendation: it moves the complexity rather than removing it.

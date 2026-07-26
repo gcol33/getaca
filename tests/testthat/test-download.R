@@ -17,6 +17,27 @@ fake_transport <- function(...) {
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+# Mimics a resuming transport the way curl behaves: a refused request still
+# writes an error body, and a successful one appends to whatever the
+# destination already holds. That combination is what made a dead mirror
+# corrupt the next mirror's download.
+resuming_transport <- function(...) {
+  responses <- list(...)
+  i <- 0L
+  function(url, dest, quiet = FALSE) {
+    i <<- i + 1L
+    r <- responses[[i]]
+    con <- file(dest, open = if (file.exists(dest)) "ab" else "wb")
+    on.exit(close(con))
+    if (is.null(r$contents)) {
+      writeBin(charToRaw("<html>not found</html>"), con)
+      return(list(success = FALSE, reason = r$reason %||% "HTTP 404"))
+    }
+    writeBin(charToRaw(r$contents), con)
+    list(success = TRUE, reason = NA_character_)
+  }
+}
+
 fake_record <- function(contents, urls, size = NA_real_) {
   tmp <- withr::local_tempfile()
   writeBin(charToRaw(contents), tmp)
@@ -149,10 +170,138 @@ test_that("verified bytes are promoted into the cache atomically", {
   expect_equal(getaca:::sha256_file(final), rec$sha256)
 })
 
+test_that("a promotion blocked at its destination says so", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/data.csv")
+  got <- getaca:::fetch_to_temp(id, rec, quiet = TRUE,
+    transport = fake_transport(list(contents = "payload")))
+
+  # A file standing where the version directory belongs, so the raw directory
+  # cannot be created and nothing can be written beneath it.
+  version_dir <- getaca:::cache_version_dir(id)
+  dir.create(dirname(version_dir), recursive = TRUE, showWarnings = FALSE)
+  writeBin(charToRaw("in the way"), version_dir)
+
+  expect_error(
+    suppressWarnings(getaca:::promote(id, rec, got$path)),
+    "could not move the verified file into the cache"
+  )
+})
+
+test_that("promotion replaces whatever occupied the slot", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/data.csv")
+  raw <- getaca:::cache_raw_dir(id)
+  dir.create(raw, recursive = TRUE, showWarnings = FALSE)
+  writeBin(charToRaw("stale"), file.path(raw, "data.csv"))
+
+  got <- getaca:::fetch_to_temp(id, rec, quiet = TRUE,
+    transport = fake_transport(list(contents = "payload")))
+  final <- getaca:::promote(id, rec, got$path)
+
+  expect_equal(getaca:::sha256_file(final), rec$sha256)
+})
+
 test_that("a URL with a query string still yields a usable file name", {
   expect_equal(getaca:::url_basename("https://e.org/a/b.zip?token=x"), "b.zip")
   expect_equal(getaca:::url_basename("https://e.org/a/b.zip#frag"), "b.zip")
   expect_equal(getaca:::url_basename("https://e.org/"), "resource.bin")
+})
+
+test_that("each mirror transfers into its own partial file", {
+  cache <- local_cache()
+  rec <- fake_record("payload", c("https://a.invalid/f", "https://b.invalid/f"))
+
+  expect_false(identical(
+    getaca:::partial_path(rec, rec$urls[1]),
+    getaca:::partial_path(rec, rec$urls[2])
+  ))
+})
+
+test_that("what a dead mirror leaves behind cannot contaminate the next one", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", c("https://a.invalid/f", "https://b.invalid/f"))
+
+  got <- getaca:::fetch_to_temp(
+    id, rec, quiet = TRUE,
+    transport = resuming_transport(
+      list(contents = NULL, reason = "HTTP 404"),
+      list(contents = "payload")
+    )
+  )
+
+  expect_equal(got$url, "https://b.invalid/f")
+  expect_equal(got$sha256, rec$sha256)
+})
+
+test_that("a stale partial that fails to verify is discarded and refetched", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/f")
+  writeBin(charToRaw("left over from an earlier run"),
+           getaca:::partial_path(rec, rec$urls[1]))
+
+  got <- getaca:::fetch_to_temp(
+    id, rec, quiet = TRUE,
+    transport = resuming_transport(
+      list(contents = "payload"),
+      list(contents = "payload")
+    )
+  )
+
+  expect_equal(got$sha256, rec$sha256)
+})
+
+test_that("a mirror serving other bytes is judged on a single attempt", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/f")
+  calls <- 0L
+  serves_other <- function(url, dest, quiet = FALSE) {
+    calls <<- calls + 1L
+    writeBin(charToRaw("something else"), dest)
+    list(success = TRUE, reason = NA_character_)
+  }
+
+  expect_error(
+    getaca:::fetch_to_temp(id, rec, quiet = TRUE, transport = serves_other),
+    class = "getaca_error_upstream_changed"
+  )
+  expect_equal(calls, 1L)
+})
+
+test_that("bytes that fail to verify are not left behind as a partial", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/f")
+
+  expect_error(
+    getaca:::fetch_to_temp(id, rec, quiet = TRUE,
+      transport = fake_transport(list(contents = "something else"))),
+    class = "getaca_error_upstream_changed"
+  )
+  expect_false(file.exists(getaca:::partial_path(rec, rec$urls[1])))
+})
+
+test_that("an interrupted transfer keeps its partial for the next attempt", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/f")
+  part <- getaca:::partial_path(rec, rec$urls[1])
+  cut_short <- function(url, dest, quiet = FALSE) {
+    writeBin(charToRaw("pay"), dest)
+    list(success = FALSE, reason = "transfer failed")
+  }
+
+  expect_error(
+    getaca:::fetch_to_temp(id, rec, quiet = TRUE, transport = cut_short),
+    class = "getaca_error_unavailable"
+  )
+  expect_true(file.exists(part))
+  expect_equal(file.info(part)$size, 3)
 })
 
 test_that("an end-to-end retrieval records the mirror that served it", {
