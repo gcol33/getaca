@@ -129,12 +129,12 @@ sweep_broken <- function(index, dry_run) {
 sweep_superseded <- function(package, index, dry_run) {
   reg <- tryCatch(registry_for(package), error = function(e) NULL)
   keep <- if (is.null(reg)) character() else {
-    vapply(reg$resources, function(r) paste0(r$name, "@", r$version), character(1))
+    vapply(reg$resources, version_key, character(1))
   }
   cutoff <- Sys.time() - setting_supersede_days() * 86400
 
   candidates <- Filter(function(e) {
-    key <- paste0(e$id$name, "@", e$id$version)
+    key <- version_key(e$id)
     !isTRUE(e$pinned) && !(key %in% keep) && e$accessed_at < cutoff && !locked(e)
   }, index)
   if (!length(candidates)) return(NULL)

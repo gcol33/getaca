@@ -1,12 +1,3 @@
-# Serves a known file as though it had been downloaded, so a retrieval can be
-# exercised end to end without a network.
-serves_file <- function(file) {
-  function(url, dest, quiet = FALSE) {
-    file.copy(file$path, dest, overwrite = TRUE)
-    list(success = TRUE, reason = NA_character_)
-  }
-}
-
 staged <- function(file) {
   dest <- file.path(getaca:::cache_tmp_dir(), basename(file$path))
   file.copy(file$path, dest, overwrite = TRUE)

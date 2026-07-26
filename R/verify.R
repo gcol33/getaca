@@ -14,6 +14,11 @@
 #'     corruption and all kinds of substitution.}
 #' }
 #'
+#' All three ask whether the bytes are still the bytes. A cache hit is checked
+#' for one thing first: that the declaration still names the same bytes it
+#' named when they were fetched. Bytes matching a superseded declaration are
+#' not what was asked for, however intact they are.
+#'
 #' @name getaca-verification
 #' @keywords internal
 NULL
@@ -38,6 +43,13 @@ needs_full_verification <- function(entry) {
 # Returns the entry, refreshed. Raises getaca_error_cache_corrupt when the
 # cached bytes are no longer what the entry says they are.
 validate_cached <- function(entry, record, force = FALSE) {
+  # The entry was verified against whichever declaration was in force when the
+  # bytes arrived. A declaration naming different bytes for the same version is
+  # a redefinition, and a cache hit is not licence to keep resolving quietly
+  # through it: the two disagree about what the version means.
+  if (!identical(entry$declared_sha256, record$sha256)) {
+    err_redeclared(entry$id, entry$declared_sha256, record$sha256)
+  }
   if (!cheap_check_ok(entry)) {
     observed <- if (file.exists(entry$path)) sha256_file(entry$path) else "<missing>"
     err_cache_corrupt(entry$id, entry$path, entry$declared_sha256, observed)

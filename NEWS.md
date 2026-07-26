@@ -50,7 +50,10 @@ released.
   whatever the session is set to.
 * `getaca_pin()`: freeze current resolution into a local snapshot.
 * Remote channels may repair mirrors and publish new versions; redefining a
-  published version is rejected as an invalid registry.
+  published version is rejected as an invalid registry. Published means the
+  bundled declaration together with whatever this machine has already fetched
+  and verified, so a version that only ever existed remotely is held to its
+  bytes as firmly as one that shipped with the package.
 
 ## Retrieval
 * `getaca()`: the single retrieval verb. Returns a local path.
@@ -60,7 +63,7 @@ released.
   never duplicate a large transfer or observe a partial one. Two packages
   declaring the same file wait on each other, and the second finds what the
   first retrieved.
-* Seven classed conditions distinguishing user, author and upstream causes.
+* Eight classed conditions distinguishing user, author and upstream causes.
   A transfer that ends short on every mirror raises `getaca_error_incomplete`,
   whose action is to retry; mixed causes keep `getaca_error_unavailable` and
   list each mirror's reason.
@@ -68,6 +71,12 @@ released.
 ## Verification
 * Full SHA-256 on download, cheap size check on access, scheduled re-hash via
   `getaca.verify_days`.
+* A cache hit is measured against the declaration in force as well as against
+  the entry's own record. A version whose declaration has moved to different
+  bytes raises `getaca_error_redeclared` naming both checksums, rather than
+  resolving quietly to the copy already held. `verify = TRUE` asks the same
+  question, so a forced re-hash can no longer confirm bytes against a
+  declaration they no longer match.
 * Entry records keep `fetched_at`, `verified_at`, `checked_at` and
   `accessed_at` apart.
 * Provenance records which declaration state resolved the bytes

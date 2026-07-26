@@ -42,6 +42,15 @@ demo_registry <- function(sha, urls = "https://example.invalid/res-1.0.csv",
   )
 }
 
+# Serves a known file as though it had been downloaded, so a retrieval can be
+# exercised end to end without a network.
+serves_file <- function(file) {
+  function(url, dest, quiet = FALSE) {
+    file.copy(file$path, dest, overwrite = TRUE)
+    list(success = TRUE, reason = NA_character_)
+  }
+}
+
 # Seed the cache as though a successful retrieval had happened: through the
 # store, so a seeded entry is shaped like a fetched one.
 seed_cache <- function(reg, file, name = "res") {

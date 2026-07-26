@@ -18,5 +18,10 @@ Recorded as \code{checked_at}. Performed on ordinary access.}
 than \code{getaca.verify_days}, because size and mtime miss some kinds of
 corruption and all kinds of substitution.}
 }
+
+All three ask whether the bytes are still the bytes. A cache hit is checked
+for one thing first: that the declaration still names the same bytes it
+named when they were fetched. Bytes matching a superseded declaration are
+not what was asked for, however intact they are.
 }
 \keyword{internal}

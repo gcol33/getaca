@@ -127,12 +127,19 @@ remote_channel <- function(reg, fetch = fetch_registry) {
 # A remote channel may repair mirrors and add versions. It may never redefine
 # what a published version means. A pin file is held to the same rule, so the
 # message names whichever of the two is being checked.
-assert_immutable <- function(bundled, fetched, source = "remote registry") {
-  key <- function(r) paste0(r$name, "@", r$version)
+#
+# What counts as published is the bundled declaration plus whatever this
+# machine has already fetched and verified. Without the second, a version the
+# bundled registry never carried could be redefined freely, since there would
+# be nothing on this side to contradict. `known` is injected so the adjudication
+# stays testable without a cache.
+assert_immutable <- function(bundled, fetched, source = "remote registry",
+                             known = cached_checksums(bundled$package)) {
   old <- stats::setNames(vapply(bundled$resources, function(r) r$sha256, character(1)),
-                         vapply(bundled$resources, key, character(1)))
+                         vapply(bundled$resources, version_key, character(1)))
+  old <- c(old, known[setdiff(names(known), names(old))])
   new <- stats::setNames(vapply(fetched$resources, function(r) r$sha256, character(1)),
-                         vapply(fetched$resources, key, character(1)))
+                         vapply(fetched$resources, version_key, character(1)))
   shared <- intersect(names(old), names(new))
   bad <- shared[old[shared] != new[shared]]
   if (length(bad)) {

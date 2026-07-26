@@ -15,6 +15,9 @@
 #'     otherwise sound. actor: upstream.}
 #'   \item{`getaca_error_cache_corrupt`}{The cached copy no longer matches its
 #'     own entry record. actor: user (refetch).}
+#'   \item{`getaca_error_redeclared`}{The declaration now names different bytes
+#'     for a version already held, so the two cannot both be that version.
+#'     actor: author.}
 #'   \item{`getaca_error_invalid_registry`}{Malformed or internally
 #'     inconsistent registry. actor: author.}
 #'   \item{`getaca_error_declaration`}{Several independent mirrors agreed with
@@ -112,6 +115,30 @@ err_cache_corrupt <- function(id, path, expected, observed, call = NULL) {
     ),
     actor = "user",
     data = list(id = id, path = path, expected = expected, observed = observed),
+    call = call
+  )
+}
+
+err_redeclared <- function(id, cached, declared, call = NULL) {
+  getaca_abort(
+    "getaca_error_redeclared",
+    c(
+      sprintf("The declaration for %s no longer names the bytes already held.",
+              format(id)),
+      sprintf("  cached SHA-256:   %s", cached),
+      sprintf("  declared SHA-256: %s", declared),
+      "",
+      "A version identifies exact bytes, so these cannot both be that version.",
+      "The cached copy was verified against the earlier declaration and has",
+      "been left untouched. Publish a new version instead of redefining this",
+      "one.",
+      "",
+      "Action: if the new declaration is the correct one, drop the old copy",
+      sprintf("with getaca_clean(\"%s\", package = \"%s\") and retry.",
+              id$name, id$package)
+    ),
+    actor = "author",
+    data = list(id = id, cached = cached, declared = declared),
     call = call
   )
 }

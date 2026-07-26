@@ -102,7 +102,11 @@ network or a second volume; only `test-network.R` moves real bytes.
 Changing any of these is a design decision that belongs in a `dev_notes/adr-*.md`, not a bug fix.
 
 1. A published `name@version` names fixed bytes. No path may accept a different checksum for
-   an existing version.
+   an existing version. Two guards, because a declaration can move on either side of a fetch:
+   `assert_immutable()` holds an incoming registry or pin file to what the bundled declaration
+   and the cache already say, and `validate_cached()` refuses a cache hit whose declaration has
+   moved since the bytes arrived. What counts as published includes anything already fetched,
+   so a version that only ever existed in a remote registry is covered too.
 2. A returned path is complete, verified, read-only, and in a slot getaca owns. Bytes reach
    the store only through `admit()`, after sizing and hashing in `.tmp/`.
 3. Resolution collapses to `offline` under `R CMD check`. `in_r_check()` is checked inside

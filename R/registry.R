@@ -118,7 +118,7 @@ validate_registry <- function(x) {
   ok <- vapply(x$resources, inherits, logical(1), "getaca_resource")
   if (!all(ok)) p <- c(p, "every element of `resources` must come from resource()")
   if (all(ok) && length(x$resources)) {
-    keys <- vapply(x$resources, function(r) paste0(r$name, "@", r$version), character(1))
+    keys <- vapply(x$resources, version_key, character(1))
     dup <- unique(keys[duplicated(keys)])
     if (length(dup)) p <- c(p, sprintf("duplicate resource declaration: %s", dup))
     p <- c(p, validate_channel_heads(x))

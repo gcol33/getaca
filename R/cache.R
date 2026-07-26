@@ -61,8 +61,24 @@ write_index <- function(package, index) {
   invisible(p)
 }
 
+# The identity two declarations of one resource have to agree on. Taken from
+# anything carrying a name and a version, which is both an id and a record.
+version_key <- function(x) paste0(x$name, "@", x$version)
+
 entry_key <- function(id, processor_id = NULL) {
-  paste0(id$name, "@", id$version, if (!is.null(processor_id)) paste0("#", processor_id))
+  paste0(version_key(id), if (!is.null(processor_id)) paste0("#", processor_id))
+}
+
+# What this machine has already accepted for each version it holds. A version
+# whose bytes are cached is published as far as this machine is concerned,
+# whether or not the bundled registry is the declaration that named it.
+cached_checksums <- function(package) {
+  entries <- read_index(package)
+  if (!length(entries)) return(character())
+  keys <- vapply(entries, function(e) version_key(e$id), character(1))
+  shas <- vapply(entries, function(e) e$declared_sha256, character(1))
+  keep <- !duplicated(keys)
+  stats::setNames(shas[keep], keys[keep])
 }
 
 get_entry <- function(id, processor_id = NULL) {

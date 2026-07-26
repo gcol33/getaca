@@ -235,15 +235,14 @@ getaca_catalogue <- function(package = NULL, registry = NULL) {
 catalogue_rows <- function(package, registry = NULL) {
   reg <- registry %||% tryCatch(registry_for(package), error = function(e) NULL)
   entries <- read_index(package)
-  keys <- vapply(entries, function(e) paste0(e$id$name, "@", e$id$version),
-                 character(1))
+  keys <- vapply(entries, function(e) version_key(e$id), character(1))
   is_current <- current_marker(reg)
 
   rows <- list()
   declared_keys <- character()
   if (!is.null(reg)) {
     for (rec in reg$resources) {
-      key <- paste0(rec$name, "@", rec$version)
+      key <- version_key(rec)
       declared_keys <- c(declared_keys, key)
       hits <- entries[keys == key]
       if (length(hits)) {
@@ -258,7 +257,7 @@ catalogue_rows <- function(package, registry = NULL) {
   # whose registry could not be read at all. Those are different claims.
   for (e in entries[!keys %in% declared_keys]) {
     rows[[length(rows) + 1L]] <- entry_row(e, if (is.null(reg)) NA else FALSE,
-                                           is_current(paste0(e$id$name, "@", e$id$version)))
+                                           is_current(version_key(e$id)))
   }
 
   if (!length(rows)) return(NULL)
@@ -272,8 +271,7 @@ current_marker <- function(reg) {
   if (is.null(reg)) return(function(key) NA)
   names_declared <- unique(vapply(reg$resources, function(r) r$name, character(1)))
   heads <- vapply(names_declared, function(n) {
-    rec <- select_record(reg, n)
-    paste0(n, "@", rec$version)
+    version_key(select_record(reg, n))
   }, character(1), USE.NAMES = FALSE)
   function(key) key %in% heads
 }

@@ -20,6 +20,9 @@ something other than the declared checksum, and the declaration is
 otherwise sound. actor: upstream.}
 \item{\code{getaca_error_cache_corrupt}}{The cached copy no longer matches its
 own entry record. actor: user (refetch).}
+\item{\code{getaca_error_redeclared}}{The declaration now names different bytes
+for a version already held, so the two cannot both be that version.
+actor: author.}
 \item{\code{getaca_error_invalid_registry}}{Malformed or internally
 inconsistent registry. actor: author.}
 \item{\code{getaca_error_declaration}}{Several independent mirrors agreed with

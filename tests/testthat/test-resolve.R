@@ -1,4 +1,5 @@
 test_that("a remote channel may add mirrors and versions", {
+  cache <- local_cache()
   bundled <- demo_registry(strrep("a", 64))
   fetched <- registry("demopkg", current = c(res = "2.0"), resources = list(
     resource("res", "1.0",
@@ -13,6 +14,7 @@ test_that("a remote channel may add mirrors and versions", {
 })
 
 test_that("a remote channel may not redefine a published version", {
+  cache <- local_cache()
   bundled <- demo_registry(strrep("a", 64))
   fetched <- demo_registry(strrep("b", 64))
   expect_error(
@@ -20,6 +22,59 @@ test_that("a remote channel may not redefine a published version", {
     class = "getaca_error_invalid_registry"
   )
   expect_error(getaca:::assert_immutable(bundled, fetched), "res@1.0")
+})
+
+# A version the bundled registry never carried is still fixed once its bytes
+# are here: the cache is the other half of what this machine has published.
+test_that("a remote channel may not redefine a version only the cache knows", {
+  cache <- local_cache()
+  src <- withr::local_tempdir()
+  f <- seed_file(src)
+  seed_cache(registry("demopkg", list(
+    resource("res", "2.0", urls = "https://e.invalid/b", sha256 = f$sha256)
+  )), f)
+
+  bundled <- demo_registry(strrep("a", 64))
+  fetched <- registry("demopkg", current = c(res = "2.0"), resources = list(
+    resource("res", "1.0", urls = "https://e.invalid/a", sha256 = strrep("a", 64)),
+    resource("res", "2.0", urls = "https://e.invalid/b", sha256 = strrep("c", 64))
+  ))
+
+  expect_error(
+    getaca:::assert_immutable(bundled, fetched),
+    class = "getaca_error_invalid_registry"
+  )
+  expect_error(getaca:::assert_immutable(bundled, fetched), "res@2.0")
+})
+
+test_that("a warm cache does not stop a remote channel adding a version", {
+  cache <- local_cache()
+  src <- withr::local_tempdir()
+  f <- seed_file(src)
+  seed_cache(demo_registry(f$sha256), f)
+
+  bundled <- demo_registry(f$sha256)
+  fetched <- registry("demopkg", current = c(res = "2.0"), resources = list(
+    resource("res", "1.0", urls = "https://e.invalid/a", sha256 = f$sha256),
+    resource("res", "2.0", urls = "https://e.invalid/b", sha256 = strrep("c", 64))
+  ))
+
+  expect_true(getaca:::assert_immutable(bundled, fetched))
+})
+
+test_that("what counts as already published is injectable", {
+  bundled <- demo_registry(strrep("a", 64))
+  fetched <- registry("demopkg", current = c(res = "2.0"), resources = list(
+    resource("res", "1.0", urls = "https://e.invalid/a", sha256 = strrep("a", 64)),
+    resource("res", "2.0", urls = "https://e.invalid/b", sha256 = strrep("c", 64))
+  ))
+
+  expect_true(getaca:::assert_immutable(bundled, fetched, known = character()))
+  expect_error(
+    getaca:::assert_immutable(bundled, fetched,
+                              known = c("res@2.0" = strrep("b", 64))),
+    "res@2.0"
+  )
 })
 
 test_that("resolution collapses to offline under R CMD check", {
@@ -76,6 +131,7 @@ test_that("a version the channel head does not name still resolves explicitly", 
 })
 
 test_that("a remote channel may move the head without republishing bytes", {
+  cache <- local_cache()
   local_registries()
   bundled <- registry("demopkg", current = c(res = "1.0"), resources = list(
     resource("res", "1.0", urls = "https://e.invalid/a", sha256 = strrep("a", 64))
