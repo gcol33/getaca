@@ -185,10 +185,11 @@ test_that("verified bytes are promoted into the cache atomically", {
     transport = fake_transport(list(contents = "payload")))
   final <- getaca:::promote(id, rec, got$path)
 
-  expect_true(file.exists(final))
+  expect_true(file.exists(final$path))
   expect_false(file.exists(got$path))
-  expect_equal(basename(final), "data-1.0.csv")
-  expect_equal(getaca:::sha256_file(final), rec$sha256)
+  expect_equal(basename(final$path), "data-1.0.csv")
+  expect_equal(getaca:::sha256_file(final$path), rec$sha256)
+  expect_true(getaca:::blob_exists(rec$sha256))
 })
 
 test_that("a promotion blocked at its destination says so", {
@@ -206,7 +207,7 @@ test_that("a promotion blocked at its destination says so", {
 
   expect_error(
     suppressWarnings(getaca:::promote(id, rec, got$path)),
-    "could not move the verified file into the cache"
+    "could not place the verified file into the cache"
   )
 })
 
@@ -249,7 +250,7 @@ test_that("promotion replaces whatever occupied the slot", {
     transport = fake_transport(list(contents = "payload")))
   final <- getaca:::promote(id, rec, got$path)
 
-  expect_equal(getaca:::sha256_file(final), rec$sha256)
+  expect_equal(getaca:::sha256_file(final$path), rec$sha256)
 })
 
 test_that("a URL with a query string still yields a usable file name", {

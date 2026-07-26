@@ -18,13 +18,20 @@
 #'   refers to.
 #' @param policy Default resolution policy for this package. One of
 #'   `"bundled"`, `"current"`, `"pinned"`, `"offline"`. See [getaca_policy()].
-#' @param revision Monotonically increasing integer identifying this registry
-#'   state, recorded in provenance.
 #' @param current Named character vector giving the channel head: the version a
 #'   bare request for each resource name resolves to, as
 #'   `c(wfo = "2026-09")`. Required for any name declaring more than one
 #'   version, and optional for the rest, since a name with one version has only
 #'   one answer.
+#'
+#' @section Identity:
+#' A registry state is identified by [registry_digest()], derived from the
+#' declaration itself, and recorded in the provenance of every resource it
+#' resolves. There is no revision number to keep in step: a digest cannot be
+#' typed wrong, and two states that differ cannot claim to be the same one.
+#' [registry_write()] stamps `created`, which is what orders two states in
+#' time, and a bundled registry additionally has the version of the package
+#' that ships it.
 #'
 #' @section Channel heads:
 #' A registry declares records; a channel points at one of them. When a
@@ -62,7 +69,7 @@
 #' )
 registry <- function(package, resources, remote = NULL,
                      policy = c("bundled", "current", "pinned", "offline"),
-                     revision = 1L, current = NULL) {
+                     current = NULL) {
   policy <- match.arg(policy)
   stopifnot(is_string(package))
   if (!is.list(resources)) resources <- list(resources)
@@ -72,7 +79,9 @@ registry <- function(package, resources, remote = NULL,
     list(
       schema_version = REGISTRY_SCHEMA,
       package = package,
-      revision = as.integer(revision),
+      # Stamped by registry_write(), because publishing a state is what dates
+      # it. A declaration built in a session and never written has no date.
+      created = NULL,
       remote = remote,
       policy = policy,
       current = as_channel_heads(current),
@@ -89,9 +98,19 @@ REGISTRY_SCHEMA <- 1L
 
 validate_registry <- function(x) {
   p <- character()
-  if (!identical(x$schema_version, REGISTRY_SCHEMA)) {
-    p <- c(p, sprintf("unsupported schema version %s (this getaca understands %s)",
-                      x$schema_version, REGISTRY_SCHEMA))
+  # An older stored form is read, because every field added since has a defined
+  # absence and the reader supplies it. A newer one is refused, because this
+  # getaca cannot know what a field it has never heard of was meant to
+  # constrain. Accepting a range is what keeps a later addition from rejecting
+  # every registry already installed.
+  sv <- x$schema_version
+  if (!is.numeric(sv) || length(sv) != 1L || is.na(sv)) {
+    p <- c(p, "registry carries no usable schema version")
+  } else if (sv > REGISTRY_SCHEMA) {
+    p <- c(p, sprintf(
+      "registry schema version %s comes from a newer getaca (this one reads up to %s); upgrade getaca",
+      sv, REGISTRY_SCHEMA
+    ))
   }
   if (!length(x$resources)) {
     p <- c(p, "registry declares no resources")
@@ -162,7 +181,11 @@ validate_channel_heads <- function(x) {
 #' @export
 print.getaca_registry <- function(x, ...) {
   cat("<getaca registry> ", x$package,
-      "  (revision ", x$revision, ", policy \"", x$policy, "\")\n", sep = "")
+      "  (policy \"", x$policy, "\")\n", sep = "")
+  cat("  digest: ", short_digest(registry_digest(x)), "\n", sep = "")
+  if (!is.null(x$created)) {
+    cat("  created: ", format(x$created, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
+  }
   if (!is.null(x$remote)) cat("  remote: ", x$remote, "\n", sep = "")
   for (r in x$resources) {
     head <- identical(channel_head(x, r$name), r$version)
@@ -177,15 +200,24 @@ print.getaca_registry <- function(x, ...) {
 #' are supported as optional authoring formats only; they never define the
 #' internal model and never become a hard dependency.
 #'
+#' Writing stamps `created`, since publishing a state is what dates it.
+#' `created` is what orders two states in time, which a content digest cannot
+#' do; [registry_digest()] says whether two states are the same, and `created`
+#' says which came first. It is deliberately outside the digest, so writing an
+#' unchanged registry out again leaves its identity alone.
+#'
 #' @param registry A [registry()] object.
 #' @param path File path. For [registry_write()], the conventional location
 #'   inside a package source tree is `inst/getaca/registry.rds`.
+#' @param created Publication time recorded in the file. Pass a fixed value to
+#'   keep a build byte-reproducible.
 #'
 #' @return `registry_write()` returns `path` invisibly.
 #'   `registry_read()` returns a `getaca_registry`.
 #' @export
-registry_write <- function(registry, path) {
+registry_write <- function(registry, path, created = Sys.time()) {
   stopifnot(inherits(registry, "getaca_registry"))
+  registry$created <- created
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   saveRDS(registry, path, version = 3)
   invisible(path)

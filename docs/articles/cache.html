@@ -111,7 +111,7 @@ browser all work.</p>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_cache_dir.html">getaca_cache_dir</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpWKrilD/getaca-cache-vignette"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpILxKyu/getaca-cache-vignette"</span></span></code></pre></div>
 <p>That is the sandbox this vignette runs in. The default is
 <code>tools::R_user_dir("getaca", "cache")</code>, the location CRAN
 permits for cached downloads. Two overrides take precedence, in this
@@ -128,21 +128,39 @@ retrieval does.</p>
 <h2 id="layout">Layout<a class="anchor" aria-label="anchor" href="#layout"></a>
 </h2>
 <pre><code>&lt;cache&gt;/
-  .locks/                        per-resource locks
+  blobs/sha256/&lt;aa&gt;/&lt;sha256&gt;     verified bytes, named by their own checksum
+  .locks/                        one per checksum, held during a transfer
   .tmp/                          in-flight downloads, never visible as cache
   &lt;package&gt;/
     index.rds                    provenance for this package only
     &lt;name&gt;/&lt;version&gt;/
-      raw/&lt;file&gt;                 verified bytes as served
+      raw/&lt;file&gt;                 this slot's name for a blob
       proc-&lt;processor-id&gt;/       processed result, own provenance</code></pre>
-<p>Everything is scoped by declaring package, then resource name, then
-version. That falls out of identity being the triple
+<p>Everything a package declares is scoped by declaring package, then
+resource name, then version. That falls out of identity being the triple
 <code>package / name / version</code>, and it buys two things. Two
 packages declaring a resource called <code>"wfo"</code> never share a
 slot, so one package’s registry update cannot affect another’s cached
 data. And a version can never be overwritten by another version, so
 holding two releases side by side is the normal state rather than a
 special case.</p>
+<p>The bytes underneath are shared. A file lives once, at
+<code>blobs/sha256/</code>, under its own checksum, and the version slot
+holds a name for it: a hardlink where the filesystem allows one, a
+symlink or a copy where it does not. Two packages declaring the same 4
+GB file therefore keep one copy and two independent dependency records.
+They also transfer it once, because the lock is keyed on the checksum,
+so the second session waits for the first and then finds the bytes
+already there.</p>
+<p>Everything the cache owns is read-only. A caller writing to a
+returned path would otherwise damage every package that shares those
+bytes, so the write fails at the point of the mistake instead. A caller
+that needs a writable layout declares a <code><a href="../reference/processor.html">processor()</a></code>, which
+gets its own slot.</p>
+<p>The store keeps no metadata of its own. Whether a blob is still
+needed is answered by reading the package indexes, so there is no
+reference count that a crash, a restored backup or a hand-deleted
+directory could leave disagreeing with them.</p>
 <p>The processed result of a processor sits beside the raw artefact
 rather than replacing it, under a directory named for the processor id.
 Changing the transformation means changing the id, which invalidates the
@@ -226,8 +244,9 @@ reports exactly that.</p>
 <span><span class="co">#&gt;   size        797,000,000 bytes</span></span>
 <span><span class="co">#&gt;   license     CC-BY-4.0</span></span>
 <span><span class="co">#&gt;   built from  wfo_release: 2026-06</span></span>
-<span><span class="co">#&gt;   resolved by current registry, revision 5</span></span>
+<span><span class="co">#&gt;   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)</span></span>
 <span><span class="co">#&gt;   source url  https://host.invalid/wfo-2026-06.zip</span></span>
+<span><span class="co">#&gt;   getaca      0.0.0.9000</span></span>
 <span><span class="co">#&gt;   fetched     2026-07-26 11:02:13</span></span>
 <span><span class="co">#&gt;   verified    2026-07-26 11:09:44 (full re-hash)</span></span>
 <span><span class="co">#&gt;   checked     2026-07-26 15:31:02 (size and mtime)</span></span></code></pre></div>
@@ -248,26 +267,28 @@ registry together with every package holding cached resources, which is
 the report worth pasting into an issue:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span><span class="op">)</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 'data.frame':    0 obs. of  15 variables:</span></span>
-<span><span class="co">#&gt;  $ package    : chr </span></span>
-<span><span class="co">#&gt;  $ name       : chr </span></span>
-<span><span class="co">#&gt;  $ version    : chr </span></span>
-<span><span class="co">#&gt;  $ current    : logi </span></span>
-<span><span class="co">#&gt;  $ processor  : chr </span></span>
-<span><span class="co">#&gt;  $ declared   : logi </span></span>
-<span><span class="co">#&gt;  $ cached     : logi </span></span>
-<span><span class="co">#&gt;  $ size       : num </span></span>
-<span><span class="co">#&gt;  $ license    : chr </span></span>
-<span><span class="co">#&gt;  $ source     : chr </span></span>
-<span><span class="co">#&gt;  $ revision   : int </span></span>
-<span><span class="co">#&gt;  $ verified_at: 'POSIXct' num </span></span>
-<span><span class="co">#&gt;  $ accessed_at: 'POSIXct' num </span></span>
-<span><span class="co">#&gt;  $ pinned     : logi </span></span>
-<span><span class="co">#&gt;  $ path       : chr</span></span></code></pre></div>
+<span><span class="co">#&gt; 'data.frame':    0 obs. of  16 variables:</span></span>
+<span><span class="co">#&gt;  $ package        : chr </span></span>
+<span><span class="co">#&gt;  $ name           : chr </span></span>
+<span><span class="co">#&gt;  $ version        : chr </span></span>
+<span><span class="co">#&gt;  $ current        : logi </span></span>
+<span><span class="co">#&gt;  $ processor      : chr </span></span>
+<span><span class="co">#&gt;  $ link           : chr </span></span>
+<span><span class="co">#&gt;  $ declared       : logi </span></span>
+<span><span class="co">#&gt;  $ cached         : logi </span></span>
+<span><span class="co">#&gt;  $ size           : num </span></span>
+<span><span class="co">#&gt;  $ license        : chr </span></span>
+<span><span class="co">#&gt;  $ source         : chr </span></span>
+<span><span class="co">#&gt;  $ registry_digest: chr </span></span>
+<span><span class="co">#&gt;  $ verified_at    : 'POSIXct' num </span></span>
+<span><span class="co">#&gt;  $ accessed_at    : 'POSIXct' num </span></span>
+<span><span class="co">#&gt;  $ pinned         : logi </span></span>
+<span><span class="co">#&gt;  $ path           : chr</span></span></code></pre></div>
 <p>The columns worth knowing: <code>size</code> in bytes,
-<code>license</code>, <code>source</code> and <code>revision</code>
-naming the policy and registry state that resolved it, the three
-timestamps, <code>pinned</code>, and <code>path</code>.</p>
+<code>license</code>, <code>source</code> and
+<code>registry_digest</code> naming the policy and the registry state
+that resolved it, the three timestamps, <code>pinned</code>, and
+<code>path</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="two-sessions-one-download">Two sessions, one download<a class="anchor" aria-label="anchor" href="#two-sessions-one-download"></a>
@@ -276,9 +297,13 @@ timestamps, <code>pinned</code>, and <code>path</code>.</p>
 fetch it, and must never mistake each other’s in-flight temporary file
 for a finished resource.</p>
 <p>The lock is a directory under <code>.locks/</code>, named for the
-resource triple. <code><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create()</a></code> is atomic on both POSIX and
+declared checksum. <code><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create()</a></code> is atomic on both POSIX and
 Windows, which makes a directory a portable mutex with no compiled
 dependency and no lockfile library.</p>
+<p>Keying it on the checksum rather than on the resource triple means
+the two sessions need not be asking on behalf of the same package. Two
+packages declaring the same file are waiting for the same transfer, and
+the one that waits finds the bytes in the store when it wakes.</p>
 <p>What a second session does:</p>
 <ol style="list-style-type: decimal">
 <li><p>tries to create the lock directory, and fails</p></li>
@@ -324,11 +349,12 @@ partial file rather than the publisher, so the same mirror is asked once
 more from empty before any conclusion is drawn about upstream. Without
 that, one stale temporary file makes a resource permanently unfetchable
 and blames the wrong party for it.</p>
-<p>The move into place is a rename where both sides are on one
-filesystem and a copy where they are not, which a cache pointed at a
-different disk makes routine. A move that cannot complete leaves the
-verified temporary file alone, so the retry resumes onto complete bytes
-rather than starting over.</p>
+<p>Verified bytes are then admitted to the store under their own
+checksum, and the version slot is given a name for them. Admission is a
+rename, since <code>.tmp/</code> and <code>blobs/</code> share the cache
+root and therefore share a filesystem. Bytes already in the store are
+already named by their checksum, so admitting the same file a second
+time is a no-op and the temporary copy is dropped.</p>
 </div>
 <div class="section level2">
 <h2 id="retention">Retention<a class="anchor" aria-label="anchor" href="#retention"></a>
@@ -338,7 +364,7 @@ contents are “actively managed (including removing outdated material)”.
 <code>getaca</code> reads that as a retention policy rather than a
 function users might discover, so collection runs automatically after
 every successful retrieval.</p>
-<p>Four sweeps, cheapest and safest first:</p>
+<p>Five sweeps, cheapest and safest first:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -373,8 +399,21 @@ every successful retrieval.</p>
 <td>least recently used unpinned entries</td>
 <td>only above <code>getaca.max_bytes</code>, default 20 GB</td>
 </tr>
+<tr class="odd">
+<td><code>unreferenced</code></td>
+<td>bytes in the store that no entry names any more</td>
+<td>none</td>
+</tr>
 </tbody>
 </table>
+<p>The first four sweeps remove names. <code>unreferenced</code> runs
+last and removes the bytes those names were for, once the last one is
+gone. A blob under an active lock is left alone: it belongs to a session
+that has admitted it and has not yet written its entry.</p>
+<p>The size ceiling measures what the cache occupies, so shared bytes
+count once. Two packages declaring the same 4 GB file count 4 GB against
+<code>getaca.max_bytes</code>, and evicting one of them frees nothing
+until the other goes too.</p>
 <p>Superseded and not-recently-used age on separate clocks on purpose.
 An expensive resource that is still the current version is never dropped
 merely for being old; it is dropped only when the cache is over its

@@ -131,11 +131,11 @@ format(resource(
 
 reg <- registry(
   package  = "taxify",
-  revision = 1L,
   resources = list(wfo)
 )
 reg
-#> <getaca registry> taxify  (revision 1, policy "bundled")
+#> <getaca registry> taxify  (policy "bundled")
+#>   digest: sha256:0c5824f54c6f
 #>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 ```
 
@@ -147,7 +147,7 @@ out of the built package:
 # data-raw/registry.R
 source("data-raw/backbone-records.R")   # returns a list of resource()s
 registry_write(
-  registry(package = "taxify", revision = 1L, resources = records),
+  registry(package = "taxify", resources = records),
   "inst/getaca/registry.rds"
 )
 ```
@@ -160,8 +160,9 @@ the file with
 [`system.file()`](https://rdrr.io/r/base/system.file.html), so there is
 no registration call, no `.onLoad()` hook, and no load-order question.
 
-Add `getaca` to `Imports`. It brings `curl` and `digest`, with nothing
-beneath them.
+Add `getaca` to `Imports`. It brings `curl`, with nothing beneath it,
+and an R \>= 4.6.0 floor for
+[`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html).
 
 ## Step 3: rewrite the front door
 
@@ -255,7 +256,7 @@ getaca_info("wfo", package = "taxify")
 #> <getaca cache entry> taxify/wfo@2026-06
 #>   ...
 #>   built from  wfo_release: 2026-06
-#>   resolved by bundled registry, revision 1
+#>   resolved by bundled registry sha256:1c4d7a90f2be (published 2026-07-20)
 #>   source url  https://zenodo.invalid/records/1234567/files/wfo-2026-06.vtr
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)

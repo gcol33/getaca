@@ -26,6 +26,10 @@ What a package says it needs
   : Read and write registry files
 - [`registry_for()`](https://gillescolling.com/getaca/reference/registry_for.md)
   : Find the registry a package ships
+- [`registry_digest()`](https://gillescolling.com/getaca/reference/registry_digest.md)
+  : Content identity of a registry
+- [`registry_manifest()`](https://gillescolling.com/getaca/reference/registry_manifest.md)
+  : The canonical form a registry hashes to
 - [`as_registry()`](https://gillescolling.com/getaca/reference/as_registry.md)
   : Convert an authoring format into a registry
 - [`getaca_refresh()`](https://gillescolling.com/getaca/reference/getaca_refresh.md)

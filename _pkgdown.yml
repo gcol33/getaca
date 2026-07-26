@@ -82,6 +82,8 @@ reference:
   - registry
   - registry_write
   - registry_for
+  - registry_digest
+  - registry_manifest
   - as_registry
   - getaca_refresh
 - title: Resolution

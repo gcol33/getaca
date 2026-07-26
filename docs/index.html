@@ -92,8 +92,11 @@
 </h1></div>
 <p><em>external data your package depends on, pinned to exact bytes</em></p>
 <p><a href="https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/getaca" class="external-link"><img src="https://codecov.io/gh/gcol33/getaca/graph/badge.svg" alt="Codecov test coverage"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
-<p><strong>Depend on gigabytes of external data without breaking reproducibility, offline use, or <code>R CMD check</code>.</strong></p>
-<p>Packages declare resources. <code>getaca</code> retrieves them. A declaration names exact bytes: one SHA-256, one version label, one or more mirrors. Retrieval resolves that declaration through an explicit policy, verifies what arrives, records where it came from, and returns an ordinary local path. There is one engine and many declarations, the way there is one <code>renv</code> and many lockfiles.</p>
+<div class="section level2">
+<h2 id="the-problem">The problem<a class="anchor" aria-label="anchor" href="#the-problem"></a>
+</h2>
+<p><a href="https://github.com/gcol33/taxify" class="external-link"><code>taxify</code></a> resolves species names against reference backbones. WFO is 797 MB, GBIF is 1.9 GB, COL is 2.0 GB, and each is republished on its own schedule. Sizes like that rule out shipping the data inside the package. A check run has no network. And an analysis rerun next year still has to see the bytes it saw today.</p>
+<p>So the package ships a declaration and no data. The declaration names exact bytes: one SHA-256, one version label, one or more mirrors. <code>getaca</code> resolves that declaration through an explicit policy, verifies what arrives, records where it came from, and returns an ordinary local path. There is one engine and many declarations, the way there is one <code>renv</code> and many lockfiles.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/getaca/">getaca</a></span><span class="op">)</span></span>
 <span></span>
@@ -112,11 +115,11 @@
 <span></span>
 <span><span class="co"># what retrieval looks like, from anywhere</span></span>
 <span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span></code></pre></div>
+</div>
 <div class="section level2">
-<h2 id="pinned-not-merely-downloaded">Pinned, not merely downloaded<a class="anchor" aria-label="anchor" href="#pinned-not-merely-downloaded"></a>
+<h2 id="failures-that-name-who-can-fix-them">Failures that name who can fix them<a class="anchor" aria-label="anchor" href="#failures-that-name-who-can-fix-them"></a>
 </h2>
-<p><code><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file()</a></code> gives you whatever is at the URL today. <code>getaca</code> gives you the bytes the package was built against, or an error naming who can fix it.</p>
-<p>Six failures that look identical to a plain downloader get six different answers, each classed so callers can branch on the cause:</p>
+<p>A retrieval produces the bytes the package was built against, or an error naming who can act on it. Six situations get six answers, each classed so callers can branch on the cause:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -161,7 +164,7 @@
 </tr>
 </tbody>
 </table>
-<p>The last one is the interesting case. When several independent mirrors return identical bytes and none match the declared checksum, the registry is the likely error, and <code>getaca</code> says so rather than blaming the network.</p>
+<p>When several independent mirrors return identical bytes and none of them match the declared checksum, the registry is the likely error, and <code>getaca_error_declaration</code> says so.</p>
 <p>Each condition carries an <code>actor</code> field, so a declaring package can catch the ones its users will meet and answer in its own vocabulary:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"wfo"</span><span class="op">)</span> <span class="op">{</span></span>
@@ -203,9 +206,9 @@
 <p>Keying the cache on the registry file means a new declaration downloads once and every later job reuses it.</p>
 </div>
 <div class="section level2">
-<h2 id="immutable-records-mutable-channels">Immutable records, mutable channels<a class="anchor" aria-label="anchor" href="#immutable-records-mutable-channels"></a>
+<h2 id="records-and-channels">Records and channels<a class="anchor" aria-label="anchor" href="#records-and-channels"></a>
 </h2>
-<p>Two things that must not be conflated. A <strong>resource record</strong> is immutable: <code>taxify / wfo / 2026-06</code> names exact bytes forever. A <strong>channel</strong> maps the logical name onto one record, and channels move.</p>
+<p>A <strong>resource record</strong> is immutable: <code>taxify / wfo / 2026-06</code> names exact bytes forever. A <strong>channel</strong> maps the logical name onto one record, and channels move.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -240,8 +243,8 @@
 </tr>
 </tbody>
 </table>
-<p>A remote channel may repair a dead mirror and may publish <code>2026-09</code>. It may never redefine what <code>2026-06</code> means; <code>getaca</code> rejects that as an invalid registry rather than accepting a silent substitution.</p>
-<p>Which record the channel points at is stated in the registry, because version strings here are labels rather than semantic versions and <code>source-2026-06_build-3</code> has no defensible ordering:</p>
+<p>A remote channel may repair a dead mirror and may publish <code>2026-09</code>. <code>2026-06</code> keeps its meaning, and a registry that redefines it is rejected as invalid.</p>
+<p>The registry states which record the channel points at. Version strings here are labels, and <code>source-2026-06_build-3</code> has no defensible ordering, so declaration order cannot stand in for one:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
@@ -251,13 +254,12 @@
 <span>    <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-09"</span>, urls <span class="op">=</span> <span class="st">"..."</span>, sha256 <span class="op">=</span> <span class="st">"..."</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>A name offering several versions and naming no head is refused as an invalid registry. That turns the one mistake this design is exposed to, appending <code>2026-03</code> below <code>2026-09</code> and moving every user backwards, into an error at <code><a href="reference/registry.html">registry()</a></code> on the author’s machine.</p>
+<p>A name offering several versions and naming no head is refused as an invalid registry. The one mistake this design is exposed to, appending <code>2026-03</code> below <code>2026-09</code> and moving every user backwards, becomes an error at <code><a href="reference/registry.html">registry()</a></code> on the author’s machine.</p>
 </div>
 <div class="section level2">
-<h2 id="a-worked-case">A worked case<a class="anchor" aria-label="anchor" href="#a-worked-case"></a>
+<h2 id="declaring-the-backbones">Declaring the backbones<a class="anchor" aria-label="anchor" href="#declaring-the-backbones"></a>
 </h2>
-<p>A taxonomic name matcher resolves species names against reference backbones. The backbones are published on their own schedule and run to <a href="https://github.com/gcol33/taxify" class="external-link">797 MB for WFO, 1.9 GB for GBIF, and 2.0 GB for COL</a>, so the package cannot ship them, cannot download them during a check run, and cannot afford to fetch different bytes on Tuesday than it fetched on Monday. That is the case <code>getaca</code> was designed against; what follows is what declaring those backbones through it looks like.</p>
-<p>The declaring package ships a declaration and nothing large:</p>
+<p>The declaration <code>taxify</code> ships, in full:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># data-raw/registry.R, run at build time</span></span>
 <span><span class="fu"><a href="reference/registry_write.html">registry_write</a></span><span class="op">(</span></span>
@@ -278,7 +280,7 @@
 <span>  <span class="op">)</span>,</span>
 <span>  <span class="st">"inst/getaca/registry.rds"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Installing the package downloads nothing. The first real call retrieves, verifies and caches:</p>
+<p>Installing the package copies a few kilobytes. The first real call retrieves, verifies and caches:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span></code></pre></div>
 <p>What each part of the declaration buys:</p>
@@ -286,7 +288,7 @@
 <li>
 <strong>two mirrors</strong> mean a Zenodo outage falls through to the GitHub release</li>
 <li>
-<strong><code>sha256</code></strong> means a truncated or substituted file is an error rather than a parse failure three functions later</li>
+<strong><code>sha256</code></strong> turns a truncated or substituted file into an error at retrieval, where it is diagnosable</li>
 <li>
 <strong><code>upstream</code></strong> keeps both identities, the WFO release and the build that turned it into a queryable file, so provenance answers which one moved</li>
 <li>
@@ -300,7 +302,8 @@
 <h2 id="what-the-cached-path-guarantees">What the cached path guarantees<a class="anchor" aria-label="anchor" href="#what-the-cached-path-guarantees"></a>
 </h2>
 <p><code><a href="reference/getaca.html">getaca()</a></code> returns a path to a complete file, verified against the declared checksum, at the resolved version, in a slot <code>getaca</code> owns.</p>
-<p>Bytes land in <code>.tmp/</code>, are sized, hashed, and only then moved into the cache, so an interrupted transfer can never appear as a valid cached resource and a failed transfer never touches a copy that was already good. The temporary file is named after the declared checksum, so an interrupted download resumes on the next attempt. Each mirror gets its own temporary file, because a partial transfer is resumable only against the mirror that produced it.</p>
+<p>Bytes land in <code>.tmp/</code>, are sized, hashed, and only then admitted to the cache, so an interrupted transfer can never appear as a valid cached resource and a failed transfer never touches a copy that was already good. The temporary file is named after the declared checksum, so an interrupted download resumes on the next attempt. Each mirror gets its own temporary file, because a partial transfer is resumable only against the mirror that produced it.</p>
+<p>Bytes then live once, under their own checksum, and a version slot holds a name for them. Two packages declaring the same file keep one copy and two separate dependency records, and the second package to ask for it waits for the first transfer rather than starting its own. Everything the cache owns is read-only, since shared bytes make one caller’s stray write everybody’s problem.</p>
 <p>Verification asks three questions and keeps the answers apart:</p>
 <table class="table">
 <colgroup>
@@ -333,7 +336,7 @@
 </tbody>
 </table>
 <p>“Verified” therefore means the bytes were re-hashed then, rather than that somebody looked at the file at some point.</p>
-<p>Locking is in the first version. Two sessions asking for the same 4 GB file wait on a portable directory mutex, and the second observes the first’s success instead of downloading again. A lock whose holder died goes stale and is taken over.</p>
+<p>Two sessions asking for the same 4 GB file wait on a portable directory mutex keyed on the checksum, and the second observes the first’s success. A lock whose holder died goes stale and is taken over.</p>
 </div>
 <div class="section level2">
 <h2 id="provenance-and-what-is-cached">Provenance, and what is cached<a class="anchor" aria-label="anchor" href="#provenance-and-what-is-cached"></a>
@@ -342,17 +345,19 @@
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;getaca cache entry&gt; taxify/wfo@2026-06</span></span>
 <span><span class="co">#&gt;   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.vtr</span></span>
+<span><span class="co">#&gt;   store       hardlink to blobs/sha256/9f/9f2c8d1e5a3b</span></span>
 <span><span class="co">#&gt;   sha256      9f2c8d1e...</span></span>
 <span><span class="co">#&gt;   size        797,000,000 bytes</span></span>
 <span><span class="co">#&gt;   license     CC-BY-4.0</span></span>
 <span><span class="co">#&gt;   built from  wfo_release: 2026-06</span></span>
 <span><span class="co">#&gt;   built from  taxifydb_build: 3</span></span>
-<span><span class="co">#&gt;   resolved by current registry, revision 7</span></span>
+<span><span class="co">#&gt;   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)</span></span>
 <span><span class="co">#&gt;   source url  https://zenodo.org/records/1234567/files/wfo-2026-06.vtr</span></span>
+<span><span class="co">#&gt;   getaca      0.0.0.9000</span></span>
 <span><span class="co">#&gt;   fetched     2026-07-26 11:02:13</span></span>
 <span><span class="co">#&gt;   verified    2026-07-26 11:09:44 (full re-hash)</span></span>
 <span><span class="co">#&gt;   checked     2026-07-26 15:31:02 (size and mtime)</span></span></code></pre></div>
-<p>That is a reproducibility appendix, and a bug report that says which mirror served the bytes and which registry revision chose them.</p>
+<p>That is a reproducibility appendix, and a bug report that says which mirror served the bytes and which registry state chose them. The registry digest is derived from the declaration itself, so it identifies that state exactly.</p>
 <p><code><a href="reference/getaca_catalogue.html">getaca_catalogue()</a></code> widens it to a data frame covering both halves, every resource the installed packages declare and every copy the cache holds:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"package"</span>, <span class="st">"name"</span>, <span class="st">"version"</span>, <span class="st">"current"</span>, <span class="st">"declared"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
@@ -377,10 +382,10 @@
 <p>Changing what the transformation does means changing the id, which invalidates previously processed copies. <code>getaca(..., processed = FALSE)</code> returns the raw artefact. <code>getaca</code> knows nothing about file formats and never reads data.</p>
 </div>
 <div class="section level2">
-<h2 id="cache-management-is-not-optional">Cache management is not optional<a class="anchor" aria-label="anchor" href="#cache-management-is-not-optional"></a>
+<h2 id="keeping-the-cache-in-bounds">Keeping the cache in bounds<a class="anchor" aria-label="anchor" href="#keeping-the-cache-in-bounds"></a>
 </h2>
-<p>CRAN permits <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> on condition that contents are “actively managed (including removing outdated material)”. <code>getaca</code> reads that as a retention policy rather than a function users might discover, and collects after every successful retrieval.</p>
-<p>Removal runs cheapest and safest first: broken material, abandoned transfers, superseded versions past their retention window, then least-recently-used entries only when over the size ceiling. Superseded and not-recently-used age on separate clocks, so an expensive resource is never dropped merely for being old. Pinned entries, the version the bundled registry names, and anything under an active lock are never touched.</p>
+<p>CRAN permits <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> on condition that contents are “actively managed (including removing outdated material)”. <code>getaca</code> reads that as a retention policy, and collects after every successful retrieval.</p>
+<p>Removal runs cheapest and safest first: broken material, abandoned transfers, superseded versions past their retention window, least-recently-used entries once over the size ceiling, and finally bytes that no declaration references any more. Superseded and not-recently-used age on separate clocks, so an expensive resource is never dropped merely for being old. Pinned entries, the version the bundled registry names, and anything under an active lock are never touched.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>      <span class="co"># what would go, and why</span></span>
 <span><span class="fu"><a href="reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>   <span class="co"># exempt this one permanently</span></span>
@@ -428,7 +433,7 @@
 </tr>
 </tbody>
 </table>
-<p>A companion package can itself use <code>getaca</code>, but that is rarely the first recommendation: it moves the complexity rather than removing it.</p>
+<p>A companion package can itself use <code>getaca</code>, though that is rarely the first recommendation: it moves the complexity one step along.</p>
 </div>
 <div class="section level2">
 <h2 id="related-work">Related work<a class="anchor" aria-label="anchor" href="#related-work"></a>
@@ -441,8 +446,8 @@
 <div class="section level2">
 <h2 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a>
 </h2>
-<p><code>Imports: curl, digest</code>. Recursive footprint outside base R: <strong>zero packages</strong>. <code>curl</code> has no dependencies; <code>digest</code> has none beyond <code>utils</code>. YAML and JSON registries, testthat helpers and vignettes live in <code>Suggests</code> and are gated at call time.</p>
-<p><code><a href="https://rdrr.io/r/tools/sha256sum.html" class="external-link">tools::sha256sum()</a></code> would remove <code>digest</code> entirely, but it arrived in R 4.6.0 and this package supports R 4.0.</p>
+<p><code>Imports: curl</code>, plus <code>stats</code>, <code>tools</code> and <code>utils</code> from base R. Recursive footprint outside base R: <strong>zero packages</strong>. YAML and JSON registries, testthat helpers and vignettes live in <code>Suggests</code> and are gated at call time.</p>
+<p>Hashing is <code><a href="https://rdrr.io/r/tools/sha256sum.html" class="external-link">tools::sha256sum()</a></code>, which is why the package requires R &gt;= 4.6.0.</p>
 </div>
 <div class="section level2">
 <h2 id="whats-in-the-box">What’s in the box<a class="anchor" aria-label="anchor" href="#whats-in-the-box"></a>
@@ -457,6 +462,8 @@
 <li>
 <strong><code><a href="reference/registry_write.html">registry_write()</a></code></strong> ship them at <code>inst/getaca/registry.rds</code>
 </li>
+<li>
+<strong><code><a href="reference/registry_digest.html">registry_digest()</a></code></strong>, <strong><code><a href="reference/registry_manifest.html">registry_manifest()</a></code></strong> the identity of a declaration state, and the text it is taken over</li>
 <li>
 <strong><code><a href="reference/as_registry.html">as_registry()</a></code></strong> build one from a YAML or JSON authoring file</li>
 <li>

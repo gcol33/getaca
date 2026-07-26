@@ -109,16 +109,27 @@ resource("wfo", "2026-06", urls = "https://ok.invalid/wfo.zip",
 ```{r}
 reg <- registry(
   package   = "taxify",
-  revision  = 4L,
   resources = list(rec)
 )
 reg
 ```
 
-`revision` is a monotonically increasing integer identifying this registry
-state. It is recorded in the provenance of everything resolved through it, so
-a bug report can say which declaration chose the bytes. Bump it whenever you
-change the registry.
+The digest on the second line identifies this registry state. It is derived
+from the declaration itself, so there is no number to keep in step: change a
+checksum, add a mirror or move a channel head and the digest follows. It is
+recorded in the provenance of everything resolved through this registry, so a
+bug report can name the exact declaration that chose the bytes.
+
+```{r}
+registry_digest(reg)
+```
+
+`registry_manifest()` shows the text that digest is taken over, which is what
+makes two registries diffable when they disagree:
+
+```{r}
+registry_manifest(reg)
+```
 
 Write it into the source tree from a `data-raw/` script, so the registry is
 generated rather than hand-maintained:
@@ -136,7 +147,18 @@ Reading it back is symmetric, and validates:
 ```{r}
 path <- file.path(tempdir(), "registry.rds")
 registry_write(reg, path)
-identical(registry_read(path), reg)
+identical(registry_digest(registry_read(path)), registry_digest(reg))
+```
+
+Writing stamps `created`, because publishing a state is what dates it. That
+date is what orders two states in time, which a digest cannot do: a digest
+says whether two registries are the same, and `created` says which came
+first. It sits outside the digest, so writing an unchanged registry out again
+leaves its identity alone. Pass a fixed `created` when a build has to be
+byte-reproducible.
+
+```{r}
+registry_read(path)$created
 ```
 
 ## Naming the channel head
@@ -227,7 +249,7 @@ bytes would undo the guarantee the whole design exists to provide.
 Publishing a remote registry is the same call with a different destination:
 
 ```{r, eval = FALSE}
-# In a release script, after bumping revision and adding the new record
+# In a release script, after adding the new record
 registry_write(reg2, "docs/getaca-registry.rds")   # served by GitHub Pages
 ```
 
@@ -350,7 +372,7 @@ the list is a list and `current` sits beside it. Arguments passed to
 
 ```{r, eval = FALSE}
 as_registry("data-raw/resources.yml", package = "taxify",
-            policy = "current", revision = 4L,
+            policy = "current",
             remote = "https://gcol33.github.io/taxify/getaca-registry.rds")
 ```
 
@@ -440,7 +462,7 @@ lookup take effect.
 
 - [ ] `current` set for any name that declares more than one version
 
-- [ ] `revision` bumped since the last release
+- [ ] `registry_digest()` changed since the last release, if the declaration did
 
 - [ ] `license` on every record
 

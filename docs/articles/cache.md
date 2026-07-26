@@ -14,7 +14,7 @@ from a CI cache action, or looking at it with a file browser all work.
 ``` r
 
 getaca_cache_dir()
-#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpWKrilD/getaca-cache-vignette"
+#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpILxKyu/getaca-cache-vignette"
 ```
 
 That is the sandbox this vignette runs in. The default is
@@ -35,21 +35,42 @@ retrieval does.
 ## Layout
 
     <cache>/
-      .locks/                        per-resource locks
+      blobs/sha256/<aa>/<sha256>     verified bytes, named by their own checksum
+      .locks/                        one per checksum, held during a transfer
       .tmp/                          in-flight downloads, never visible as cache
       <package>/
         index.rds                    provenance for this package only
         <name>/<version>/
-          raw/<file>                 verified bytes as served
+          raw/<file>                 this slot's name for a blob
           proc-<processor-id>/       processed result, own provenance
 
-Everything is scoped by declaring package, then resource name, then
-version. That falls out of identity being the triple
+Everything a package declares is scoped by declaring package, then
+resource name, then version. That falls out of identity being the triple
 `package / name / version`, and it buys two things. Two packages
 declaring a resource called `"wfo"` never share a slot, so one package’s
 registry update cannot affect another’s cached data. And a version can
 never be overwritten by another version, so holding two releases side by
 side is the normal state rather than a special case.
+
+The bytes underneath are shared. A file lives once, at `blobs/sha256/`,
+under its own checksum, and the version slot holds a name for it: a
+hardlink where the filesystem allows one, a symlink or a copy where it
+does not. Two packages declaring the same 4 GB file therefore keep one
+copy and two independent dependency records. They also transfer it once,
+because the lock is keyed on the checksum, so the second session waits
+for the first and then finds the bytes already there.
+
+Everything the cache owns is read-only. A caller writing to a returned
+path would otherwise damage every package that shares those bytes, so
+the write fails at the point of the mistake instead. A caller that needs
+a writable layout declares a
+[`processor()`](https://gillescolling.com/getaca/reference/processor.md),
+which gets its own slot.
+
+The store keeps no metadata of its own. Whether a blob is still needed
+is answered by reading the package indexes, so there is no reference
+count that a crash, a restored backup or a hand-deleted directory could
+leave disagreeing with them.
 
 The processed result of a processor sits beside the raw artefact rather
 than replacing it, under a directory named for the processor id.
@@ -109,8 +130,9 @@ getaca_info("wfo", package = "taxify")
 #>   size        797,000,000 bytes
 #>   license     CC-BY-4.0
 #>   built from  wfo_release: 2026-06
-#>   resolved by current registry, revision 5
+#>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
 #>   source url  https://host.invalid/wfo-2026-06.zip
+#>   getaca      0.0.0.9000
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
 #>   checked     2026-07-26 15:31:02 (size and mtime)
@@ -144,27 +166,28 @@ the report worth pasting into an issue:
 ``` r
 
 str(getaca_catalogue(), max.level = 1)
-#> 'data.frame':    0 obs. of  15 variables:
-#>  $ package    : chr 
-#>  $ name       : chr 
-#>  $ version    : chr 
-#>  $ current    : logi 
-#>  $ processor  : chr 
-#>  $ declared   : logi 
-#>  $ cached     : logi 
-#>  $ size       : num 
-#>  $ license    : chr 
-#>  $ source     : chr 
-#>  $ revision   : int 
-#>  $ verified_at: 'POSIXct' num 
-#>  $ accessed_at: 'POSIXct' num 
-#>  $ pinned     : logi 
-#>  $ path       : chr
+#> 'data.frame':    0 obs. of  16 variables:
+#>  $ package        : chr 
+#>  $ name           : chr 
+#>  $ version        : chr 
+#>  $ current        : logi 
+#>  $ processor      : chr 
+#>  $ link           : chr 
+#>  $ declared       : logi 
+#>  $ cached         : logi 
+#>  $ size           : num 
+#>  $ license        : chr 
+#>  $ source         : chr 
+#>  $ registry_digest: chr 
+#>  $ verified_at    : 'POSIXct' num 
+#>  $ accessed_at    : 'POSIXct' num 
+#>  $ pinned         : logi 
+#>  $ path           : chr
 ```
 
 The columns worth knowing: `size` in bytes, `license`, `source` and
-`revision` naming the policy and registry state that resolved it, the
-three timestamps, `pinned`, and `path`.
+`registry_digest` naming the policy and the registry state that resolved
+it, the three timestamps, `pinned`, and `path`.
 
 ## Two sessions, one download
 
@@ -172,10 +195,15 @@ Two R sessions asking for the same four-gigabyte file must not both
 fetch it, and must never mistake each other’s in-flight temporary file
 for a finished resource.
 
-The lock is a directory under `.locks/`, named for the resource triple.
-[`dir.create()`](https://rdrr.io/r/base/files2.html) is atomic on both
-POSIX and Windows, which makes a directory a portable mutex with no
-compiled dependency and no lockfile library.
+The lock is a directory under `.locks/`, named for the declared
+checksum. [`dir.create()`](https://rdrr.io/r/base/files2.html) is atomic
+on both POSIX and Windows, which makes a directory a portable mutex with
+no compiled dependency and no lockfile library.
+
+Keying it on the checksum rather than on the resource triple means the
+two sessions need not be asking on behalf of the same package. Two
+packages declaring the same file are waiting for the same transfer, and
+the one that waits finds the bytes in the store when it wakes.
 
 What a second session does:
 
@@ -232,11 +260,12 @@ more from empty before any conclusion is drawn about upstream. Without
 that, one stale temporary file makes a resource permanently unfetchable
 and blames the wrong party for it.
 
-The move into place is a rename where both sides are on one filesystem
-and a copy where they are not, which a cache pointed at a different disk
-makes routine. A move that cannot complete leaves the verified temporary
-file alone, so the retry resumes onto complete bytes rather than
-starting over.
+Verified bytes are then admitted to the store under their own checksum,
+and the version slot is given a name for them. Admission is a rename,
+since `.tmp/` and `blobs/` share the cache root and therefore share a
+filesystem. Bytes already in the store are already named by their
+checksum, so admitting the same file a second time is a no-op and the
+temporary copy is dropped.
 
 ## Retention
 
@@ -247,7 +276,7 @@ outdated material)”. `getaca` reads that as a retention policy rather
 than a function users might discover, so collection runs automatically
 after every successful retrieval.
 
-Four sweeps, cheapest and safest first:
+Five sweeps, cheapest and safest first:
 
 | Sweep | Removes | Clock |
 |----|----|----|
@@ -255,6 +284,17 @@ Four sweeps, cheapest and safest first:
 | `temp` | abandoned transfers in `.tmp/` | 7 days by mtime |
 | `superseded` | unpinned versions the registry no longer names | `getaca.supersede_days`, default 30 |
 | `lru` | least recently used unpinned entries | only above `getaca.max_bytes`, default 20 GB |
+| `unreferenced` | bytes in the store that no entry names any more | none |
+
+The first four sweeps remove names. `unreferenced` runs last and removes
+the bytes those names were for, once the last one is gone. A blob under
+an active lock is left alone: it belongs to a session that has admitted
+it and has not yet written its entry.
+
+The size ceiling measures what the cache occupies, so shared bytes count
+once. Two packages declaring the same 4 GB file count 4 GB against
+`getaca.max_bytes`, and evicting one of them frees nothing until the
+other goes too.
 
 Superseded and not-recently-used age on separate clocks on purpose. An
 expensive resource that is still the current version is never dropped

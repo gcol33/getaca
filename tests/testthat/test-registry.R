@@ -2,8 +2,60 @@ test_that("a registry round-trips through its stored form", {
   dir <- withr::local_tempdir()
   reg <- demo_registry(strrep("a", 64))
   path <- registry_write(reg, file.path(dir, "getaca", "registry.rds"))
+  back <- registry_read(path)
+
   expect_true(file.exists(path))
-  expect_equal(registry_read(path), reg)
+  expect_equal(registry_digest(back), registry_digest(reg))
+  expect_equal(back$resources, reg$resources)
+})
+
+test_that("writing dates the state, since publishing is what dates it", {
+  dir <- withr::local_tempdir()
+  reg <- demo_registry(strrep("a", 64))
+  stamp <- as.POSIXct("2026-02-03 04:05:06", tz = "UTC")
+
+  expect_null(reg$created)
+  back <- registry_read(registry_write(reg, file.path(dir, "registry.rds"),
+                                       created = stamp))
+  expect_equal(back$created, stamp)
+})
+
+test_that("an older stored form still reads, so a new field costs nothing", {
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "registry.rds")
+  reg <- demo_registry(strrep("a", 64))
+
+  # What an installed package shipped before the field existed: no `created`,
+  # and a `revision` this getaca has never heard of.
+  older <- reg
+  older$created <- NULL
+  older$revision <- 3L
+  saveRDS(older, path, version = 3)
+
+  back <- registry_read(path)
+  expect_null(back$created)
+  expect_equal(registry_digest(back), registry_digest(reg))
+})
+
+test_that("a stored form from a newer getaca is refused rather than guessed at", {
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "registry.rds")
+  ahead <- demo_registry(strrep("a", 64))
+  ahead$schema_version <- getaca:::REGISTRY_SCHEMA + 1L
+  saveRDS(ahead, path, version = 3)
+
+  expect_error(registry_read(path), class = "getaca_error_invalid_registry")
+  expect_error(registry_read(path), "newer getaca")
+})
+
+test_that("a registry with no usable schema version is refused", {
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "registry.rds")
+  broken <- demo_registry(strrep("a", 64))
+  broken$schema_version <- NULL
+  saveRDS(broken, path, version = 3)
+
+  expect_error(registry_read(path), "no usable schema version")
 })
 
 test_that("duplicate declarations are refused", {

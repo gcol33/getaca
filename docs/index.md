@@ -8,12 +8,17 @@ coverage](https://codecov.io/gh/gcol33/getaca/graph/badge.svg)](https://app.code
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Depend on gigabytes of external data without breaking reproducibility,
-offline use, or `R CMD check`.**
+## The problem
 
-Packages declare resources. `getaca` retrieves them. A declaration names
+[`taxify`](https://github.com/gcol33/taxify) resolves species names
+against reference backbones. WFO is 797 MB, GBIF is 1.9 GB, COL is 2.0
+GB, and each is republished on its own schedule. Sizes like that rule
+out shipping the data inside the package. A check run has no network.
+And an analysis rerun next year still has to see the bytes it saw today.
+
+So the package ships a declaration and no data. The declaration names
 exact bytes: one SHA-256, one version label, one or more mirrors.
-Retrieval resolves that declaration through an explicit policy, verifies
+`getaca` resolves that declaration through an explicit policy, verifies
 what arrives, records where it came from, and returns an ordinary local
 path. There is one engine and many declarations, the way there is one
 `renv` and many lockfiles.
@@ -39,14 +44,11 @@ registry(
 path <- getaca("wfo", package = "taxify")
 ```
 
-## Pinned, not merely downloaded
+## Failures that name who can fix them
 
-[`download.file()`](https://rdrr.io/r/utils/download.file.html) gives
-you whatever is at the URL today. `getaca` gives you the bytes the
-package was built against, or an error naming who can fix it.
-
-Six failures that look identical to a plain downloader get six different
-answers, each classed so callers can branch on the cause:
+A retrieval produces the bytes the package was built against, or an
+error naming who can act on it. Six situations get six answers, each
+classed so callers can branch on the cause:
 
 | Condition | Meaning | Who acts |
 |----|----|----|
@@ -57,10 +59,9 @@ answers, each classed so callers can branch on the cause:
 | `getaca_error_cache_corrupt` | local copy drifted from its own record | user |
 | `getaca_error_declaration` | every mirror agrees, the registry disagrees | author |
 
-The last one is the interesting case. When several independent mirrors
-return identical bytes and none match the declared checksum, the
-registry is the likely error, and `getaca` says so rather than blaming
-the network.
+When several independent mirrors return identical bytes and none of them
+match the declared checksum, the registry is the likely error, and
+`getaca_error_declaration` says so.
 
 Each condition carries an `actor` field, so a declaring package can
 catch the ones its users will meet and answer in its own vocabulary:
@@ -117,11 +118,11 @@ usual actions cache it by key:
 Keying the cache on the registry file means a new declaration downloads
 once and every later job reuses it.
 
-## Immutable records, mutable channels
+## Records and channels
 
-Two things that must not be conflated. A **resource record** is
-immutable: `taxify / wfo / 2026-06` names exact bytes forever. A
-**channel** maps the logical name onto one record, and channels move.
+A **resource record** is immutable: `taxify / wfo / 2026-06` names exact
+bytes forever. A **channel** maps the logical name onto one record, and
+channels move.
 
 | Policy | Resolves through | Use when |
 |----|----|----|
@@ -130,13 +131,13 @@ immutable: `taxify / wfo / 2026-06` names exact bytes forever. A
 | `pinned` | a frozen local snapshot | an analysis must keep resolving what it was written against |
 | `offline` | cached and bundled information only | no network permitted |
 
-A remote channel may repair a dead mirror and may publish `2026-09`. It
-may never redefine what `2026-06` means; `getaca` rejects that as an
-invalid registry rather than accepting a silent substitution.
+A remote channel may repair a dead mirror and may publish `2026-09`.
+`2026-06` keeps its meaning, and a registry that redefines it is
+rejected as invalid.
 
-Which record the channel points at is stated in the registry, because
-version strings here are labels rather than semantic versions and
-`source-2026-06_build-3` has no defensible ordering:
+The registry states which record the channel points at. Version strings
+here are labels, and `source-2026-06_build-3` has no defensible
+ordering, so declaration order cannot stand in for one:
 
 ``` r
 
@@ -151,24 +152,15 @@ registry(
 ```
 
 A name offering several versions and naming no head is refused as an
-invalid registry. That turns the one mistake this design is exposed to,
-appending `2026-03` below `2026-09` and moving every user backwards,
-into an error at
+invalid registry. The one mistake this design is exposed to, appending
+`2026-03` below `2026-09` and moving every user backwards, becomes an
+error at
 [`registry()`](https://gillescolling.com/getaca/reference/registry.md)
 on the author’s machine.
 
-## A worked case
+## Declaring the backbones
 
-A taxonomic name matcher resolves species names against reference
-backbones. The backbones are published on their own schedule and run to
-[797 MB for WFO, 1.9 GB for GBIF, and 2.0 GB for
-COL](https://github.com/gcol33/taxify), so the package cannot ship them,
-cannot download them during a check run, and cannot afford to fetch
-different bytes on Tuesday than it fetched on Monday. That is the case
-`getaca` was designed against; what follows is what declaring those
-backbones through it looks like.
-
-The declaring package ships a declaration and nothing large:
+The declaration `taxify` ships, in full:
 
 ``` r
 
@@ -193,8 +185,8 @@ registry_write(
 )
 ```
 
-Installing the package downloads nothing. The first real call retrieves,
-verifies and caches:
+Installing the package copies a few kilobytes. The first real call
+retrieves, verifies and caches:
 
 ``` r
 
@@ -205,8 +197,8 @@ What each part of the declaration buys:
 
 - **two mirrors** mean a Zenodo outage falls through to the GitHub
   release
-- **`sha256`** means a truncated or substituted file is an error rather
-  than a parse failure three functions later
+- **`sha256`** turns a truncated or substituted file into an error at
+  retrieval, where it is diagnosable
 - **`upstream`** keeps both identities, the WFO release and the build
   that turned it into a queryable file, so provenance answers which one
   moved
@@ -226,13 +218,20 @@ publisher as the party who changed something.
 returns a path to a complete file, verified against the declared
 checksum, at the resolved version, in a slot `getaca` owns.
 
-Bytes land in `.tmp/`, are sized, hashed, and only then moved into the
+Bytes land in `.tmp/`, are sized, hashed, and only then admitted to the
 cache, so an interrupted transfer can never appear as a valid cached
 resource and a failed transfer never touches a copy that was already
 good. The temporary file is named after the declared checksum, so an
 interrupted download resumes on the next attempt. Each mirror gets its
 own temporary file, because a partial transfer is resumable only against
 the mirror that produced it.
+
+Bytes then live once, under their own checksum, and a version slot holds
+a name for them. Two packages declaring the same file keep one copy and
+two separate dependency records, and the second package to ask for it
+waits for the first transfer rather than starting its own. Everything
+the cache owns is read-only, since shared bytes make one caller’s stray
+write everybody’s problem.
 
 Verification asks three questions and keeps the answers apart:
 
@@ -245,10 +244,9 @@ Verification asks three questions and keeps the answers apart:
 “Verified” therefore means the bytes were re-hashed then, rather than
 that somebody looked at the file at some point.
 
-Locking is in the first version. Two sessions asking for the same 4 GB
-file wait on a portable directory mutex, and the second observes the
-first’s success instead of downloading again. A lock whose holder died
-goes stale and is taken over.
+Two sessions asking for the same 4 GB file wait on a portable directory
+mutex keyed on the checksum, and the second observes the first’s
+success. A lock whose holder died goes stale and is taken over.
 
 ## Provenance, and what is cached
 
@@ -257,20 +255,24 @@ goes stale and is taken over.
 getaca_info("wfo", package = "taxify")
 #> <getaca cache entry> taxify/wfo@2026-06
 #>   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.vtr
+#>   store       hardlink to blobs/sha256/9f/9f2c8d1e5a3b
 #>   sha256      9f2c8d1e...
 #>   size        797,000,000 bytes
 #>   license     CC-BY-4.0
 #>   built from  wfo_release: 2026-06
 #>   built from  taxifydb_build: 3
-#>   resolved by current registry, revision 7
+#>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
 #>   source url  https://zenodo.org/records/1234567/files/wfo-2026-06.vtr
+#>   getaca      0.0.0.9000
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
 #>   checked     2026-07-26 15:31:02 (size and mtime)
 ```
 
 That is a reproducibility appendix, and a bug report that says which
-mirror served the bytes and which registry revision chose them.
+mirror served the bytes and which registry state chose them. The
+registry digest is derived from the declaration itself, so it identifies
+that state exactly.
 
 [`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)
 widens it to a data frame covering both halves, every resource the
@@ -311,20 +313,20 @@ invalidates previously processed copies.
 `getaca(..., processed = FALSE)` returns the raw artefact. `getaca`
 knows nothing about file formats and never reads data.
 
-## Cache management is not optional
+## Keeping the cache in bounds
 
 CRAN permits
 [`tools::R_user_dir()`](https://rdrr.io/r/tools/userdir.html) on
 condition that contents are “actively managed (including removing
-outdated material)”. `getaca` reads that as a retention policy rather
-than a function users might discover, and collects after every
-successful retrieval.
+outdated material)”. `getaca` reads that as a retention policy, and
+collects after every successful retrieval.
 
 Removal runs cheapest and safest first: broken material, abandoned
-transfers, superseded versions past their retention window, then
-least-recently-used entries only when over the size ceiling. Superseded
-and not-recently-used age on separate clocks, so an expensive resource
-is never dropped merely for being old. Pinned entries, the version the
+transfers, superseded versions past their retention window,
+least-recently-used entries once over the size ceiling, and finally
+bytes that no declaration references any more. Superseded and
+not-recently-used age on separate clocks, so an expensive resource is
+never dropped merely for being old. Pinned entries, the version the
 bundled registry names, and anything under an active lock are never
 touched.
 
@@ -345,8 +347,8 @@ options(getaca.max_bytes = 50 * 1024^3)  # raise the ceiling
 | Granularity | all of it, always | users take what they need |
 | License | redistribution permitted | download permitted, redistribution discouraged |
 
-A companion package can itself use `getaca`, but that is rarely the
-first recommendation: it moves the complexity rather than removing it.
+A companion package can itself use `getaca`, though that is rarely the
+first recommendation: it moves the complexity one step along.
 
 ## Related work
 
@@ -371,14 +373,14 @@ are the same for every declaring package because there is one engine.
 
 ## Dependencies
 
-`Imports: curl, digest`. Recursive footprint outside base R: **zero
-packages**. `curl` has no dependencies; `digest` has none beyond
-`utils`. YAML and JSON registries, testthat helpers and vignettes live
-in `Suggests` and are gated at call time.
+`Imports: curl`, plus `stats`, `tools` and `utils` from base R.
+Recursive footprint outside base R: **zero packages**. YAML and JSON
+registries, testthat helpers and vignettes live in `Suggests` and are
+gated at call time.
 
-[`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html) would
-remove `digest` entirely, but it arrived in R 4.6.0 and this package
-supports R 4.0.
+Hashing is
+[`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html), which is
+why the package requires R \>= 4.6.0.
 
 ## What’s in the box
 
@@ -390,6 +392,9 @@ supports R 4.0.
   collect a package’s declarations and name the channel head
 - **[`registry_write()`](https://gillescolling.com/getaca/reference/registry_write.md)**
   ship them at `inst/getaca/registry.rds`
+- **[`registry_digest()`](https://gillescolling.com/getaca/reference/registry_digest.md)**,
+  **[`registry_manifest()`](https://gillescolling.com/getaca/reference/registry_manifest.md)**
+  the identity of a declaration state, and the text it is taken over
 - **[`as_registry()`](https://gillescolling.com/getaca/reference/as_registry.md)**
   build one from a YAML or JSON authoring file
 - **[`processor()`](https://gillescolling.com/getaca/reference/processor.md)**

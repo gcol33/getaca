@@ -12,3 +12,8 @@ The lock is a directory.
 POSIX and Windows, which makes it a portable mutex without a compiled
 dependency. A waiter either observes that the holder finished
 successfully, or takes over once the lock goes stale.
+
+The key is the declared checksum rather than the identity triple,
+because what a waiter is waiting for is a transfer of particular bytes.
+Two packages declaring the same file wait on each other, and the second
+finds the blob the first admitted instead of downloading it again.

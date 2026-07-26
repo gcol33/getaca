@@ -24,10 +24,11 @@ fixture <- registry(
              urls = "https://example.org/demo-2.0.csv",
              sha256 = strrep("b", 64),
              license = "CC-BY-4.0")
-  ),
-  revision = 2L
+  )
 )
 
 path <- "tests/testthat/fixtures/remote-registry.rds"
-registry_write(fixture, path)
+# A fixed publication time, so regenerating an unchanged fixture produces an
+# unchanged file rather than a commit that only moves a timestamp.
+registry_write(fixture, path, created = as.POSIXct("2026-07-26", tz = "UTC"))
 cat("wrote ", path, " (", file.info(path)$size, " bytes)\n", sep = "")

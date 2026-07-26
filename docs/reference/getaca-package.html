@@ -90,8 +90,8 @@ handed back. Throughout the API this operation is called <em>verify</em>;
 "authentication" is reserved for credentials.</p></dd>
 
 <dt>Track</dt>
-<dd><p>Record version, registry revision, resolution policy,
-observed checksum and verification state.</p></dd>
+<dd><p>Record version, registry state, resolution policy, observed
+checksum and verification state.</p></dd>
 
 <dt>Cache</dt>
 <dd><p>Reuse resources across sessions and actively remove
@@ -106,6 +106,9 @@ obsolete material, as CRAN policy requires.</p></dd>
 <p>A resource is identified by the triple <code>package / name / version</code>, never by
 name alone. Two packages may declare the same physical file; their
 dependency records stay separate.</p>
+<p>A registry is identified by <code><a href="registry_digest.html">registry_digest()</a></code>, derived from the
+declaration rather than asserted beside it. Provenance records that digest,
+so a cached file names the exact declaration state that resolved it.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

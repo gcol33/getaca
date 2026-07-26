@@ -19,7 +19,7 @@
 NULL
 
 sha256_file <- function(path) {
-  unname(digest::digest(path, algo = "sha256", file = TRUE))
+  unname(tools::sha256sum(path))
 }
 
 # Cheap: catches truncation, replacement by a different-sized file, and most
@@ -43,9 +43,7 @@ validate_cached <- function(entry, record, force = FALSE) {
     err_cache_corrupt(entry$id, entry$path, entry$declared_sha256, observed)
   }
   if (force || needs_full_verification(entry)) {
-    # A processed directory is identified by the raw artefact it came from,
-    # so re-hash the raw file rather than the derived tree.
-    target <- if (is.null(entry$processor_id)) entry$path else raw_file_for(entry$id)
+    target <- verification_target(entry)
     if (!is.null(target) && file.exists(target)) {
       observed <- sha256_file(target)
       if (!identical(observed, entry$declared_sha256)) {
@@ -55,6 +53,17 @@ validate_cached <- function(entry, record, force = FALSE) {
     return(touch_entry(entry, verified = TRUE))
   }
   touch_entry(entry, verified = FALSE)
+}
+
+# What the declared checksum describes. A store-backed entry hashes the blob,
+# which is the artefact itself; a processed directory is identified by the
+# artefact it came from rather than by the derived tree, and stays verifiable
+# after its own view has been swept.
+verification_target <- function(entry) {
+  blob <- entry_blob(entry)
+  if (!is.null(blob)) return(blob_path(blob))
+  if (is.null(entry$processor_id)) return(entry$path)
+  raw_file_for(entry$id)
 }
 
 raw_file_for <- function(id) {

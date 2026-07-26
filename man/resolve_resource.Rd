@@ -24,9 +24,12 @@ resolve_resource(
 \item{version}{Optional explicit version, bypassing channel resolution.}
 }
 \value{
-A list with \code{id}, \code{record}, \code{policy}, \code{source} and \code{revision}.
-\code{policy} is the one actually in force, after the argument, the session
-setting, the registry default and the check clamp have been resolved.
+A list with \code{id}, \code{record}, \code{policy}, \code{source}, \code{digest} and
+\code{created}. \code{policy} is the one actually in force, after the argument, the
+session setting, the registry default and the check clamp have been
+resolved. \code{digest} identifies the registry state that answered, and
+\code{created} says when that state was published, or \code{NA} for a declaration
+that was built in the session rather than read from a file.
 }
 \description{
 Separates the two things that must not be conflated: an immutable resource

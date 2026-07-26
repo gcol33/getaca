@@ -1,11 +1,11 @@
 # Provenance for a resource
 
 Answers, for a cached resource: which package declared it, which
-registry revision and which policy resolved it, the exact version,
-declared and observed checksums, which mirror served it, when it was
-fetched and when it was last fully verified, its license, any processor
-applied, and the local path. Suitable for a reproducibility appendix or
-a bug report.
+registry state and which policy resolved it, the exact version, declared
+and observed checksums, which mirror served it, when it was fetched and
+when it was last fully verified, its license, any processor applied,
+which getaca retrieved it, and the local path. Suitable for a
+reproducibility appendix or a bug report.
 
 ## Usage
 
@@ -52,3 +52,10 @@ getaca_info(
 ## Value
 
 A `getaca_entry`, or `NULL` when the resource is not cached.
+
+## Details
+
+The registry state appears as a
+[`registry_digest()`](https://gillescolling.com/getaca/reference/registry_digest.md),
+so the declaration that resolved the resource can be identified exactly
+rather than by a number someone kept in step by hand.

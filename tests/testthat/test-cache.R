@@ -53,7 +53,7 @@ test_that("forced verification catches a substituted file of the same size", {
 
   # Same length, different bytes: the cheap check cannot see this, which is
   # exactly why periodic and forced full re-hashing exist.
-  writeBin(charToRaw("bbbbbbbb"), seeded$path)
+  corrupt(seeded$path, "bbbbbbbb")
   expect_identical(unname(file.info(seeded$path)$size), seeded$entry$size)
   expect_true(getaca:::cheap_check_ok(seeded$entry))
 
@@ -70,7 +70,7 @@ test_that("a truncated cache entry is caught by the cheap check", {
   reg <- demo_registry(f$sha256)
   seeded <- seed_cache(reg, f)
 
-  writeBin(charToRaw("short"), seeded$path)
+  corrupt(seeded$path, "short")
   expect_false(getaca:::cheap_check_ok(seeded$entry))
   expect_error(
     getaca("res", registry = reg),

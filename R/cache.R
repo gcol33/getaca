@@ -82,8 +82,9 @@ drop_entry <- function(id, processor_id = NULL) {
   write_index(id$package, index)
 }
 
-new_entry <- function(id, record, path, observed_sha, source, revision,
-                      url_used, processor_id = NULL) {
+new_entry <- function(id, record, path, observed_sha, source, digest,
+                      created = .POSIXct(NA_real_), url_used,
+                      processor_id = NULL, link = NULL) {
   now <- Sys.time()
   structure(
     list(
@@ -96,9 +97,17 @@ new_entry <- function(id, record, path, observed_sha, source, revision,
       license = record$license,
       upstream = record$upstream,
       source = source,
-      revision = revision,
+      # Which declaration state resolved these bytes, when that state was
+      # published, and which getaca acted on it. Together these answer the
+      # question a reproducibility appendix asks years later.
+      registry_digest = digest,
+      registry_created = created,
+      getaca_version = getaca_version(),
       url_used = url_used,
       processor_id = processor_id,
+      # How the version slot reaches the bytes. Absent means the bytes sit in
+      # the slot itself, which is what a cache built before the store holds.
+      link = link,
       fetched_at = now,
       verified_at = now,
       checked_at = now,
@@ -118,6 +127,14 @@ touch_entry <- function(entry, verified = FALSE) {
   entry
 }
 
+# Recorded per entry, because how a resource was retrieved and verified is a
+# property of the getaca that did it. Falls back during load-time use, when the
+# namespace is not yet registered.
+getaca_version <- function() {
+  tryCatch(as.character(utils::packageVersion("getaca")),
+           error = function(e) NA_character_)
+}
+
 file_size <- function(path) {
   if (dir.exists(path)) {
     sum(file.info(list.files(path, recursive = TRUE, full.names = TRUE))$size, na.rm = TRUE)
@@ -130,6 +147,11 @@ file_size <- function(path) {
 print.getaca_entry <- function(x, ...) {
   cat("<getaca cache entry> ", format(x$id), "\n", sep = "")
   cat("  path        ", x$path, "\n", sep = "")
+  if (!is.null(x$link)) {
+    cat("  store       ", x$link, " to blobs/sha256/",
+        substr(x$observed_sha256, 1, 2), "/", substr(x$observed_sha256, 1, 12),
+        "\n", sep = "")
+  }
   cat("  sha256      ", x$observed_sha256, "\n", sep = "")
   cat("  size        ", format(x$size, big.mark = ","), " bytes\n", sep = "")
   cat("  license     ", x$license, "\n", sep = "")
@@ -138,9 +160,14 @@ print.getaca_entry <- function(x, ...) {
       cat("  built from  ", nm, ": ", as.character(x$upstream[[nm]]), "\n", sep = "")
     }
   }
-  cat("  resolved by ", x$source, " registry, revision ", x$revision, "\n", sep = "")
+  cat("  resolved by ", x$source, " registry ", short_digest(x$registry_digest),
+      if (!is.na(x$registry_created)) {
+        paste0(" (published ", format(x$registry_created, "%Y-%m-%d"), ")")
+      },
+      "\n", sep = "")
   cat("  source url  ", x$url_used, "\n", sep = "")
   if (!is.null(x$processor_id)) cat("  processor   ", x$processor_id, "\n", sep = "")
+  cat("  getaca      ", x$getaca_version %||% "unknown", "\n", sep = "")
   cat("  fetched     ", format(x$fetched_at, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
   cat("  verified    ", format(x$verified_at, "%Y-%m-%d %H:%M:%S"), " (full re-hash)\n", sep = "")
   cat("  checked     ", format(x$checked_at, "%Y-%m-%d %H:%M:%S"), " (size and mtime)\n", sep = "")

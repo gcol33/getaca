@@ -25,7 +25,7 @@ test_that("a cached resource that no longer matches its entry is not available",
   f <- seed_file(withr::local_tempdir())
   reg <- demo_registry(f$sha256)
   seeded <- seed_cache(reg, f)
-  writeBin(charToRaw("truncated"), seeded$path)
+  corrupt(seeded$path, "truncated")
 
   expect_false(getaca_available("res", registry = reg))
 })

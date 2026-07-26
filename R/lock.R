@@ -10,18 +10,23 @@
 #' waiter either observes that the holder finished successfully, or takes over
 #' once the lock goes stale.
 #'
+#' The key is the declared checksum rather than the identity triple, because
+#' what a waiter is waiting for is a transfer of particular bytes. Two packages
+#' declaring the same file wait on each other, and the second finds the blob
+#' the first admitted instead of downloading it again.
+#'
 #' @name getaca-locking
 #' @keywords internal
 NULL
 
-lock_dir <- function(id) {
+lock_dir <- function(key) {
   d <- file.path(getaca_cache_dir(), ".locks")
   dir.create(d, recursive = TRUE, showWarnings = FALSE)
-  file.path(d, paste(id$package, id$name, id$version, sep = "__"))
+  file.path(d, key)
 }
 
-acquire_lock <- function(id, timeout = 300, poll = 0.5) {
-  path <- lock_dir(id)
+acquire_lock <- function(key, label = key, timeout = 300, poll = 0.5) {
+  path <- lock_dir(key)
   deadline <- Sys.time() + timeout
   repeat {
     if (dir.create(path, showWarnings = FALSE)) {
@@ -39,7 +44,7 @@ acquire_lock <- function(id, timeout = 300, poll = 0.5) {
       stop(sprintf(
         paste0("getaca: timed out waiting for another session to finish fetching %s.\n",
                "If no other session is running, remove the stale lock:\n  unlink(\"%s\", recursive = TRUE)"),
-        format(id), path
+        label, path
       ), call. = FALSE)
     }
     Sys.sleep(poll)

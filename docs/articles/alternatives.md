@@ -215,7 +215,7 @@ grow into something else, and the dependency footprint that makes
 ``` r
 
 packageDescription("getaca")$Imports
-#> [1] "curl,\ndigest"
+#> [1] "curl,\nstats,\ntools,\nutils"
 ```
 
 ## Where to go next

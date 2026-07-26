@@ -33,7 +33,7 @@ new_handle_for <- function(url) {
 partial_path <- function(record, url) {
   sprintf("%s/%s-%s.part", cache_tmp_dir(),
           substr(record$sha256, 1, 16),
-          substr(digest::digest(url, algo = "sha256", serialize = FALSE), 1, 8))
+          substr(unname(tools::sha256sum(bytes = charToRaw(enc2utf8(url)))), 1, 8))
 }
 
 # Try each mirror in order. Records what each one produced so that the caller
@@ -148,19 +148,18 @@ try_one <- function(url, dest, quiet = FALSE) {
   list(success = TRUE, reason = NA_character_)
 }
 
-# Move verified bytes into their final slot. The destination directory is
-# built beside the target and renamed, so a reader never sees a partially
-# populated version directory.
+# Verified bytes join the store under their own digest, and the version slot
+# gets a name for them. The two steps are separate because the bytes belong to
+# every package that declares them and the name belongs to one.
 promote <- function(id, record, temp_path) {
-  raw <- cache_raw_dir(id)
-  dir.create(raw, recursive = TRUE, showWarnings = FALSE)
-  final <- file.path(raw, url_basename(record$urls[1]))
-  if (file.exists(final)) unlink(final)
-  if (!move_file(temp_path, final)) {
-    stop(sprintf("getaca: could not move the verified file into the cache at %s", final),
-         call. = FALSE)
-  }
-  final
+  admit(temp_path, record$sha256)
+  place(id, record)
+}
+
+# The version slot's name for bytes that are already in the store.
+place <- function(id, record) {
+  view <- file.path(cache_raw_dir(id), url_basename(record$urls[1]))
+  list(path = view, link = materialise(record$sha256, view))
 }
 
 # One move, by whichever mechanism the filesystem allows: a rename when both

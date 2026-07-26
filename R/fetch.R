@@ -63,7 +63,7 @@ getaca <- function(name, package = NULL, registry = NULL, version = NULL,
     err_offline(id, if (in_r_check()) "running under R CMD check" else "offline mode is in effect")
   }
 
-  lock <- acquire_lock(id)
+  lock <- acquire_lock(record$sha256, format(id))
   on.exit(release_lock(lock), add = TRUE)
 
   # Another session may have finished while this one waited for the lock.
@@ -73,20 +73,24 @@ getaca <- function(name, package = NULL, registry = NULL, version = NULL,
     return(entry$path)
   }
 
-  raw <- raw_file_for(id)
-  if (is.null(raw) || !identical(sha256_file(raw), record$sha256)) {
-    got <- fetch_to_temp(id, record, quiet = quiet)
-    raw <- promote(id, record, got$path)
-    url_used <- got$url
-  } else {
+  # Bytes already in the store, or a copy in the slot that hashes to the
+  # declaration, are both reasons not to transfer anything.
+  if (blob_exists(record$sha256) || adopt(id, record)) {
+    placed <- place(id, record)
     url_used <- NA_character_
+  } else {
+    got <- fetch_to_temp(id, record, quiet = quiet)
+    placed <- promote(id, record, got$path)
+    url_used <- got$url
   }
 
-  final <- if (is.null(proc)) raw else apply_processor(id, proc, raw)
+  final <- if (is.null(proc)) placed$path else apply_processor(id, proc, placed$path)
 
   entry <- new_entry(id, record, final, record$sha256,
-                     source = res$source, revision = res$revision,
-                     url_used = url_used, processor_id = proc_id)
+                     source = res$source, digest = res$digest,
+                     created = res$created,
+                     url_used = url_used, processor_id = proc_id,
+                     link = placed$link)
   put_entry(entry)
   gc_opportunistic(id$package)
   final
@@ -100,18 +104,21 @@ path_exists <- function(p) !is.null(p) && (file.exists(p) || dir.exists(p))
 apply_processor <- function(id, proc, raw) {
   out <- cache_proc_dir(id, proc$id)
   staging <- paste0(out, ".staging-", Sys.getpid())
-  unlink(staging, recursive = TRUE)
+  remove_path(staging)
   dir.create(staging, recursive = TRUE, showWarnings = FALSE)
 
+  # A processor reading the raw view with file.copy() carries the store's
+  # read-only mode into its output, so the staging tree is removed the same way
+  # the cache is.
   result <- tryCatch(proc$fn(raw, staging), error = function(e) {
-    unlink(staging, recursive = TRUE)
+    remove_path(staging)
     stop(sprintf("getaca: processor '%s' failed for %s:\n  %s",
                  proc$id, format(id), conditionMessage(e)), call. = FALSE)
   })
 
-  if (file.exists(out) || dir.exists(out)) unlink(out, recursive = TRUE)
+  if (file.exists(out) || dir.exists(out)) remove_path(out)
   if (!file.rename(staging, out)) {
-    unlink(staging, recursive = TRUE)
+    remove_path(staging)
     stop(sprintf("getaca: could not promote the processed result for %s", format(id)),
          call. = FALSE)
   }
@@ -157,10 +164,15 @@ err_offline <- function(id, why, call = NULL) {
 #' Provenance for a resource
 #'
 #' Answers, for a cached resource: which package declared it, which registry
-#' revision and which policy resolved it, the exact version, declared and
-#' observed checksums, which mirror served it, when it was fetched and when it
-#' was last fully verified, its license, any processor applied, and the local
-#' path. Suitable for a reproducibility appendix or a bug report.
+#' state and which policy resolved it, the exact version, declared and observed
+#' checksums, which mirror served it, when it was fetched and when it was last
+#' fully verified, its license, any processor applied, which getaca retrieved
+#' it, and the local path. Suitable for a reproducibility appendix or a bug
+#' report.
+#'
+#' The registry state appears as a [registry_digest()], so the declaration that
+#' resolved the resource can be identified exactly rather than by a number
+#' someone kept in step by hand.
 #'
 #' @inheritParams getaca
 #' @return A `getaca_entry`, or `NULL` when the resource is not cached.
@@ -193,7 +205,9 @@ getaca_info <- function(name, package = NULL, registry = NULL, version = NULL,
 #'   force names that version, `FALSE` when it does not, and `NA` when no
 #'   registry could be read for the package; `current` is `NA` in that same
 #'   case. `cached` says whether a local copy is recorded; the provenance
-#'   columns are `NA` for declared resources that are not cached.
+#'   columns are `NA` for declared resources that are not cached. `link` says
+#'   how the slot reaches its bytes, so two packages sharing one copy in the
+#'   store are visible as such.
 #' @export
 #'
 #' @examples
@@ -271,12 +285,13 @@ entry_row <- function(e, declared, current) {
     version = e$id$version,
     current = current,
     processor = e$processor_id %||% NA_character_,
+    link = e$link %||% NA_character_,
     declared = declared,
     cached = TRUE,
     size = e$size,
     license = e$license %||% NA_character_,
     source = e$source,
-    revision = e$revision,
+    registry_digest = e$registry_digest %||% NA_character_,
     verified_at = e$verified_at,
     accessed_at = e$accessed_at,
     pinned = isTRUE(e$pinned),
@@ -292,12 +307,13 @@ declared_row <- function(package, rec, current) {
     version = rec$version,
     current = current,
     processor = if (is.null(rec$processor)) NA_character_ else rec$processor$id,
+    link = NA_character_,
     declared = TRUE,
     cached = FALSE,
     size = as.numeric(rec$size),
     license = rec$license %||% NA_character_,
     source = NA_character_,
-    revision = NA_integer_,
+    registry_digest = NA_character_,
     verified_at = na_time(),
     accessed_at = na_time(),
     pinned = FALSE,
@@ -311,10 +327,10 @@ na_time <- function(n = 1L) .POSIXct(rep(NA_real_, n))
 empty_catalogue <- function() {
   data.frame(
     package = character(), name = character(), version = character(),
-    current = logical(), processor = character(),
+    current = logical(), processor = character(), link = character(),
     declared = logical(), cached = logical(),
     size = numeric(), license = character(),
-    source = character(), revision = integer(),
+    source = character(), registry_digest = character(),
     verified_at = na_time(0L), accessed_at = na_time(0L),
     pinned = logical(), path = character(), stringsAsFactors = FALSE
   )
@@ -324,8 +340,12 @@ list_cached_packages <- function() {
   root <- getaca_cache_dir()
   if (!dir.exists(root)) return(character())
   d <- list.dirs(root, full.names = FALSE, recursive = FALSE)
-  d[!startsWith(d, ".")]
+  d[!startsWith(d, ".") & !d %in% CACHE_RESERVED]
 }
+
+# Directories the cache owns. Everything else below the root is named after a
+# declaring package.
+CACHE_RESERVED <- "blobs"
 
 # Discovery is by convention: a package declares resources by shipping
 # inst/getaca/registry.rds, so finding declarations is a file test across the

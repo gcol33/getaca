@@ -151,7 +151,8 @@ package:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span>, resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">wfo</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;getaca registry&gt; taxify  (revision 1, policy "bundled")</span></span>
+<span><span class="co">#&gt; &lt;getaca registry&gt; taxify  (policy "bundled")</span></span>
+<span><span class="co">#&gt;   digest: sha256:dbf5fe8420e3</span></span>
 <span><span class="co">#&gt;   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]</span></span></code></pre></div>
 <p>Scoping matters more than it looks. Identity here is the triple
 <code>package / name / version</code>, so two packages may both declare
@@ -351,11 +352,16 @@ disagree with the registry.</p>
 <span><span class="co">#&gt;   sha256      9f9f9f...</span></span>
 <span><span class="co">#&gt;   size        4,100,000,000 bytes</span></span>
 <span><span class="co">#&gt;   license     CC-BY-4.0</span></span>
-<span><span class="co">#&gt;   resolved by bundled registry, revision 1</span></span>
+<span><span class="co">#&gt;   resolved by bundled registry sha256:1c4d7a90f2be (published 2026-07-20)</span></span>
 <span><span class="co">#&gt;   source url  https://primary.invalid/wfo-2026-06.zip</span></span>
+<span><span class="co">#&gt;   getaca      0.0.0.9000</span></span>
 <span><span class="co">#&gt;   fetched     2026-07-26 11:02:13</span></span>
 <span><span class="co">#&gt;   verified    2026-07-26 11:09:44 (full re-hash)</span></span>
 <span><span class="co">#&gt;   checked     2026-07-26 15:31:02 (size and mtime)</span></span></code></pre></div>
+<p>The registry digest names the exact declaration that chose these
+bytes, so “which version of taxify’s declaration was this” has an answer
+years later, without anyone having kept a revision number in step by
+hand.</p>
 <p>Four timestamps, kept apart on purpose. “Verified” means the bytes
 were re-hashed then. “Checked” means size and modification time were
 compared against the entry, which is the cheap test run on ordinary
@@ -391,7 +397,7 @@ any more, which is what the retention sweeps reclaim first.</p>
 </h2>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_cache_dir.html">getaca_cache_dir</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpE5Y06U/getaca-quickstart"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\Rtmpwx0nQb/getaca-quickstart"</span></span></code></pre></div>
 <p>That is the temporary directory this vignette is sandboxed in. The
 default is <code>tools::R_user_dir("getaca", "cache")</code>, which is
 what CRAN policy permits, on the condition that contents are actively

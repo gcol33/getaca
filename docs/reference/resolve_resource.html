@@ -113,9 +113,12 @@ function walks the channel; everything downstream deals only in records.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list with <code>id</code>, <code>record</code>, <code>policy</code>, <code>source</code> and <code>revision</code>.
-<code>policy</code> is the one actually in force, after the argument, the session
-setting, the registry default and the check clamp have been resolved.</p>
+    <p>A list with <code>id</code>, <code>record</code>, <code>policy</code>, <code>source</code>, <code>digest</code> and
+<code>created</code>. <code>policy</code> is the one actually in force, after the argument, the
+session setting, the registry default and the check clamp have been
+resolved. <code>digest</code> identifies the registry state that answered, and
+<code>created</code> says when that state was published, or <code>NA</code> for a declaration
+that was built in the session rather than read from a file.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

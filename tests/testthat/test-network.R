@@ -130,10 +130,10 @@ test_that("a remote registry is fetched over https and takes effect", {
   bundled <- registry("getacademo", list(
     resource("demo", "1.0", urls = "https://example.org/demo-1.0.csv",
              sha256 = strrep("a", 64))
-  ), remote = FIXTURE_URL, revision = 1L)
+  ), remote = FIXTURE_URL)
 
   fetched <- getaca:::remote_channel(bundled)
-  expect_equal(fetched$revision, 2L)
+  expect_false(identical(registry_digest(fetched), registry_digest(bundled)))
   expect_length(fetched$resources, 2L)
 
   res <- resolve_resource("demo", registry = bundled, policy = "current")

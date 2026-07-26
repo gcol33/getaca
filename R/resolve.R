@@ -10,9 +10,12 @@
 #' @param policy Resolution policy, defaulting to [getaca_policy()].
 #' @param version Optional explicit version, bypassing channel resolution.
 #'
-#' @return A list with `id`, `record`, `policy`, `source` and `revision`.
-#'   `policy` is the one actually in force, after the argument, the session
-#'   setting, the registry default and the check clamp have been resolved.
+#' @return A list with `id`, `record`, `policy`, `source`, `digest` and
+#'   `created`. `policy` is the one actually in force, after the argument, the
+#'   session setting, the registry default and the check clamp have been
+#'   resolved. `digest` identifies the registry state that answered, and
+#'   `created` says when that state was published, or `NA` for a declaration
+#'   that was built in the session rather than read from a file.
 #' @export
 resolve_resource <- function(name, package = NULL, registry = NULL,
                              policy = NULL, version = NULL) {
@@ -48,7 +51,10 @@ resolve_resource <- function(name, package = NULL, registry = NULL,
     record = rec,
     policy = policy,
     source = if (policy %in% c("bundled", "offline")) "bundled" else policy,
-    revision = channel$revision
+    # Identity comes from the channel that answered, not from the bundled
+    # registry, so provenance names the state that actually chose the record.
+    digest = registry_digest(channel),
+    created = channel$created %||% .POSIXct(NA_real_)
   )
 }
 

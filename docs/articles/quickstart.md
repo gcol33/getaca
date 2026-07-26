@@ -58,7 +58,8 @@ Records live in a registry, which is scoped to the declaring package:
 
 reg <- registry(package = "taxify", resources = list(wfo))
 reg
-#> <getaca registry> taxify  (revision 1, policy "bundled")
+#> <getaca registry> taxify  (policy "bundled")
+#>   digest: sha256:dbf5fe8420e3
 #>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 ```
 
@@ -313,12 +314,17 @@ getaca_info("wfo", package = "taxify")
 #>   sha256      9f9f9f...
 #>   size        4,100,000,000 bytes
 #>   license     CC-BY-4.0
-#>   resolved by bundled registry, revision 1
+#>   resolved by bundled registry sha256:1c4d7a90f2be (published 2026-07-20)
 #>   source url  https://primary.invalid/wfo-2026-06.zip
+#>   getaca      0.0.0.9000
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
 #>   checked     2026-07-26 15:31:02 (size and mtime)
 ```
+
+The registry digest names the exact declaration that chose these bytes,
+so “which version of taxify’s declaration was this” has an answer years
+later, without anyone having kept a revision number in step by hand.
 
 Four timestamps, kept apart on purpose. “Verified” means the bytes were
 re-hashed then. “Checked” means size and modification time were compared
@@ -364,7 +370,7 @@ sweeps reclaim first.
 ``` r
 
 getaca_cache_dir()
-#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpE5Y06U/getaca-quickstart"
+#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\Rtmpwx0nQb/getaca-quickstart"
 ```
 
 That is the temporary directory this vignette is sandboxed in. The

@@ -90,7 +90,7 @@ retrieval, and <code>getaca_clean()</code> exists for the deliberate case.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getaca_clean</span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  package <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  what <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"broken"</span>, <span class="st">"temp"</span>, <span class="st">"superseded"</span>, <span class="st">"lru"</span><span class="op">)</span>,</span>
+<span>  what <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"broken"</span>, <span class="st">"temp"</span>, <span class="st">"superseded"</span>, <span class="st">"lru"</span>, <span class="st">"unreferenced"</span><span class="op">)</span>,</span>
 <span>  dry_run <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -109,7 +109,7 @@ retrieval, and <code>getaca_clean()</code> exists for the deliberate case.</p>
 
 <dt id="arg-what">what<a class="anchor" aria-label="anchor" href="#arg-what"></a></dt>
 <dd><p>Which sweeps to run. Any of <code>"broken"</code>, <code>"temp"</code>,
-<code>"superseded"</code>, <code>"lru"</code>.</p></dd>
+<code>"superseded"</code>, <code>"lru"</code>, <code>"unreferenced"</code>.</p></dd>
 
 
 <dt id="arg-dry-run">dry_run<a class="anchor" aria-label="anchor" href="#arg-dry-run"></a></dt>
@@ -127,9 +127,13 @@ retrieval, and <code>getaca_clean()</code> exists for the deliberate case.</p>
 <li><p>superseded unpinned versions, once past the retention period</p></li>
 <li><p>least recently used unpinned resources, only when over the size
 ceiling</p></li>
+<li><p>bytes in the store that no declaration references any more</p></li>
 </ol><p>"Superseded" and "not recently used" are different states and age on
 different clocks, so an expensive resource is not deleted merely for being
 old.</p>
+<p>A version slot holds a name for bytes the store owns, so the sweeps above
+remove names. Bytes go once the last name for them does, which is why the
+store sweep runs last.</p>
 <p>Never removed: pinned entries, the version the bundled registry currently
 names, and anything under an active lock.</p>
     </div>

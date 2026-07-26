@@ -95,9 +95,9 @@ test_that("an empty catalogue keeps its columns", {
   expect_equal(nrow(out), 0L)
   expect_setequal(
     names(out),
-    c("package", "name", "version", "current", "processor", "declared", "cached",
-      "size", "license", "source", "revision", "verified_at", "accessed_at",
-      "pinned", "path")
+    c("package", "name", "version", "current", "processor", "link", "declared",
+      "cached", "size", "license", "source", "registry_digest", "verified_at",
+      "accessed_at", "pinned", "path")
   )
   expect_s3_class(out$verified_at, "POSIXct")
 })

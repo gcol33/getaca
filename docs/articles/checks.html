@@ -505,8 +505,9 @@ by a gigabyte. Naming the prefetch function also gives the answer to the
 question the sentence provokes.</p>
 <p><code>getaca</code> goes in <code>Imports</code>, since the
 declaration is useless without it, and the recursive footprint it adds
-is <code>curl</code> and <code>digest</code> with nothing beneath
-them.</p>
+is <code>curl</code> with nothing beneath it. Hashing is
+<code><a href="https://rdrr.io/r/tools/sha256sum.html" class="external-link">tools::sha256sum()</a></code>, so <code>getaca</code> needs R &gt;=
+4.6.0 and your package inherits that floor.</p>
 </div>
 <div class="section level2">
 <h2 id="cran-checklist">CRAN checklist<a class="anchor" aria-label="anchor" href="#cran-checklist"></a>

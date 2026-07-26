@@ -110,7 +110,9 @@ visible rather than implied. <code>declared</code> is <code>TRUE</code> when the
 force names that version, <code>FALSE</code> when it does not, and <code>NA</code> when no
 registry could be read for the package; <code>current</code> is <code>NA</code> in that same
 case. <code>cached</code> says whether a local copy is recorded; the provenance
-columns are <code>NA</code> for declared resources that are not cached.</p>
+columns are <code>NA</code> for declared resources that are not cached. <code>link</code> says
+how the slot reaches its bytes, so two packages sharing one copy in the
+store are visible as such.</p>
     </div>
 
     <div class="section level2">

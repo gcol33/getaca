@@ -134,7 +134,6 @@ format(resource(
 ```{r}
 reg <- registry(
   package  = "taxify",
-  revision = 1L,
   resources = list(wfo)
 )
 reg
@@ -147,7 +146,7 @@ the built package:
 # data-raw/registry.R
 source("data-raw/backbone-records.R")   # returns a list of resource()s
 registry_write(
-  registry(package = "taxify", revision = 1L, resources = records),
+  registry(package = "taxify", resources = records),
   "inst/getaca/registry.rds"
 )
 ```
@@ -161,8 +160,8 @@ Nothing else is needed to make the package discoverable. `getaca` finds the
 file with `system.file()`, so there is no registration call, no `.onLoad()`
 hook, and no load-order question.
 
-Add `getaca` to `Imports`. It brings `curl` and `digest`, with nothing
-beneath them.
+Add `getaca` to `Imports`. It brings `curl`, with nothing beneath it, and an
+R >= 4.6.0 floor for `tools::sha256sum()`.
 
 ## Step 3: rewrite the front door
 
@@ -248,7 +247,7 @@ getaca_info("wfo", package = "taxify")
 #> <getaca cache entry> taxify/wfo@2026-06
 #>   ...
 #>   built from  wfo_release: 2026-06
-#>   resolved by bundled registry, revision 1
+#>   resolved by bundled registry sha256:1c4d7a90f2be (published 2026-07-20)
 #>   source url  https://zenodo.invalid/records/1234567/files/wfo-2026-06.vtr
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)

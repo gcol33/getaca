@@ -5,7 +5,7 @@
 \alias{registry_read}
 \title{Read and write registry files}
 \usage{
-registry_write(registry, path)
+registry_write(registry, path, created = Sys.time())
 
 registry_read(path)
 }
@@ -14,6 +14,9 @@ registry_read(path)
 
 \item{path}{File path. For \code{\link[=registry_write]{registry_write()}}, the conventional location
 inside a package source tree is \code{inst/getaca/registry.rds}.}
+
+\item{created}{Publication time recorded in the file. Pass a fixed value to
+keep a build byte-reproducible.}
 }
 \value{
 \code{registry_write()} returns \code{path} invisibly.
@@ -23,4 +26,11 @@ inside a package source tree is \code{inst/getaca/registry.rds}.}
 The stored form is an R object serialised with \code{\link[=saveRDS]{saveRDS()}}. YAML and JSON
 are supported as optional authoring formats only; they never define the
 internal model and never become a hard dependency.
+}
+\details{
+Writing stamps \code{created}, since publishing a state is what dates it.
+\code{created} is what orders two states in time, which a content digest cannot
+do; \code{\link[=registry_digest]{registry_digest()}} says whether two states are the same, and \code{created}
+says which came first. It is deliberately outside the digest, so writing an
+unchanged registry out again leaves its identity alone.
 }

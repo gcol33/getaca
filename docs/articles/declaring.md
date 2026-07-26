@@ -122,18 +122,43 @@ resource("wfo", "2026-06", urls = "https://ok.invalid/wfo.zip",
 
 reg <- registry(
   package   = "taxify",
-  revision  = 4L,
   resources = list(rec)
 )
 reg
-#> <getaca registry> taxify  (revision 4, policy "bundled")
+#> <getaca registry> taxify  (policy "bundled")
+#>   digest: sha256:386d0c749d78
 #>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 ```
 
-`revision` is a monotonically increasing integer identifying this
-registry state. It is recorded in the provenance of everything resolved
-through it, so a bug report can say which declaration chose the bytes.
-Bump it whenever you change the registry.
+The digest on the second line identifies this registry state. It is
+derived from the declaration itself, so there is no number to keep in
+step: change a checksum, add a mirror or move a channel head and the
+digest follows. It is recorded in the provenance of everything resolved
+through this registry, so a bug report can name the exact declaration
+that chose the bytes.
+
+``` r
+
+registry_digest(reg)
+#> [1] "sha256:386d0c749d78fbabc97a0bec7eee85fbeee37d89ff888a29af343aa01acf9d58"
+```
+
+[`registry_manifest()`](https://gillescolling.com/getaca/reference/registry_manifest.md)
+shows the text that digest is taken over, which is what makes two
+registries diffable when they disagree:
+
+``` r
+
+registry_manifest(reg)
+#> getaca-manifest 1
+#> package taxify
+#> resource wfo 2026-06
+#>   sha256 9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f
+#>   size 797000000
+#>   license CC-BY-4.0
+#>   url https://zenodo.invalid/records/1234567/files/wfo-2026-06.zip
+#>   url https://mirror.invalid/wfo-2026-06.zip
+```
 
 Write it into the source tree from a `data-raw/` script, so the registry
 is generated rather than hand-maintained:
@@ -153,8 +178,21 @@ Reading it back is symmetric, and validates:
 
 path <- file.path(tempdir(), "registry.rds")
 registry_write(reg, path)
-identical(registry_read(path), reg)
+identical(registry_digest(registry_read(path)), registry_digest(reg))
 #> [1] TRUE
+```
+
+Writing stamps `created`, because publishing a state is what dates it.
+That date is what orders two states in time, which a digest cannot do: a
+digest says whether two registries are the same, and `created` says
+which came first. It sits outside the digest, so writing an unchanged
+registry out again leaves its identity alone. Pass a fixed `created`
+when a build has to be byte-reproducible.
+
+``` r
+
+registry_read(path)$created
+#> [1] "2026-07-26 20:58:57 CEST"
 ```
 
 ## Naming the channel head
@@ -175,7 +213,8 @@ reg2 <- registry(
   )
 )
 reg2
-#> <getaca registry> taxify  (revision 1, policy "bundled")
+#> <getaca registry> taxify  (policy "bundled")
+#>   digest: sha256:72680f612df6
 #>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 #>   - wfo@2026-09  abababababab  [CC-BY-4.0]  (current)
 ```
@@ -263,7 +302,7 @@ destination:
 
 ``` r
 
-# In a release script, after bumping revision and adding the new record
+# In a release script, after adding the new record
 registry_write(reg2, "docs/getaca-registry.rds")   # served by GitHub Pages
 ```
 
@@ -417,7 +456,7 @@ reach
 ``` r
 
 as_registry("data-raw/resources.yml", package = "taxify",
-            policy = "current", revision = 4L,
+            policy = "current",
             remote = "https://gcol33.github.io/taxify/getaca-registry.rds")
 ```
 
@@ -517,7 +556,8 @@ at least one mirror, ideally on a host you control
 
 `current` set for any name that declares more than one version
 
-`revision` bumped since the last release
+[`registry_digest()`](https://gillescolling.com/getaca/reference/registry_digest.md)
+changed since the last release, if the declaration did
 
 `license` on every record
 

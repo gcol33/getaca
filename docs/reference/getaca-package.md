@@ -18,8 +18,8 @@ bytes, resolvable offline, and safe during `R CMD check`.
 
 - Track:
 
-  Record version, registry revision, resolution policy, observed
-  checksum and verification state.
+  Record version, registry state, resolution policy, observed checksum
+  and verification state.
 
 - Cache:
 
@@ -31,6 +31,12 @@ bytes, resolvable offline, and safe during `R CMD check`.
 A resource is identified by the triple `package / name / version`, never
 by name alone. Two packages may declare the same physical file; their
 dependency records stay separate.
+
+A registry is identified by
+[`registry_digest()`](https://gillescolling.com/getaca/reference/registry_digest.md),
+derived from the declaration rather than asserted beside it. Provenance
+records that digest, so a cached file names the exact declaration state
+that resolved it.
 
 ## See also
 

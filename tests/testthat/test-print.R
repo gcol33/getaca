@@ -45,11 +45,11 @@ test_that("printing a registry lists the package, policy and declarations", {
   reg <- registry("demopkg", list(
     resource("one", "1.0", urls = "https://a.invalid/one", sha256 = strrep("a", 64)),
     resource("two", "2.0", urls = "https://a.invalid/two", sha256 = strrep("b", 64))
-  ), remote = "https://registry.invalid/demopkg.rds", policy = "current", revision = 3L)
+  ), remote = "https://registry.invalid/demopkg.rds", policy = "current")
 
   out <- shown(reg)
   expect_match(out, "demopkg")
-  expect_match(out, "revision 3")
+  expect_match(out, "digest: sha256:", fixed = TRUE)
   expect_match(out, "current")
   expect_match(out, "registry.invalid")
   expect_match(out, "one@1.0", fixed = TRUE)
@@ -76,7 +76,8 @@ test_that("printing a cache entry shows the provenance getaca kept", {
   out <- shown(seeded$entry)
   expect_match(out, "demopkg/res@1.0", fixed = TRUE)
   expect_match(out, "CC-BY-4.0")
-  expect_match(out, "bundled registry, revision 1")
+  expect_match(out, "bundled registry sha256:", fixed = TRUE)
+  expect_match(out, as.character(utils::packageVersion("getaca")), fixed = TRUE)
   expect_match(out, "full re-hash")
   expect_match(out, "size and mtime")
 })

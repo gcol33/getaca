@@ -12,7 +12,6 @@ registry(
   resources,
   remote = NULL,
   policy = c("bundled", "current", "pinned", "offline"),
-  revision = 1L,
   current = NULL
 )
 ```
@@ -44,11 +43,6 @@ registry(
   `"current"`, `"pinned"`, `"offline"`. See
   [`getaca_policy()`](https://gillescolling.com/getaca/reference/getaca_policy.md).
 
-- revision:
-
-  Monotonically increasing integer identifying this registry state,
-  recorded in provenance.
-
 - current:
 
   Named character vector giving the channel head: the version a bare
@@ -67,6 +61,18 @@ Ship the result at `inst/getaca/registry.rds` via
 getaca discovers it with
 [`system.file()`](https://rdrr.io/r/base/system.file.html), so no
 registration call and no load hook are required.
+
+## Identity
+
+A registry state is identified by
+[`registry_digest()`](https://gillescolling.com/getaca/reference/registry_digest.md),
+derived from the declaration itself, and recorded in the provenance of
+every resource it resolves. There is no revision number to keep in step:
+a digest cannot be typed wrong, and two states that differ cannot claim
+to be the same one.
+[`registry_write()`](https://gillescolling.com/getaca/reference/registry_write.md)
+stamps `created`, which is what orders two states in time, and a bundled
+registry additionally has the version of the package that ships it.
 
 ## Channel heads
 

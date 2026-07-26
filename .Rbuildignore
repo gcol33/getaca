@@ -8,6 +8,7 @@
 ^pkgdown$
 ^\.claude$
 ^CONTRIBUTING\.md$
+^CLAUDE\.md$
 ^CODE_OF_CONDUCT\.md$
 ^cran-comments\.md$
 ^dev_notes$

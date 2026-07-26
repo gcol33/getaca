@@ -42,17 +42,36 @@ demo_registry <- function(sha, urls = "https://example.invalid/res-1.0.csv",
   )
 }
 
-# Seed the cache as though a successful retrieval had happened.
+# Seed the cache as though a successful retrieval had happened: through the
+# store, so a seeded entry is shaped like a fetched one.
 seed_cache <- function(reg, file, name = "res") {
   rec <- reg$resources[[name]]
   id <- getaca::resource_id(reg$package, rec$name, rec$version)
-  raw <- getaca:::cache_raw_dir(id)
-  dir.create(raw, recursive = TRUE, showWarnings = FALSE)
-  final <- file.path(raw, basename(file$path))
-  file.copy(file$path, final, overwrite = TRUE)
-  entry <- getaca:::new_entry(id, rec, final, rec$sha256,
-                              source = "bundled", revision = 1L,
-                              url_used = rec$urls[1])
+  staged <- file.path(getaca:::cache_tmp_dir(), basename(file$path))
+  file.copy(file$path, staged, overwrite = TRUE)
+  getaca:::admit(staged, rec$sha256)
+  placed <- getaca:::place(id, rec)
+  entry <- getaca:::new_entry(id, rec, placed$path, rec$sha256,
+                              source = "bundled",
+                              digest = getaca::registry_digest(reg),
+                              url_used = rec$urls[1], link = placed$link)
   getaca:::put_entry(entry)
-  list(id = id, path = final, entry = entry)
+  list(id = id, path = placed$path, entry = entry)
+}
+
+# A view is a name for shared bytes only where the filesystem allows a link.
+# Where it does not, a view is a full copy and occupies its own space, so the
+# assertions about sharing do not apply.
+skip_unless_linked <- function(entry) {
+  if (identical(entry$link, "copy")) {
+    testthat::skip("the filesystem refused links, so a view is a full copy")
+  }
+}
+
+# The store is read-only, so damaging a cached file takes the same step bit rot
+# or a determined user would.
+corrupt <- function(path, contents) {
+  Sys.chmod(path, "0666")
+  writeBin(charToRaw(contents), path)
+  path
 }

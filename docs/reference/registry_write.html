@@ -78,7 +78,7 @@ internal model and never become a hard dependency.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">registry_write</span><span class="op">(</span><span class="va">registry</span>, <span class="va">path</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">registry_write</span><span class="op">(</span><span class="va">registry</span>, <span class="va">path</span>, created <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">registry_read</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -95,11 +95,24 @@ internal model and never become a hard dependency.</p>
 <dd><p>File path. For <code>registry_write()</code>, the conventional location
 inside a package source tree is <code>inst/getaca/registry.rds</code>.</p></dd>
 
+
+<dt id="arg-created">created<a class="anchor" aria-label="anchor" href="#arg-created"></a></dt>
+<dd><p>Publication time recorded in the file. Pass a fixed value to
+keep a build byte-reproducible.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p><code>registry_write()</code> returns <code>path</code> invisibly.
 <code>registry_read()</code> returns a <code>getaca_registry</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Writing stamps <code>created</code>, since publishing a state is what dates it.
+<code>created</code> is what orders two states in time, which a content digest cannot
+do; <code><a href="registry_digest.html">registry_digest()</a></code> says whether two states are the same, and <code>created</code>
+says which came first. It is deliberately outside the digest, so writing an
+unchanged registry out again leaves its identity alone.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

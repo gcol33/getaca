@@ -68,11 +68,14 @@ not a bug fix, and belongs in an ADR.
 
 ## Dependencies
 
-`Imports` is a hard budget: `curl` and `digest`, with zero non-base transitive
-dependencies between them. A pull request adding an `Imports` entry needs the
-recursive footprint (`tools::package_dependencies(recursive = TRUE)`) and the
-line of code that requires it. Optional features go in `Suggests` and are gated
-with `need_suggested()`.
+`Imports` is a hard budget: `curl`, and `stats`, `tools` and `utils` from base
+R. A pull request adding an `Imports` entry needs the recursive footprint
+(`tools::package_dependencies(recursive = TRUE)`) and the line of code that
+requires it. Optional features go in `Suggests` and are gated with
+`need_suggested()`.
+
+Hashing goes through `sha256_file()` and `tools::sha256sum(bytes = )`. That
+function is what sets the R 4.6.0 floor.
 
 ## Workflow
 

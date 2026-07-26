@@ -176,11 +176,13 @@ is the whole answer; nothing is fetched to decide what a name means.</p>
 <span><span class="co">#&gt; &lt;getaca resource&gt; taxify/wfo@2026-06</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">source</span></span>
 <span><span class="co">#&gt; [1] "bundled"</span></span>
-<span><span class="va">res</span><span class="op">$</span><span class="va">revision</span></span>
-<span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
-<p><code>source</code> and <code>revision</code> are recorded in the
-cache entry, so a provenance report can state which declaration chose
-the bytes and which policy read it.</p>
+<span><span class="va">res</span><span class="op">$</span><span class="va">digest</span></span>
+<span><span class="co">#&gt; [1] "sha256:4fe8f0972e025b5d327334fa655a498ee825d164f4cd971d83150de85c15cc87"</span></span></code></pre></div>
+<p><code>source</code> and <code>digest</code> are recorded in the cache
+entry, so a provenance report can state which declaration chose the
+bytes and which policy read it. The digest comes from the channel that
+answered, so under <code>current</code> it names the remote state rather
+than the registry the call was handed.</p>
 <p>Reinstalling the package is what moves this channel. That is the
 property worth having: two machines running the same installed version
 resolve the same record, and an analysis is reproducible from the
@@ -201,7 +203,8 @@ consults it before resolving:</p>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">remote_reg</span></span>
-<span><span class="co">#&gt; &lt;getaca registry&gt; taxify  (revision 1, policy "current")</span></span>
+<span><span class="co">#&gt; &lt;getaca registry&gt; taxify  (policy "current")</span></span>
+<span><span class="co">#&gt;   digest: sha256:30ef2dc40e78</span></span>
 <span><span class="co">#&gt;   remote: https://gcol33.github.io/taxify/getaca-registry.rds</span></span>
 <span><span class="co">#&gt;   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]</span></span></code></pre></div>
 <p>The remote is a file, not a service. Publishing it is a
@@ -284,8 +287,7 @@ is one registry:</p>
 <span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"9f"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-09"</span>, urls <span class="op">=</span> <span class="st">"https://host.invalid/wfo-2026-09.zip"</span>,</span>
 <span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"ab"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  revision <span class="op">=</span> <span class="fl">5L</span></span>
+<span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">ahead</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
@@ -452,17 +454,17 @@ direction, and the direction is the reason to pick it.</p>
 <h2 id="what-is-recorded">What is recorded<a class="anchor" aria-label="anchor" href="#what-is-recorded"></a>
 </h2>
 <p>Whichever policy resolved a resource is kept in its cache entry,
-alongside the registry revision that supplied the record:</p>
+alongside the digest of the registry state that supplied the record:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;getaca cache entry&gt; taxify/wfo@2026-06</span></span>
 <span><span class="co">#&gt;   ...</span></span>
-<span><span class="co">#&gt;   resolved by current registry, revision 5</span></span>
+<span><span class="co">#&gt;   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)</span></span>
 <span><span class="co">#&gt;   source url  https://host.invalid/wfo-2026-06.zip</span></span></code></pre></div>
 <p><code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> reports the same two fields as
-<code>source</code> and <code>revision</code> columns across every
-cached resource, so “which of these came from a remote channel” is one
-filter rather than an audit.</p>
+<code>source</code> and <code>registry_digest</code> columns across
+every cached resource, so “which of these came from a remote channel” is
+one filter rather than an audit.</p>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>

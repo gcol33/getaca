@@ -24,24 +24,24 @@ one_resource <- function(sha = strrep("a", 64), version = "1.0") {
 
 # The remote state a bundled registry is behind: a second version published,
 # and the channel head moved onto it.
-ahead_registry <- function(revision = 2L) {
+ahead_registry <- function() {
   with_remote(list(one_resource(), one_resource(strrep("b", 64), "2.0")),
-              revision = revision, current = c(res = "2.0"))
+              current = c(res = "2.0"))
 }
 
 test_that("a reachable remote registry supersedes the bundled one", {
   local_registries()
-  bundled <- with_remote(list(one_resource()), revision = 1L)
+  bundled <- with_remote(list(one_resource()))
   ahead <- ahead_registry()
 
   got <- getaca:::remote_channel(bundled, fetch = fake_fetch(ahead))
-  expect_equal(got$revision, 2L)
+  expect_equal(registry_digest(got), registry_digest(ahead))
   expect_length(got$resources, 2L)
 })
 
 test_that("the remote channel is what makes a new version resolvable", {
   local_registries()
-  bundled <- with_remote(list(one_resource()), revision = 1L)
+  bundled <- with_remote(list(one_resource()))
   ahead <- ahead_registry()
 
   testthat::local_mocked_bindings(fetch_registry = fake_fetch(ahead), .package = "getaca")
@@ -50,7 +50,9 @@ test_that("the remote channel is what makes a new version resolvable", {
   under_current <- resolve_resource("res", registry = bundled, policy = "current")
   expect_equal(under_current$id$version, "2.0")
   expect_equal(under_current$source, "current")
-  expect_equal(under_current$revision, 2L)
+  # Provenance names the state that chose the record, which under this policy
+  # is the remote one rather than the registry the call was handed.
+  expect_equal(under_current$digest, registry_digest(ahead))
 })
 
 test_that("an unreachable remote falls back to bundled rather than failing", {
@@ -61,7 +63,7 @@ test_that("an unreachable remote falls back to bundled rather than failing", {
     got <- getaca:::remote_channel(bundled, fetch = fake_fetch(ok = FALSE)),
     "could not reach the remote registry"
   )
-  expect_equal(got$revision, bundled$revision)
+  expect_equal(registry_digest(got), registry_digest(bundled))
   expect_length(got$resources, 1L)
 })
 
@@ -94,7 +96,7 @@ test_that("a remote declaring a different package is refused", {
 test_that("a remote redefining a published version is refused over the wire", {
   local_registries()
   bundled <- with_remote(list(one_resource(strrep("a", 64))))
-  rewritten <- with_remote(list(one_resource(strrep("b", 64))), revision = 2L)
+  rewritten <- with_remote(list(one_resource(strrep("b", 64))))
 
   expect_error(
     getaca:::remote_channel(bundled, fetch = fake_fetch(rewritten)),
@@ -110,7 +112,8 @@ test_that("a registry with no remote never reaches for one", {
   local_registries()
   plain <- registry("demopkg", list(one_resource()))
   exploding <- function(url, dest) stop("should not have been called")
-  expect_equal(getaca:::remote_channel(plain, fetch = exploding)$revision, 1L)
+  expect_equal(registry_digest(getaca:::remote_channel(plain, fetch = exploding)),
+               registry_digest(plain))
 })
 
 test_that("a remote registry is fetched once per session", {
@@ -161,6 +164,6 @@ test_that("pinning under the current policy freezes the remote state", {
 
   getaca_pin("demopkg", path = pins)
   frozen <- readRDS(pins)
-  expect_equal(frozen$demopkg$revision, 2L)
+  expect_equal(registry_digest(frozen$demopkg), registry_digest(ahead))
   expect_length(frozen$demopkg$resources, 2L)
 })

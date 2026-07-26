@@ -69,6 +69,10 @@
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="getaca-0009000">getaca 0.0.0.9000<a class="anchor" aria-label="anchor" href="#getaca-0009000"></a></h2>
 <p>First development version. The v1 boundary is set; nothing here has been released.</p>
 <div class="section level3">
+<h3 id="dependencies-0-0-0-9000">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies-0-0-0-9000"></a></h3>
+<ul><li>Requires R &gt;= 4.6.0 and imports <code>curl</code>, with <code>stats</code>, <code>tools</code> and <code>utils</code> from base R. Hashing uses <code><a href="https://rdrr.io/r/tools/sha256sum.html" class="external-link">tools::sha256sum()</a></code>, which arrived in R 4.6.0 and covers both the artefact on disk and the manifest in memory, so <code>digest</code> is no longer a dependency. Its output is byte-identical for the same input, so registry digests already recorded stay valid.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="declaration-0-0-0-9000">Declaration<a class="anchor" aria-label="anchor" href="#declaration-0-0-0-9000"></a></h3>
 <ul><li>
 <code><a href="../reference/resource.html">resource()</a></code>: immutable record of exact bytes, with version, mirrors, SHA-256, size, license, upstream identity and optional processor.</li>
@@ -76,6 +80,13 @@
 <code><a href="../reference/registry.html">registry()</a></code>, <code><a href="../reference/registry_write.html">registry_write()</a></code>, <code><a href="../reference/registry_write.html">registry_read()</a></code>, <code><a href="../reference/registry_for.html">registry_for()</a></code>: package-scoped declarations, discovered by convention at <code>inst/getaca/registry.rds</code>.</li>
 <li>
 <code>registry(current = )</code>: names the channel head, the version a bare request for each resource resolves to. Required for any name declaring more than one version, since version strings are labels and declaration order is not an ordering. A registry that offers a choice and names no head is refused.</li>
+<li>
+<code><a href="../reference/registry_digest.html">registry_digest()</a></code>: a registry state is identified by a digest of its own declaration, as <code>"sha256:3f9ac2..."</code>. There is no revision number to keep in step, so identity cannot be typed wrong and two states that differ cannot claim to be the same one.</li>
+<li>
+<code><a href="../reference/registry_manifest.html">registry_manifest()</a></code>: the canonical text the digest is taken over, exported so a digest is never a black box. Two registries that disagree are diffable on the lines that produced the disagreement. Hashing the object itself is not an option, since a <code><a href="../reference/processor.html">processor()</a></code> closure digests differently on every machine.</li>
+<li>
+<code><a href="../reference/registry_write.html">registry_write()</a></code> stamps <code>created</code>, which orders two states in time. Deliberately outside the digest, so republishing an unchanged registry leaves its identity alone; pass a fixed value to keep a build byte-reproducible.</li>
+<li>A stored form older than this getaca still reads, and only a newer one is refused. Adding a field therefore costs nothing to registries already installed.</li>
 <li>
 <code><a href="../reference/as_registry.html">as_registry()</a></code>: YAML and JSON accepted as authoring formats, gated at call time so neither becomes a hard dependency.</li>
 <li>
@@ -98,13 +109,14 @@
 <ul><li>
 <code><a href="../reference/getaca.html">getaca()</a></code>: the single retrieval verb. Returns a local path.</li>
 <li>Resumable transfers into a temporary area, sized and hashed before an atomic move into the cache.</li>
-<li>Per-resource directory locking, so concurrent sessions never duplicate a large transfer or observe a partial one.</li>
+<li>Directory locking keyed on the declared checksum, so concurrent sessions never duplicate a large transfer or observe a partial one. Two packages declaring the same file wait on each other, and the second finds what the first retrieved.</li>
 <li>Seven classed conditions distinguishing user, author and upstream causes. A transfer that ends short on every mirror raises <code>getaca_error_incomplete</code>, whose action is to retry; mixed causes keep <code>getaca_error_unavailable</code> and list each mirror’s reason.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="verification-0-0-0-9000">Verification<a class="anchor" aria-label="anchor" href="#verification-0-0-0-9000"></a></h3>
 <ul><li>Full SHA-256 on download, cheap size check on access, scheduled re-hash via <code>getaca.verify_days</code>.</li>
 <li>Entry records keep <code>fetched_at</code>, <code>verified_at</code>, <code>checked_at</code> and <code>accessed_at</code> apart.</li>
+<li>Provenance records which declaration state resolved the bytes (<code>registry_digest</code>), when that state was published (<code>registry_created</code>) and which getaca acted on it (<code>getaca_version</code>).</li>
 </ul></div>
 <div class="section level3">
 <h3 id="checks-0-0-0-9000">Checks<a class="anchor" aria-label="anchor" href="#checks-0-0-0-9000"></a></h3>
@@ -115,8 +127,11 @@
 </ul></div>
 <div class="section level3">
 <h3 id="cache-management-0-0-0-9000">Cache management<a class="anchor" aria-label="anchor" href="#cache-management-0-0-0-9000"></a></h3>
-<ul><li>
-<code><a href="../reference/getaca-gc.html">getaca_clean()</a></code> and automatic collection after retrieval: broken material, abandoned transfers, superseded versions past retention, then LRU eviction only above the size ceiling.</li>
+<ul><li>Bytes live once, in a content-addressed store at <code>blobs/sha256/</code>, and a version slot holds a name for them. Two packages declaring the same file keep one copy and separate dependency records. The store holds no metadata: what is still needed is derived from the package indexes rather than counted beside them.</li>
+<li>Everything the store owns is read-only, since a caller writing to a returned path would otherwise damage every package that shares those bytes. A caller needing a writable layout declares a <code><a href="../reference/processor.html">processor()</a></code>, which gets its own slot.</li>
+<li>
+<code><a href="../reference/getaca-gc.html">getaca_clean()</a></code> and automatic collection after retrieval: broken material, abandoned transfers, superseded versions past retention, LRU eviction only above the size ceiling, and finally bytes no declaration references.</li>
+<li>The size ceiling measures what the cache occupies. Shared bytes count once, so two packages declaring one 4 GB file no longer count 8 GB against it.</li>
 <li>
 <code><a href="../reference/getaca_keep.html">getaca_keep()</a></code> to exempt a resource.</li>
 <li>

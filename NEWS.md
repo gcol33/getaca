@@ -3,6 +3,13 @@
 First development version. The v1 boundary is set; nothing here has been
 released.
 
+## Dependencies
+* Requires R >= 4.6.0 and imports `curl`, with `stats`, `tools` and `utils`
+  from base R. Hashing uses `tools::sha256sum()`, which arrived in R 4.6.0 and
+  covers both the artefact on disk and the manifest in memory, so `digest` is
+  no longer a dependency. Its output is byte-identical for the same input, so
+  registry digests already recorded stay valid.
+
 ## Declaration
 * `resource()`: immutable record of exact bytes, with version, mirrors,
   SHA-256, size, license, upstream identity and optional processor.
@@ -13,6 +20,20 @@ released.
   for each resource resolves to. Required for any name declaring more than one
   version, since version strings are labels and declaration order is not an
   ordering. A registry that offers a choice and names no head is refused.
+* `registry_digest()`: a registry state is identified by a digest of its own
+  declaration, as `"sha256:3f9ac2..."`. There is no revision number to keep in
+  step, so identity cannot be typed wrong and two states that differ cannot
+  claim to be the same one.
+* `registry_manifest()`: the canonical text the digest is taken over, exported
+  so a digest is never a black box. Two registries that disagree are diffable
+  on the lines that produced the disagreement. Hashing the object itself is not
+  an option, since a `processor()` closure digests differently on every machine.
+* `registry_write()` stamps `created`, which orders two states in time.
+  Deliberately outside the digest, so republishing an unchanged registry leaves
+  its identity alone; pass a fixed value to keep a build byte-reproducible.
+* A stored form older than this getaca still reads, and only a newer one is
+  refused. Adding a field therefore costs nothing to registries already
+  installed.
 * `as_registry()`: YAML and JSON accepted as authoring formats, gated at call
   time so neither becomes a hard dependency.
 * `processor()`: post-verification transformation with a stable id, so the
@@ -35,8 +56,10 @@ released.
 * `getaca()`: the single retrieval verb. Returns a local path.
 * Resumable transfers into a temporary area, sized and hashed before an atomic
   move into the cache.
-* Per-resource directory locking, so concurrent sessions never duplicate a
-  large transfer or observe a partial one.
+* Directory locking keyed on the declared checksum, so concurrent sessions
+  never duplicate a large transfer or observe a partial one. Two packages
+  declaring the same file wait on each other, and the second finds what the
+  first retrieved.
 * Seven classed conditions distinguishing user, author and upstream causes.
   A transfer that ends short on every mirror raises `getaca_error_incomplete`,
   whose action is to retry; mixed causes keep `getaca_error_unavailable` and
@@ -47,6 +70,9 @@ released.
   `getaca.verify_days`.
 * Entry records keep `fetched_at`, `verified_at`, `checked_at` and
   `accessed_at` apart.
+* Provenance records which declaration state resolved the bytes
+  (`registry_digest`), when that state was published (`registry_created`) and
+  which getaca acted on it (`getaca_version`).
 
 ## Checks
 * `getaca_available()`, `getaca_optional()`, `getaca_skip_if_unavailable()`.
@@ -54,9 +80,19 @@ released.
   CI and check runs.
 
 ## Cache management
+* Bytes live once, in a content-addressed store at `blobs/sha256/`, and a
+  version slot holds a name for them. Two packages declaring the same file
+  keep one copy and separate dependency records. The store holds no metadata:
+  what is still needed is derived from the package indexes rather than counted
+  beside them.
+* Everything the store owns is read-only, since a caller writing to a returned
+  path would otherwise damage every package that shares those bytes. A caller
+  needing a writable layout declares a `processor()`, which gets its own slot.
 * `getaca_clean()` and automatic collection after retrieval: broken material,
-  abandoned transfers, superseded versions past retention, then LRU eviction
-  only above the size ceiling.
+  abandoned transfers, superseded versions past retention, LRU eviction only
+  above the size ceiling, and finally bytes no declaration references.
+* The size ceiling measures what the cache occupies. Shared bytes count once,
+  so two packages declaring one 4 GB file no longer count 8 GB against it.
 * `getaca_keep()` to exempt a resource.
 * `getaca_catalogue()`: one table covering what packages declare and what the
   cache holds, including declared resources never downloaded and cached

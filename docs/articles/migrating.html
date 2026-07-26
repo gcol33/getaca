@@ -211,11 +211,11 @@ something you built from upstream:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package  <span class="op">=</span> <span class="st">"taxify"</span>,</span>
-<span>  revision <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">wfo</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;getaca registry&gt; taxify  (revision 1, policy "bundled")</span></span>
+<span><span class="co">#&gt; &lt;getaca registry&gt; taxify  (policy "bundled")</span></span>
+<span><span class="co">#&gt;   digest: sha256:0c5824f54c6f</span></span>
 <span><span class="co">#&gt;   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]</span></span></code></pre></div>
 <p>Generate it rather than hand-maintaining it, from a script that stays
 out of the built package:</p>
@@ -223,7 +223,7 @@ out of the built package:</p>
 <code class="sourceCode R"><span><span class="co"># data-raw/registry.R</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"data-raw/backbone-records.R"</span><span class="op">)</span>   <span class="co"># returns a list of resource()s</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span>, revision <span class="op">=</span> <span class="fl">1L</span>, resources <span class="op">=</span> <span class="va">records</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span>, resources <span class="op">=</span> <span class="va">records</span><span class="op">)</span>,</span>
 <span>  <span class="st">"inst/getaca/registry.rds"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <pre><code># .Rbuildignore
@@ -233,8 +233,8 @@ out of the built package:</p>
 there is no registration call, no <code>.onLoad()</code> hook, and no
 load-order question.</p>
 <p>Add <code>getaca</code> to <code>Imports</code>. It brings
-<code>curl</code> and <code>digest</code>, with nothing beneath
-them.</p>
+<code>curl</code>, with nothing beneath it, and an R &gt;= 4.6.0 floor
+for <code><a href="https://rdrr.io/r/tools/sha256sum.html" class="external-link">tools::sha256sum()</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="step-3-rewrite-the-front-door">Step 3: rewrite the front door<a class="anchor" aria-label="anchor" href="#step-3-rewrite-the-front-door"></a>
@@ -353,7 +353,7 @@ release is this”. After the migration, provenance is a call:</p>
 <span><span class="co">#&gt; &lt;getaca cache entry&gt; taxify/wfo@2026-06</span></span>
 <span><span class="co">#&gt;   ...</span></span>
 <span><span class="co">#&gt;   built from  wfo_release: 2026-06</span></span>
-<span><span class="co">#&gt;   resolved by bundled registry, revision 1</span></span>
+<span><span class="co">#&gt;   resolved by bundled registry sha256:1c4d7a90f2be (published 2026-07-20)</span></span>
 <span><span class="co">#&gt;   source url  https://zenodo.invalid/records/1234567/files/wfo-2026-06.vtr</span></span>
 <span><span class="co">#&gt;   fetched     2026-07-26 11:02:13</span></span>
 <span><span class="co">#&gt;   verified    2026-07-26 11:09:44 (full re-hash)</span></span></code></pre></div>

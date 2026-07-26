@@ -9,7 +9,6 @@ registry(
   resources,
   remote = NULL,
   policy = c("bundled", "current", "pinned", "offline"),
-  revision = 1L,
   current = NULL
 )
 }
@@ -27,9 +26,6 @@ refers to.}
 
 \item{policy}{Default resolution policy for this package. One of
 \code{"bundled"}, \code{"current"}, \code{"pinned"}, \code{"offline"}. See \code{\link[=getaca_policy]{getaca_policy()}}.}
-
-\item{revision}{Monotonically increasing integer identifying this registry
-state, recorded in provenance.}
 
 \item{current}{Named character vector giving the channel head: the version a
 bare request for each resource name resolves to, as
@@ -50,6 +46,17 @@ Ship the result at \code{inst/getaca/registry.rds} via \code{\link[=registry_wri
 getaca discovers it with \code{system.file()}, so no registration call and no
 load hook are required.
 }
+\section{Identity}{
+
+A registry state is identified by \code{\link[=registry_digest]{registry_digest()}}, derived from the
+declaration itself, and recorded in the provenance of every resource it
+resolves. There is no revision number to keep in step: a digest cannot be
+typed wrong, and two states that differ cannot claim to be the same one.
+\code{\link[=registry_write]{registry_write()}} stamps \code{created}, which is what orders two states in
+time, and a bundled registry additionally has the version of the package
+that ships it.
+}
+
 \section{Channel heads}{
 
 A registry declares records; a channel points at one of them. When a

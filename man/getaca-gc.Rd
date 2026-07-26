@@ -8,7 +8,7 @@
 getaca_clean(
   name = NULL,
   package = NULL,
-  what = c("broken", "temp", "superseded", "lru"),
+  what = c("broken", "temp", "superseded", "lru", "unreferenced"),
   dry_run = FALSE
 )
 }
@@ -18,7 +18,7 @@ getaca_clean(
 \item{package}{Restrict to one declaring package. \code{NULL} means all.}
 
 \item{what}{Which sweeps to run. Any of \code{"broken"}, \code{"temp"},
-\code{"superseded"}, \code{"lru"}.}
+\code{"superseded"}, \code{"lru"}, \code{"unreferenced"}.}
 
 \item{dry_run}{Report what would be removed without removing it.}
 }
@@ -41,11 +41,16 @@ Removal order, cheapest and safest first:
 \item superseded unpinned versions, once past the retention period
 \item least recently used unpinned resources, only when over the size
 ceiling
+\item bytes in the store that no declaration references any more
 }
 
 "Superseded" and "not recently used" are different states and age on
 different clocks, so an expensive resource is not deleted merely for being
 old.
+
+A version slot holds a name for bytes the store owns, so the sweeps above
+remove names. Bytes go once the last name for them does, which is why the
+store sweep runs last.
 
 Never removed: pinned entries, the version the bundled registry currently
 names, and anything under an active lock.

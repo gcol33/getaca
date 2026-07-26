@@ -15,7 +15,7 @@ deliberate case.
 getaca_clean(
   name = NULL,
   package = NULL,
-  what = c("broken", "temp", "superseded", "lru"),
+  what = c("broken", "temp", "superseded", "lru", "unreferenced"),
   dry_run = FALSE
 )
 ```
@@ -33,7 +33,7 @@ getaca_clean(
 - what:
 
   Which sweeps to run. Any of `"broken"`, `"temp"`, `"superseded"`,
-  `"lru"`.
+  `"lru"`, `"unreferenced"`.
 
 - dry_run:
 
@@ -56,9 +56,15 @@ Removal order, cheapest and safest first:
 4.  least recently used unpinned resources, only when over the size
     ceiling
 
+5.  bytes in the store that no declaration references any more
+
 "Superseded" and "not recently used" are different states and age on
 different clocks, so an expensive resource is not deleted merely for
 being old.
+
+A version slot holds a name for bytes the store owns, so the sweeps
+above remove names. Bytes go once the last name for them does, which is
+why the store sweep runs last.
 
 Never removed: pinned entries, the version the bundled registry
 currently names, and anything under an active lock.

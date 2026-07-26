@@ -450,8 +450,10 @@ by a gigabyte. Naming the prefetch function also gives the answer to the
 question the sentence provokes.
 
 `getaca` goes in `Imports`, since the declaration is useless without it,
-and the recursive footprint it adds is `curl` and `digest` with nothing
-beneath them.
+and the recursive footprint it adds is `curl` with nothing beneath it.
+Hashing is
+[`tools::sha256sum()`](https://rdrr.io/r/tools/sha256sum.html), so
+`getaca` needs R \>= 4.6.0 and your package inherits that floor.
 
 ## CRAN checklist
 

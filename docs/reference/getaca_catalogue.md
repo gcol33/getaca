@@ -35,7 +35,9 @@ rather than implied. `declared` is `TRUE` when the registry in force
 names that version, `FALSE` when it does not, and `NA` when no registry
 could be read for the package; `current` is `NA` in that same case.
 `cached` says whether a local copy is recorded; the provenance columns
-are `NA` for declared resources that are not cached.
+are `NA` for declared resources that are not cached. `link` says how the
+slot reaches its bytes, so two packages sharing one copy in the store
+are visible as such.
 
 ## Examples
 

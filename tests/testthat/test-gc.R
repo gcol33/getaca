@@ -5,7 +5,7 @@ test_that("broken entries are swept and their records dropped", {
   reg <- demo_registry(f$sha256)
   seeded <- seed_cache(reg, f)
 
-  unlink(seeded$path)
+  getaca:::remove_path(seeded$path)
   out <- getaca_clean(package = "demopkg", what = "broken")
   expect_equal(nrow(out), 1L)
   expect_equal(out$reason, "broken or incomplete")
@@ -18,7 +18,7 @@ test_that("a dry run reports without removing", {
   f <- seed_file(src)
   reg <- demo_registry(f$sha256)
   seeded <- seed_cache(reg, f)
-  unlink(seeded$path)
+  getaca:::remove_path(seeded$path)
 
   out <- getaca_clean(package = "demopkg", what = "broken", dry_run = TRUE)
   expect_equal(nrow(out), 1L)
@@ -104,7 +104,7 @@ test_that("an entry under an active lock is never collected", {
   reg <- demo_registry(f$sha256)
   seeded <- seed_cache(reg, f)
 
-  lock <- getaca:::acquire_lock(seeded$id)
+  lock <- getaca:::acquire_lock(seeded$entry$declared_sha256)
   on.exit(getaca:::release_lock(lock))
 
   withr::local_options(list(getaca.supersede_days = -1, getaca.max_bytes = 1))

@@ -65,11 +65,13 @@ reg <- registry(
 res <- resolve_resource("wfo", registry = reg, policy = "bundled")
 res$id
 res$source
-res$revision
+res$digest
 ```
 
-`source` and `revision` are recorded in the cache entry, so a provenance
-report can state which declaration chose the bytes and which policy read it.
+`source` and `digest` are recorded in the cache entry, so a provenance report
+can state which declaration chose the bytes and which policy read it. The
+digest comes from the channel that answered, so under `current` it names the
+remote state rather than the registry the call was handed.
 
 Reinstalling the package is what moves this channel. That is the property
 worth having: two machines running the same installed version resolve the same
@@ -173,8 +175,7 @@ ahead <- registry(
              sha256 = strrep("9f", 32), license = "CC-BY-4.0"),
     resource("wfo", "2026-09", urls = "https://host.invalid/wfo-2026-09.zip",
              sha256 = strrep("ab", 32), license = "CC-BY-4.0")
-  ),
-  revision = 5L
+  )
 )
 
 resolve_resource("wfo", registry = ahead)$id
@@ -340,19 +341,19 @@ reason to pick it.
 ## What is recorded
 
 Whichever policy resolved a resource is kept in its cache entry, alongside the
-registry revision that supplied the record:
+digest of the registry state that supplied the record:
 
 ```{r, eval = FALSE}
 getaca_info("wfo", package = "taxify")
 #> <getaca cache entry> taxify/wfo@2026-06
 #>   ...
-#>   resolved by current registry, revision 5
+#>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
 #>   source url  https://host.invalid/wfo-2026-06.zip
 ```
 
-`getaca_catalogue()` reports the same two fields as `source` and `revision`
-columns across every cached resource, so "which of these came from a remote
-channel" is one filter rather than an audit.
+`getaca_catalogue()` reports the same two fields as `source` and
+`registry_digest` columns across every cached resource, so "which of these
+came from a remote channel" is one filter rather than an audit.
 
 ## Where to go next
 

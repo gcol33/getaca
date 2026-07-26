@@ -55,13 +55,14 @@ res$id
 #> <getaca resource> taxify/wfo@2026-06
 res$source
 #> [1] "bundled"
-res$revision
-#> [1] 1
+res$digest
+#> [1] "sha256:4fe8f0972e025b5d327334fa655a498ee825d164f4cd971d83150de85c15cc87"
 ```
 
-`source` and `revision` are recorded in the cache entry, so a provenance
+`source` and `digest` are recorded in the cache entry, so a provenance
 report can state which declaration chose the bytes and which policy read
-it.
+it. The digest comes from the channel that answered, so under `current`
+it names the remote state rather than the registry the call was handed.
 
 Reinstalling the package is what moves this channel. That is the
 property worth having: two machines running the same installed version
@@ -83,7 +84,8 @@ remote_reg <- registry(
   resources = list(rec)
 )
 remote_reg
-#> <getaca registry> taxify  (revision 1, policy "current")
+#> <getaca registry> taxify  (policy "current")
+#>   digest: sha256:30ef2dc40e78
 #>   remote: https://gcol33.github.io/taxify/getaca-registry.rds
 #>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 ```
@@ -183,8 +185,7 @@ ahead <- registry(
              sha256 = strrep("9f", 32), license = "CC-BY-4.0"),
     resource("wfo", "2026-09", urls = "https://host.invalid/wfo-2026-09.zip",
              sha256 = strrep("ab", 32), license = "CC-BY-4.0")
-  ),
-  revision = 5L
+  )
 )
 
 resolve_resource("wfo", registry = ahead)$id
@@ -381,21 +382,21 @@ and the direction is the reason to pick it.
 ## What is recorded
 
 Whichever policy resolved a resource is kept in its cache entry,
-alongside the registry revision that supplied the record:
+alongside the digest of the registry state that supplied the record:
 
 ``` r
 
 getaca_info("wfo", package = "taxify")
 #> <getaca cache entry> taxify/wfo@2026-06
 #>   ...
-#>   resolved by current registry, revision 5
+#>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
 #>   source url  https://host.invalid/wfo-2026-06.zip
 ```
 
 [`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)
-reports the same two fields as `source` and `revision` columns across
-every cached resource, so “which of these came from a remote channel” is
-one filter rather than an audit.
+reports the same two fields as `source` and `registry_digest` columns
+across every cached resource, so “which of these came from a remote
+channel” is one filter rather than an audit.
 
 ## Where to go next
 
