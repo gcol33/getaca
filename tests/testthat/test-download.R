@@ -151,8 +151,29 @@ test_that("a short response is treated as truncation, not as wrong content", {
       transport = fake_transport(list(contents = "short"))),
     getaca_error = function(e) e
   )
+  expect_s3_class(err, "getaca_error_incomplete")
+  expect_match(conditionMessage(err), "expected 20 bytes, received 5 bytes")
+  expect_equal(err$actor, "user")
+})
+
+test_that("a mirror ending short and one refusing to answer stay unavailable", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record(strrep("x", 20), c("https://a.invalid/f", "https://b.invalid/f"),
+                     size = 20)
+
+  err <- tryCatch(
+    getaca:::fetch_to_temp(id, rec, quiet = TRUE,
+      transport = fake_transport(list(contents = "short"), list(reason = "HTTP 503"))),
+    getaca_error = function(e) e
+  )
+
+  # Retrying helps one of them and not the other, so the broader condition is
+  # the honest one; both reasons are still named.
   expect_s3_class(err, "getaca_error_unavailable")
+  expect_false(inherits(err, "getaca_error_incomplete"))
   expect_match(conditionMessage(err), "truncated \\(5 of 20 bytes\\)")
+  expect_match(conditionMessage(err), "HTTP 503")
 })
 
 test_that("verified bytes are promoted into the cache atomically", {
@@ -187,6 +208,33 @@ test_that("a promotion blocked at its destination says so", {
     suppressWarnings(getaca:::promote(id, rec, got$path)),
     "could not move the verified file into the cache"
   )
+})
+
+test_that("a rename that cannot cross a filesystem boundary falls back to copying", {
+  dir <- withr::local_tempdir()
+  from <- file.path(dir, "verified.bin")
+  writeBin(charToRaw("payload"), from)
+  to <- file.path(dir, "cache", "verified.bin")
+  dir.create(dirname(to))
+
+  expect_true(getaca:::move_file(from, to, rename = function(...) FALSE))
+  expect_true(file.exists(to))
+  expect_false(file.exists(from))
+  expect_equal(readBin(to, "raw", 7L), charToRaw("payload"))
+})
+
+test_that("a move that neither renames nor copies leaves the verified bytes alone", {
+  dir <- withr::local_tempdir()
+  from <- file.path(dir, "verified.bin")
+  writeBin(charToRaw("payload"), from)
+
+  moved <- suppressWarnings(
+    getaca:::move_file(from, file.path(dir, "absent", "verified.bin"),
+                       rename = function(...) FALSE)
+  )
+
+  expect_false(moved)
+  expect_true(file.exists(from))
 })
 
 test_that("promotion replaces whatever occupied the slot", {

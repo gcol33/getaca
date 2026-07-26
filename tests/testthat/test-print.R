@@ -56,6 +56,17 @@ test_that("printing a registry lists the package, policy and declarations", {
   expect_match(out, "two@2.0", fixed = TRUE)
 })
 
+test_that("printing a registry marks the channel head", {
+  reg <- registry("demopkg", current = c(res = "2026-09"), resources = list(
+    resource("res", "2026-03", urls = "https://a.invalid/a", sha256 = strrep("a", 64)),
+    resource("res", "2026-09", urls = "https://a.invalid/b", sha256 = strrep("b", 64))
+  ))
+
+  lines <- utils::capture.output(print(reg))
+  expect_match(grep("2026-09", lines, value = TRUE), "(current)", fixed = TRUE)
+  expect_false(any(grepl("(current)", grep("2026-03", lines, value = TRUE), fixed = TRUE)))
+})
+
 test_that("printing a cache entry shows the provenance getaca kept", {
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir())

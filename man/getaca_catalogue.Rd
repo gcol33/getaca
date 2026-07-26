@@ -15,11 +15,13 @@ cached resources.}
 installed declaring package.}
 }
 \value{
-A data frame, one row per resource version. \code{declared} is \code{TRUE}
-when the registry in force names that version, \code{FALSE} when it does not,
-and \code{NA} when no registry could be read for the package. \code{cached} says
-whether a local copy is recorded; the provenance columns are \code{NA} for
-declared resources that are not cached.
+A data frame, one row per resource version. \code{current} marks the
+version a bare request for that name resolves to, so a channel head is
+visible rather than implied. \code{declared} is \code{TRUE} when the registry in
+force names that version, \code{FALSE} when it does not, and \code{NA} when no
+registry could be read for the package; \code{current} is \code{NA} in that same
+case. \code{cached} says whether a local copy is recorded; the provenance
+columns are \code{NA} for declared resources that are not cached.
 }
 \description{
 Reports both halves. Declared resources appear whether or not they have ever

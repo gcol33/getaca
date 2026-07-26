@@ -10,7 +10,9 @@
 #' @param policy Resolution policy, defaulting to [getaca_policy()].
 #' @param version Optional explicit version, bypassing channel resolution.
 #'
-#' @return A list with `id`, `record`, `source` and `revision`.
+#' @return A list with `id`, `record`, `policy`, `source` and `revision`.
+#'   `policy` is the one actually in force, after the argument, the session
+#'   setting, the registry default and the check clamp have been resolved.
 #' @export
 resolve_resource <- function(name, package = NULL, registry = NULL,
                              policy = NULL, version = NULL) {
@@ -44,6 +46,7 @@ resolve_resource <- function(name, package = NULL, registry = NULL,
   list(
     id = resource_id(reg$package, rec$name, rec$version),
     record = rec,
+    policy = policy,
     source = if (policy %in% c("bundled", "offline")) "bundled" else policy,
     revision = channel$revision
   )
@@ -52,11 +55,19 @@ resolve_resource <- function(name, package = NULL, registry = NULL,
 select_record <- function(channel, name, version = NULL) {
   hits <- Filter(function(r) identical(r$name, name), channel$resources)
   if (!length(hits)) return(NULL)
-  if (!is.null(version)) {
-    hits <- Filter(function(r) identical(r$version, version), hits)
-    return(if (length(hits)) hits[[1]] else NULL)
-  }
-  hits[[length(hits)]]
+  version <- version %||% channel_head(channel, name)
+  # No head to consult means one declared version, since a registry offering a
+  # choice without naming one is refused.
+  if (is.null(version)) return(hits[[1]])
+  hits <- Filter(function(r) identical(r$version, version), hits)
+  if (length(hits)) hits[[1]] else NULL
+}
+
+# The version a bare name resolves to, when the registry states one.
+channel_head <- function(channel, name) {
+  cur <- channel$current
+  if (is.null(cur) || !name %in% names(cur)) return(NULL)
+  unname(cur[[name]])
 }
 
 remote_cache <- new.env(parent = emptyenv())
@@ -108,8 +119,9 @@ remote_channel <- function(reg, fetch = fetch_registry) {
 }
 
 # A remote channel may repair mirrors and add versions. It may never redefine
-# what a published version means.
-assert_immutable <- function(bundled, fetched) {
+# what a published version means. A pin file is held to the same rule, so the
+# message names whichever of the two is being checked.
+assert_immutable <- function(bundled, fetched, source = "remote registry") {
   key <- function(r) paste0(r$name, "@", r$version)
   old <- stats::setNames(vapply(bundled$resources, function(r) r$sha256, character(1)),
                          vapply(bundled$resources, key, character(1)))
@@ -119,7 +131,7 @@ assert_immutable <- function(bundled, fetched) {
   bad <- shared[old[shared] != new[shared]]
   if (length(bad)) {
     err_invalid_registry(
-      c(sprintf("the remote registry redefines published version %s", bad),
+      c(sprintf("the %s redefines published version %s", source, bad),
         "A version identifies exact bytes. Publish a new version instead."),
       package = bundled$package
     )
@@ -144,7 +156,7 @@ pinned_channel <- function(reg) {
       package = reg$package
     )
   }
-  assert_immutable(reg, hit)
+  assert_immutable(reg, hit, source = "pin file")
   hit
 }
 

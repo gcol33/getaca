@@ -56,7 +56,10 @@ getaca <- function(name, package = NULL, registry = NULL, version = NULL,
     return(entry$path)
   }
 
-  if (identical(effective_policy(), "offline")) {
+  # The policy resolution already folded in the argument, the session setting,
+  # the registry default and the check clamp, so asking again here would answer
+  # a narrower question than the one that chose the record.
+  if (identical(res$policy, "offline")) {
     err_offline(id, if (in_r_check()) "running under R CMD check" else "offline mode is in effect")
   }
 
@@ -184,11 +187,13 @@ getaca_info <- function(name, package = NULL, registry = NULL, version = NULL,
 #' @param registry A [registry()] object, for standalone use without an
 #'   installed declaring package.
 #'
-#' @return A data frame, one row per resource version. `declared` is `TRUE`
-#'   when the registry in force names that version, `FALSE` when it does not,
-#'   and `NA` when no registry could be read for the package. `cached` says
-#'   whether a local copy is recorded; the provenance columns are `NA` for
-#'   declared resources that are not cached.
+#' @return A data frame, one row per resource version. `current` marks the
+#'   version a bare request for that name resolves to, so a channel head is
+#'   visible rather than implied. `declared` is `TRUE` when the registry in
+#'   force names that version, `FALSE` when it does not, and `NA` when no
+#'   registry could be read for the package; `current` is `NA` in that same
+#'   case. `cached` says whether a local copy is recorded; the provenance
+#'   columns are `NA` for declared resources that are not cached.
 #' @export
 #'
 #' @examples
@@ -218,6 +223,7 @@ catalogue_rows <- function(package, registry = NULL) {
   entries <- read_index(package)
   keys <- vapply(entries, function(e) paste0(e$id$name, "@", e$id$version),
                  character(1))
+  is_current <- current_marker(reg)
 
   rows <- list()
   declared_keys <- character()
@@ -227,9 +233,9 @@ catalogue_rows <- function(package, registry = NULL) {
       declared_keys <- c(declared_keys, key)
       hits <- entries[keys == key]
       if (length(hits)) {
-        for (e in hits) rows[[length(rows) + 1L]] <- entry_row(e, TRUE)
+        for (e in hits) rows[[length(rows) + 1L]] <- entry_row(e, TRUE, is_current(key))
       } else {
-        rows[[length(rows) + 1L]] <- declared_row(package, rec)
+        rows[[length(rows) + 1L]] <- declared_row(package, rec, is_current(key))
       }
     }
   }
@@ -237,18 +243,33 @@ catalogue_rows <- function(package, registry = NULL) {
   # Cached under a version the registry no longer names, or under a package
   # whose registry could not be read at all. Those are different claims.
   for (e in entries[!keys %in% declared_keys]) {
-    rows[[length(rows) + 1L]] <- entry_row(e, if (is.null(reg)) NA else FALSE)
+    rows[[length(rows) + 1L]] <- entry_row(e, if (is.null(reg)) NA else FALSE,
+                                           is_current(paste0(e$id$name, "@", e$id$version)))
   }
 
   if (!length(rows)) return(NULL)
   do.call(rbind, rows)
 }
 
-entry_row <- function(e, declared) {
+# Asks the resolver rather than reading `current` directly, so the column says
+# what a bare request actually returns for every name, including the ones whose
+# single declared version needs no head.
+current_marker <- function(reg) {
+  if (is.null(reg)) return(function(key) NA)
+  names_declared <- unique(vapply(reg$resources, function(r) r$name, character(1)))
+  heads <- vapply(names_declared, function(n) {
+    rec <- select_record(reg, n)
+    paste0(n, "@", rec$version)
+  }, character(1), USE.NAMES = FALSE)
+  function(key) key %in% heads
+}
+
+entry_row <- function(e, declared, current) {
   data.frame(
     package = e$package,
     name = e$id$name,
     version = e$id$version,
+    current = current,
     processor = e$processor_id %||% NA_character_,
     declared = declared,
     cached = TRUE,
@@ -264,11 +285,12 @@ entry_row <- function(e, declared) {
   )
 }
 
-declared_row <- function(package, rec) {
+declared_row <- function(package, rec, current) {
   data.frame(
     package = package,
     name = rec$name,
     version = rec$version,
+    current = current,
     processor = if (is.null(rec$processor)) NA_character_ else rec$processor$id,
     declared = TRUE,
     cached = FALSE,
@@ -289,7 +311,8 @@ na_time <- function(n = 1L) .POSIXct(rep(NA_real_, n))
 empty_catalogue <- function() {
   data.frame(
     package = character(), name = character(), version = character(),
-    processor = character(), declared = logical(), cached = logical(),
+    current = logical(), processor = character(),
+    declared = logical(), cached = logical(),
     size = numeric(), license = character(),
     source = character(), revision = integer(),
     verified_at = na_time(0L), accessed_at = na_time(0L),

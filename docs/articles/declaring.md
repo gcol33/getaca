@@ -1,7 +1,14 @@
 # Declaring Resources
 
 For package authors: what to declare, where to put it, and which policy
-to choose.
+to choose. The reader here is someone whose package needs a file that is
+too large, too fast-moving, or too awkwardly licensed to sit in `data/`.
+
+Everything a declaring package owes `getaca` is one serialised object at
+`inst/getaca/registry.rds`. There is no `Depends`, no `.onLoad()` hook,
+no registration call, and no runtime coupling beyond calling
+[`getaca()`](https://gillescolling.com/getaca/reference/getaca.md) when
+a resource is actually needed.
 
 ## Records and channels
 
@@ -24,7 +31,194 @@ Where the channel is read from is the resolution policy.
 `bundled` is the default because a dependency that resolves differently
 on different days is not a dependency. See
 `dev_notes/adr-001-registry-resolution.md` in the source for the
-reasoning.
+reasoning, and
+[`vignette("policies")`](https://gillescolling.com/getaca/articles/policies.md)
+for the operational detail.
+
+## Anatomy of a record
+
+``` r
+
+rec <- resource(
+  name        = "wfo",
+  version     = "2026-06",
+  urls        = c("https://zenodo.invalid/records/1234567/files/wfo-2026-06.zip",
+                  "https://mirror.invalid/wfo-2026-06.zip"),
+  sha256      = strrep("9f", 32),
+  size        = 797e6,
+  license     = "CC-BY-4.0",
+  description = "World Flora Online taxonomic backbone, June 2026 release"
+)
+rec
+#> <getaca resource record>
+#>   name      wfo
+#>   version   2026-06
+#>   sha256    9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f
+#>   size      7.97e+08
+#>   license   CC-BY-4.0
+#>   urls      https://zenodo.invalid/records/1234567/files/wfo-2026-06.zip
+#>              https://mirror.invalid/wfo-2026-06.zip
+```
+
+**`name`** becomes a directory name, so it is restricted to
+`[A-Za-z0-9._-]`. It is scoped by your package, so a short name is fine
+and `"wfo"` will never collide with another package’s `"wfo"`.
+
+**`version`** is a label under the same character restriction. `getaca`
+never orders version strings, which is what lets you use whatever your
+upstream actually publishes: `2026-06`, `v14.2`, `2026-06_build-3`. Pick
+a scheme and keep it; the only rule the package enforces is that a
+label, once published, keeps meaning the same bytes.
+
+**`urls`** are tried in order. All must be `https://`. More than one is
+worth the trouble: an outage at your primary becomes a slower first call
+rather than a support issue.
+
+**`sha256`** is the point of the whole design. It is the digest of the
+file as served, which is not always the digest of the file you built: if
+your host recompresses, or you upload a re-zipped copy, compute the hash
+after the upload by downloading it back.
+
+**`size`** in bytes is optional and cheap. A transfer that ends short is
+detected before a multi-gigabyte hash runs, and reported as a truncation
+rather than as a checksum mismatch, which points the user at a retry
+instead of at the publisher.
+
+**`license`** travels into every provenance record, so a downstream
+result can report what terms its inputs came under.
+
+**`description`** is one line for humans reading
+[`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)
+output.
+
+Malformed records are refused where they are written, with the problem
+named:
+
+``` r
+
+resource("wfo", "2026-06", urls = "http://insecure.invalid/wfo.zip",
+         sha256 = strrep("9f", 32))
+#> Error:
+#> ! Invalid getaca registry.
+#>   - resource 'wfo': all URLs must use https
+#> 
+#> Fix: the declaring package needs a correction. Report it to its maintainer.
+```
+
+``` r
+
+resource("wfo", "2026-06", urls = "https://ok.invalid/wfo.zip",
+         sha256 = "not-a-digest")
+#> Error:
+#> ! Invalid getaca registry.
+#>   - resource 'wfo': `sha256` must be 64 lowercase hex characters
+#> 
+#> Fix: the declaring package needs a correction. Report it to its maintainer.
+```
+
+## Assembling the registry
+
+``` r
+
+reg <- registry(
+  package   = "taxify",
+  revision  = 4L,
+  resources = list(rec)
+)
+reg
+#> <getaca registry> taxify  (revision 4, policy "bundled")
+#>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
+```
+
+`revision` is a monotonically increasing integer identifying this
+registry state. It is recorded in the provenance of everything resolved
+through it, so a bug report can say which declaration chose the bytes.
+Bump it whenever you change the registry.
+
+Write it into the source tree from a `data-raw/` script, so the registry
+is generated rather than hand-maintained:
+
+``` r
+
+# data-raw/registry.R
+registry_write(reg, "inst/getaca/registry.rds")
+```
+
+Add `^data-raw$` to `.Rbuildignore` and the script stays out of the
+built package while the object it produces ships.
+
+Reading it back is symmetric, and validates:
+
+``` r
+
+path <- file.path(tempdir(), "registry.rds")
+registry_write(reg, path)
+identical(registry_read(path), reg)
+#> [1] TRUE
+```
+
+## Naming the channel head
+
+A registry that offers one version per name has nothing to decide. One
+that offers several has to say which one a bare request returns:
+
+``` r
+
+reg2 <- registry(
+  package = "taxify",
+  current = c(wfo = "2026-09"),
+  resources = list(
+    resource("wfo", "2026-06", urls = "https://host.invalid/wfo-2026-06.zip",
+             sha256 = strrep("9f", 32), license = "CC-BY-4.0"),
+    resource("wfo", "2026-09", urls = "https://host.invalid/wfo-2026-09.zip",
+             sha256 = strrep("ab", 32), license = "CC-BY-4.0")
+  )
+)
+reg2
+#> <getaca registry> taxify  (revision 1, policy "bundled")
+#>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
+#>   - wfo@2026-09  abababababab  [CC-BY-4.0]  (current)
+```
+
+The head is marked when the registry prints, and appears as a column in
+the catalogue:
+
+``` r
+
+getaca_catalogue(registry = reg2)[, c("name", "version", "current", "declared")]
+#>   name version current declared
+#> 1  wfo 2026-06   FALSE     TRUE
+#> 2  wfo 2026-09    TRUE     TRUE
+```
+
+Leaving it out is an error rather than a default, because the failure it
+prevents is silent. A registry appending `2026-03` after `2026-09` under
+a declaration-order rule moves every user backwards without any of them
+noticing:
+
+``` r
+
+registry(
+  package = "taxify",
+  resources = list(
+    resource("wfo", "2026-09", urls = "https://host.invalid/a",
+             sha256 = strrep("ab", 32)),
+    resource("wfo", "2026-03", urls = "https://host.invalid/b",
+             sha256 = strrep("cd", 32))
+  )
+)
+#> Error:
+#> ! Invalid getaca registry for package 'taxify'.
+#>   - resource 'wfo' declares 2 versions (2026-09, 2026-03) but the registry names no current one; add current = c("wfo" = "2026-03")
+#> 
+#> Fix: the declaring package needs a correction. Report it to its maintainer.
+```
+
+The head names a version, so moving it is one edit and the old record
+stays resolvable by `getaca(..., version = "2026-06")` for as long as
+you keep declaring it. Dropping a record from the registry does not
+delete anyone’s cached copy; it marks it undeclared, which is what makes
+it eligible for the superseded sweep after the retention window.
 
 ## Choosing `current`
 
@@ -33,7 +227,7 @@ own schedule:
 
 ``` r
 
-reg <- registry(
+remote_reg <- registry(
   package = "taxify",
   policy  = "current",
   remote  = "https://gcol33.github.io/taxify/getaca-registry.rds",
@@ -47,32 +241,35 @@ reg <- registry(
 ```
 
 The remote file is a static artefact on GitHub Pages, r-universe or
-institutional hosting. It is not a service, and it does not need to be
-up: an unreachable remote registry falls back to bundled with a message,
-because CRAN requires graceful degradation when an Internet resource is
-unavailable.
+institutional hosting. An unreachable one falls back to the bundled
+registry with a message, which is what CRAN requires when an Internet
+resource is unavailable, so the hosting bar is low enough that a `docs/`
+directory clears it.
 
 What the remote channel may do:
 
 - repair or add mirrors for a record that already exists
 
-- publish new versions, and point the channel at one
+- publish new versions, and move the channel head onto one
 
 What it may not do: change the checksum attached to a version that
 already exists. That is rejected as an invalid registry, attributed to
-you rather than to the publisher.
+you rather than to the publisher, because a remote file that can
+silently redefine published bytes would undo the guarantee the whole
+design exists to provide.
 
-## Versions are labels
-
-`getaca` does not order version strings, because they are not semantic
-versions. `2026-06` and `source-2026-06_build-3` are labels. The channel
-head is the last matching record in declaration order, so list versions
-oldest first, and let users hold a specific one explicitly:
+Publishing a remote registry is the same call with a different
+destination:
 
 ``` r
 
-getaca("wfo", package = "taxify", version = "2026-06")
+# In a release script, after bumping revision and adding the new record
+registry_write(reg2, "docs/getaca-registry.rds")   # served by GitHub Pages
 ```
+
+Users on `bundled` are unaffected until they reinstall; users on
+`current` pick it up on their next session, or immediately after
+[`getaca_refresh()`](https://gillescolling.com/getaca/reference/getaca_refresh.md).
 
 ## Derived artefacts
 
@@ -105,6 +302,14 @@ resource(
 #>     taxifydb_build: 3
 ```
 
+`upstream` is a free-form named list. Every entry is printed by
+[`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.md)
+and kept in the cache index, so a user asking “which WFO release is
+this, and which build turned it into a database” gets both answers from
+one call. Two things move independently here: upstream can publish
+`2026-09`, and you can fix a build bug against `2026-06`. Version labels
+like `source-2026-06_build-3` keep both visible in the identity itself.
+
 `getaca` does not care whether bytes are an official release or
 something you built. It retrieves and verifies what you declared; your
 package owns their scientific meaning.
@@ -121,11 +326,51 @@ unpack <- processor("unzip", function(input, output_dir) {
   utils::unzip(input, exdir = output_dir)
   output_dir
 })
+unpack$id
+#> [1] "unzip"
 ```
 
-Changing what the transformation does means changing the id, which
-invalidates previously processed copies.
-`getaca(..., processed = FALSE)` returns the raw artefact.
+Attach it to the record that needs it:
+
+``` r
+
+archive <- resource(
+  name      = "wfo",
+  version   = "2026-06",
+  urls      = "https://host.invalid/wfo-2026-06.zip",
+  sha256    = strrep("9f", 32),
+  license   = "CC-BY-4.0",
+  processor = unpack
+)
+archive
+#> <getaca resource record>
+#>   name      wfo
+#>   version   2026-06
+#>   sha256    9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f
+#>   size      unknown
+#>   license   CC-BY-4.0
+#>   urls      https://host.invalid/wfo-2026-06.zip
+#>   processor unzip
+```
+
+The function receives the verified input path and a staging directory,
+and returns a path inside that directory. `getaca` renames the staging
+directory into place once the function returns, so a processor that
+fails part-way leaves no half-built result. A returned path outside the
+output directory is an error, since the cache would then hold an entry
+pointing somewhere it does not own.
+
+Changing what the transformation does means changing the id. `"unzip"`
+to `"unzip-v2"` invalidates previously processed copies without touching
+the raw artefact they were built from, so users re-run the
+transformation rather than re-downloading gigabytes.
+`getaca(..., processed = FALSE)` returns the raw artefact for anyone who
+wants it.
+
+Keep processors cheap and pure. They run inside the per-resource lock,
+so a processor that takes ten minutes blocks a second session for ten
+minutes. If the transformation is expensive enough to matter, publishing
+the derived artefact as its own record is usually the better trade.
 
 ## Authoring in YAML
 
@@ -146,8 +391,39 @@ wfo:
 
     - https://mirror.invalid/wfo-2026-06.zip
   sha256: "9f9f..."
+  size: 797000000
+  license: CC-BY-4.0
+  description: World Flora Online backbone, June 2026
+
+col:
+  version: "2026-06"
+  url: https://primary.invalid/col-2026-06.zip
+  sha256: "ab12..."
   license: CC-BY-4.0
 ```
+
+Either `urls` or `url` is accepted, and either `license` or `licence`,
+since a YAML file is input rather than API. The model has one spelling
+for each.
+
+The authoring format keys on resource name, so it describes one version
+per name. A registry that offers several versions of a name is built in
+R, where the list is a list and `current` sits beside it. Arguments
+passed to
+[`as_registry()`](https://gillescolling.com/getaca/reference/as_registry.md)
+reach
+[`registry()`](https://gillescolling.com/getaca/reference/registry.md):
+
+``` r
+
+as_registry("data-raw/resources.yml", package = "taxify",
+            policy = "current", revision = 4L,
+            remote = "https://gcol33.github.io/taxify/getaca-registry.rds")
+```
+
+JSON works the same way through `jsonlite`. Both are `Suggests`, and
+asking for one you have not installed produces an install instruction
+rather than a missing-object error.
 
 ## Handing errors to your users
 
@@ -175,25 +451,75 @@ install_backbone <- function(name = "wfo") {
 the handler above catches both, and a narrower handler can separate
 them.
 
+Two conditions name you rather than your user.
+`getaca_error_invalid_registry` means the declaration is malformed or
+internally inconsistent, and `getaca_error_declaration` means several
+independent mirrors agreed with each other and disagreed with your
+checksum. Neither is worth catching in your own package: they are bug
+reports, and the default message already says so.
+[`vignette("failures")`](https://gillescolling.com/getaca/articles/failures.md)
+covers the full set.
+
 ## Hosting
 
 Immutable hosting makes all of this easier, and Zenodo gives it away: a
 versioned DOI resolves to bytes that cannot change under you. Deposit
 the data, pin the version DOI’s file URL, and the upstream-mutation case
-stops being possible.
+stops being possible for the copy you control.
+
+GitHub Releases work as a second mirror. Release assets are stable once
+uploaded, they are served from a CDN, and the tag names a version in a
+way that reads well beside the record’s own label.
 
 `getaca` has no Zenodo client and will not grow one. It is a
 recommendation about where to put files, not a feature.
+
+## Testing your declaration
+
+The registry is an ordinary object, so the parts worth testing are
+testable without a network:
+
+``` r
+
+test_that("the shipped registry is valid and names a head", {
+  reg <- registry_for("taxify")
+  expect_s3_class(reg, "getaca_registry")
+  expect_equal(resolve_resource("wfo", registry = reg)$id$version, "2026-06")
+})
+
+test_that("the backbone parses when it is available", {
+  getaca_skip_if_unavailable("wfo", package = "taxify")
+  expect_s3_class(read_backbone(getaca("wfo", package = "taxify")), "backbone")
+})
+```
+
+The first runs everywhere, including on CRAN, because it never leaves
+the installed package. The second skips cleanly when the resource is
+absent and names how to prefetch it.
+
+Registries are read once per session and cached, so a test that installs
+a registry into a temporary library needs
+[`getaca_refresh()`](https://gillescolling.com/getaca/reference/getaca_refresh.md)
+to make the next lookup take effect.
 
 ## Before you ship
 
 `inst/getaca/registry.rds` written by
 [`registry_write()`](https://gillescolling.com/getaca/reference/registry_write.md)
+from a `data-raw/` script
 
 every checksum computed from the file as served, not from a local copy
 you built
 
+`size` recorded, so truncation is caught before a full re-hash
+
 at least one mirror, ideally on a host you control
+
+`current` set for any name that declares more than one version
+
+`revision` bumped since the last release
+
+`license` on every record
 
 tests use
 [`getaca_skip_if_unavailable()`](https://gillescolling.com/getaca/reference/getaca-checks.md)

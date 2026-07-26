@@ -6,13 +6,18 @@ different version on Tuesday than it fetched on Monday. `getaca` is the
 layer that makes those three constraints compatible.
 
 There is one engine and many declarations. Packages say what they need;
-`getaca` gets it.
+`getaca` gets it. The declaration is a small R object that ships inside
+the installed package, so retrieving a resource requires no registration
+call, no load hook, and no service to be up.
+
+This vignette walks the whole cycle: declaring a resource, retrieving
+it, behaving during checks, reading its provenance, and knowing where it
+went. Each section links the companion article that goes deeper.
 
 ## Declaring what you need
 
-A resource record names exact bytes. Not a URL, not a dataset in the
-abstract: one checksum, one version label, and the places those bytes
-can be found.
+A resource record names exact bytes: one checksum, one version label,
+and the places those bytes live.
 
 ``` r
 
@@ -37,6 +42,16 @@ wfo
 #>              https://mirror.invalid/wfo-2026-06.zip
 ```
 
+Each field earns its place. The `sha256` is what makes the record a
+record rather than a bookmark: a truncated transfer, a proxy that served
+an HTML error page, and a publisher who quietly recut the file all
+produce a different digest, and all three are caught before the bytes
+reach your code. The `size` is a cheap early check, so a transfer that
+ends at 40% fails as a truncation rather than running a four-gigabyte
+hash to discover the same thing. Extra `urls` are tried in order, which
+turns one host’s outage into a slower first call. The `license` travels
+into provenance, so a result can say what terms the data came under.
+
 Records live in a registry, which is scoped to the declaring package:
 
 ``` r
@@ -47,13 +62,34 @@ reg
 #>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 ```
 
-Ship it where `getaca` looks for it, and there is nothing to register
-and no load hook to write:
+Scoping matters more than it looks. Identity here is the triple
+`package / name / version`, so two packages may both declare something
+called `"wfo"` and never collide, in the cache or anywhere else.
+
+``` r
+
+format(resource_id("taxify", "wfo", "2026-06"))
+#> [1] "taxify/wfo@2026-06"
+```
+
+Ship the registry where `getaca` looks for it, and there is nothing else
+to wire up:
 
 ``` r
 
 registry_write(reg, "inst/getaca/registry.rds")
 ```
+
+Discovery is a file test across the library paths. `getaca` asks
+[`system.file()`](https://rdrr.io/r/base/system.file.html) for
+`getaca/registry.rds` inside each installed package, which is why a
+declaring package needs no `.onLoad()` and no dependency on `getaca`
+being attached.
+
+See
+[`vignette("declaring")`](https://gillescolling.com/getaca/articles/declaring.md)
+for the full authoring guide: mirrors, derived artefacts, YAML authoring
+and the pre-ship checklist.
 
 ## Getting it
 
@@ -63,36 +99,95 @@ path <- getaca("wfo", package = "taxify")
 ```
 
 That path points to a complete file, verified against the declared
-checksum, at the requested version, in a cache slot `getaca` owns. What
+checksum, at the resolved version, in a cache slot `getaca` owns. What
 happens on the way there depends on what is already true:
 
-- cached and intact, the path comes back immediately after a size check
+- cached and intact, the path comes back after a size check
 
 - cached but past the re-verification interval, the bytes are re-hashed
   first
 
-- absent, the mirrors are tried in order, into a temporary file, which
-  is hashed before it is moved into place
+- absent, the mirrors are tried in order into a temporary file, which is
+  sized and hashed before it is moved into place
 
 An interrupted transfer resumes rather than restarting, and can never be
-mistaken for a finished resource.
+mistaken for a finished resource. The temporary file is named after the
+declared checksum and the mirror that produced it, so a resumed transfer
+only ever continues bytes from the same host. Sharing one partial file
+across mirrors would let a failed attempt at the first be resumed onto
+by the second, and the resulting corruption is indistinguishable from
+the publisher having changed the file.
 
-## Identity is a triple
+Two sessions asking for the same resource at the same time take a
+per-resource directory lock. The second waits, then observes the first
+session’s success and returns the same path, so a four-gigabyte download
+happens once.
+[`vignette("cache")`](https://gillescolling.com/getaca/articles/cache.md)
+covers the locking protocol and what happens to a lock whose holder
+died.
 
-`"wfo"` is not a global name. It resolves to `taxify / wfo / 2026-06`,
-and another package may declare its own `"wfo"` without collision.
+## Which version a bare name resolves to
+
+`getaca("wfo")` asks for a name, and the registry says which record that
+name means. When a package offers several versions, it states the
+answer:
 
 ``` r
 
-format(resource_id("taxify", "wfo", "2026-06"))
-#> [1] "taxify/wfo@2026-06"
+multi <- registry(
+  package = "taxify",
+  current = c(wfo = "2026-09"),
+  resources = list(
+    resource("wfo", "2026-06", urls = "https://primary.invalid/wfo-2026-06.zip",
+             sha256 = strrep("9f", 32), license = "CC-BY-4.0"),
+    resource("wfo", "2026-09", urls = "https://primary.invalid/wfo-2026-09.zip",
+             sha256 = strrep("ab", 32), license = "CC-BY-4.0")
+  )
+)
+
+resolve_resource("wfo", registry = multi)$id
+#> <getaca resource> taxify/wfo@2026-09
 ```
+
+The older record stays resolvable by asking for it:
+
+``` r
+
+resolve_resource("wfo", registry = multi, version = "2026-06")$id
+#> <getaca resource> taxify/wfo@2026-06
+```
+
+Version strings here are labels rather than semantic versions.
+`source-2026-06_build-3` is a perfectly good label and has no defensible
+ordering, so `getaca` never tries to rank them. A registry that declares
+two versions of a name and states no head is refused:
+
+``` r
+
+registry(
+  package = "taxify",
+  resources = list(
+    resource("wfo", "2026-09", urls = "https://primary.invalid/a",
+             sha256 = strrep("ab", 32)),
+    resource("wfo", "2026-03", urls = "https://primary.invalid/b",
+             sha256 = strrep("cd", 32))
+  )
+)
+#> Error:
+#> ! Invalid getaca registry for package 'taxify'.
+#>   - resource 'wfo' declares 2 versions (2026-09, 2026-03) but the registry names no current one; add current = c("wfo" = "2026-03")
+#> 
+#> Fix: the declaring package needs a correction. Report it to its maintainer.
+```
+
+The error lands on the author’s machine, at the moment the registry is
+built, rather than on every user of the package.
 
 ## Surviving R CMD check
 
 Resolution collapses to `offline` under check, whatever policy is set,
 so a check run never reaches the network. Three helpers cover the three
-places that matters.
+places that matters, and they answer three different questions.
 
 In tests, skip cleanly and say what is missing:
 
@@ -104,12 +199,23 @@ test_that("the backbone parses", {
 })
 ```
 
-In examples and vignettes, degrade to a message rather than an error:
+In examples and vignettes, degrade to a message rather than an error.
+This vignette is running with the network switched off, so the call
+below takes exactly the path a CRAN check machine would take:
 
 ``` r
 
-path <- getaca_optional("wfo", package = "taxify")
-if (!is.null(path)) summarise_backbone(path)
+path <- getaca_optional("wfo", registry = reg)
+#> getaca: 'wfo' is not available here, so this output is abbreviated.
+#> taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
+#> 
+#> Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),
+#> or point GETACA_CACHE at a cache that already holds it.
+#> 
+#> Fix: this is expected during checks. Use getaca_skip_if_unavailable()
+#> in tests and getaca_optional() in examples.
+is.null(path)
+#> [1] TRUE
 ```
 
 And where a plain logical reads better:
@@ -120,16 +226,82 @@ getaca_available("wfo", registry = reg)
 #> [1] FALSE
 ```
 
+[`getaca_available()`](https://gillescolling.com/getaca/reference/getaca-checks.md)
+never touches the network. It asks whether a cached copy exists and
+passes its cheap integrity check, which is what makes it safe to call in
+a condition that gates expensive work.
+
 To prepare a machine that will later be offline, or a CI job that should
 find everything already present:
 
 ``` r
 
 getaca_prefetch("wfo", package = "taxify")
+getaca_prefetch(package = "taxify")   # everything the package declares
 ```
 
 Setting `GETACA_CACHE` points any session at a cache that has already
-been seeded.
+been seeded, which is how a CI job restores a cached directory and finds
+the resources waiting.
+[`vignette("checks")`](https://gillescolling.com/getaca/articles/checks.md)
+has the workflow files.
+
+## When it does not work
+
+Every failure is classed, and carries an `actor` field naming who can
+act on it. Here is the one a check run produces, in full:
+
+``` r
+
+err <- tryCatch(getaca("wfo", registry = reg), getaca_error = function(e) e)
+class(err)
+#> [1] "getaca_error_offline"     "getaca_error_unavailable"
+#> [3] "getaca_error"             "error"                   
+#> [5] "condition"
+```
+
+``` r
+
+cat(conditionMessage(err))
+#> taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
+#> 
+#> Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),
+#> or point GETACA_CACHE at a cache that already holds it.
+#> 
+#> Fix: this is expected during checks. Use getaca_skip_if_unavailable()
+#> in tests and getaca_optional() in examples.
+```
+
+``` r
+
+err$actor
+#> [1] "user"
+```
+
+`getaca_error_offline` is a subclass of `getaca_error_unavailable`, so a
+handler for the general case catches it and a narrower handler can
+separate the two. A declaring package usually catches the ones its users
+will meet and answers in its own vocabulary:
+
+``` r
+
+install_backbone <- function(name = "wfo") {
+  path <- tryCatch(
+    getaca(name, package = "taxify"),
+    getaca_error_unavailable = function(e) {
+      stop("The WFO backbone is not installed and no network is available.\n",
+           "Connect, then run: taxify::install_backbone(\"wfo\")", call. = FALSE)
+    }
+  )
+  open_backbone(path)
+}
+```
+
+Six conditions cover the failure surface, and they distinguish causes a
+plain downloader reports identically.
+[`vignette("failures")`](https://gillescolling.com/getaca/articles/failures.md)
+works through each one, including the case where several independent
+mirrors agree with each other and disagree with the registry.
 
 ## Knowing where a file came from
 
@@ -149,7 +321,22 @@ getaca_info("wfo", package = "taxify")
 ```
 
 Four timestamps, kept apart on purpose. “Verified” means the bytes were
-re-hashed then, not that somebody looked at the file at some point.
+re-hashed then. “Checked” means size and modification time were compared
+against the entry, which is the cheap test run on ordinary access.
+“Accessed” is the clock the retention sweeps read. Collapsing them into
+one “last checked” field would make a resource verified in January look
+verified today because someone opened it this morning.
+
+An uncached resource gives `NULL` from
+[`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.md),
+which keeps the call usable in a report covering a machine that holds
+some of the set:
+
+``` r
+
+is.null(getaca_info("wfo", registry = reg))
+#> [1] TRUE
+```
 
 [`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)
 widens that to a data frame covering both halves: every resource the
@@ -157,27 +344,116 @@ installed packages declare, and every copy the cache holds.
 
 ``` r
 
-getaca_catalogue(registry = reg)[, c("name", "version", "declared", "cached")]
-#>   name version declared cached
-#> 1  wfo 2026-06     TRUE  FALSE
+getaca_catalogue(registry = multi)[, c("name", "version", "current",
+                                       "declared", "cached")]
+#>   name version current declared cached
+#> 1  wfo 2026-06   FALSE     TRUE  FALSE
+#> 2  wfo 2026-09    TRUE     TRUE  FALSE
 ```
 
-`declared` and `cached` answer different questions. A row with
-`declared = TRUE, cached = FALSE` is work still to do on this machine. A
-row with `declared = FALSE` is a copy of a version nothing asks for any
-more, which is what the retention sweeps reclaim first.
+The three logical columns answer three different questions. `current`
+marks the version a bare request resolves to. `declared` says whether
+the registry in force names that version at all. `cached` says whether a
+local copy is recorded. A row with `declared = TRUE, cached = FALSE` is
+work still to do on this machine. A row with `declared = FALSE` is a
+copy of a version nothing asks for any more, which is what the retention
+sweeps reclaim first.
 
 ## Where things are stored
 
 ``` r
 
 getaca_cache_dir()
-#> [1] "C:\\Users\\Gilles Colling\\AppData\\Local/R/cache/R/getaca"
+#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpE5Y06U/getaca-quickstart"
 ```
 
-`tools::R_user_dir("getaca", "cache")` by default, which is what CRAN
+That is the temporary directory this vignette is sandboxed in. The
+default is `tools::R_user_dir("getaca", "cache")`, which is what CRAN
 policy permits, on the condition that contents are actively managed.
 `getaca` treats that as a retention policy rather than a function users
-might find, and sweeps after every successful retrieval. See
-[`?"getaca-gc"`](https://gillescolling.com/getaca/reference/getaca-gc.md)
-for the removal order and what is never touched.
+might find, and sweeps after every successful retrieval. The
+`getaca.cache` option and the `GETACA_CACHE` environment variable
+override it, in that order.
+
+The layout is scoped the same way identity is:
+
+    <cache>/
+      .locks/                        per-resource locks
+      .tmp/                          in-flight downloads, never visible as cache
+      <package>/
+        index.rds                    provenance for this package only
+        <name>/<version>/
+          raw/<file>                 verified bytes as served
+          proc-<processor-id>/       processed result, own provenance
+
+Nothing about it is private. It is an ordinary directory tree, which is
+what makes `GETACA_CACHE` and a CI cache key sufficient for seeding.
+
+To see what a sweep would remove without removing it:
+
+``` r
+
+getaca_clean(dry_run = TRUE)
+#> [1] package  resource reason   bytes    path    
+#> <0 rows> (or 0-length row.names)
+```
+
+An empty result on a fresh cache. On a working one, each row names the
+resource, the reason, and the bytes it would reclaim.
+[`vignette("cache")`](https://gillescolling.com/getaca/articles/cache.md)
+covers the four sweeps, the clocks they read, and what is never touched.
+
+## Choosing a policy
+
+The registry declares a default, and a session or a single call can
+override it:
+
+``` r
+
+getaca_policy()
+#> [1] "offline"
+```
+
+``` r
+
+getaca_policy("current")                        # for this session
+getaca("wfo", package = "taxify", policy = "bundled")   # for this call
+```
+
+`bundled` is the default because a dependency that resolves differently
+on different days is not a dependency. `current` consults an
+author-controlled remote registry, which lets a dead mirror be repaired
+without a CRAN release. `pinned` resolves through a frozen local
+snapshot, so an analysis keeps resolving what it was written against.
+`offline` never reaches for the network at all.
+
+``` r
+
+getaca_pin(c("taxify", "otherpkg"))   # writes getaca.pins.rds in the project
+```
+
+[`vignette("policies")`](https://gillescolling.com/getaca/articles/policies.md)
+covers what a remote channel is allowed to change, why redefining a
+published version is refused, and how pinning interacts with `renv`.
+
+## Where to go next
+
+- [`vignette("declaring")`](https://gillescolling.com/getaca/articles/declaring.md)
+  for package authors: what to declare, where to put it, and the
+  checklist before shipping
+
+- [`vignette("policies")`](https://gillescolling.com/getaca/articles/policies.md)
+  for channels, remote registries and pinning
+
+- [`vignette("checks")`](https://gillescolling.com/getaca/articles/checks.md)
+  for `R CMD check`, CI workflows and seeding a cache
+
+- [`vignette("cache")`](https://gillescolling.com/getaca/articles/cache.md)
+  for the layout, verification schedule, locking and retention
+
+- [`vignette("failures")`](https://gillescolling.com/getaca/articles/failures.md)
+  for the six conditions and how to handle each
+
+- [`vignette("alternatives")`](https://gillescolling.com/getaca/articles/alternatives.md)
+  for choosing between `getaca`, a companion data package, and the
+  neighbouring tools

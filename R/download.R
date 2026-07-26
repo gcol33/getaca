@@ -47,6 +47,7 @@ fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one) {
   unreachable <- character()
   reasons <- character()
   observed_hashes <- character()
+  short <- numeric()
 
   for (url in record$urls) {
     dest <- partial_path(record, url)
@@ -60,6 +61,7 @@ fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one) {
     } else {
       unreachable <- c(unreachable, url)
       reasons <- c(reasons, out$reason)
+      if (identical(out$status, "truncated")) short <- c(short, out$observed)
     }
   }
 
@@ -70,6 +72,12 @@ fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one) {
   }
   if (length(observed_hashes) >= 1L) {
     err_upstream_changed(id, record$sha256, observed_hashes[[1]], names(observed_hashes)[1])
+  }
+  # Nothing failed except by ending short, so the action is to retry rather
+  # than to find a network. Mixed causes keep the broader condition, whose
+  # message lists each mirror's reason including the truncations.
+  if (length(short) && length(short) == length(unreachable)) {
+    err_incomplete(id, record$size, max(short))
   }
   err_unavailable(id, unreachable, reasons)
 }
@@ -99,7 +107,7 @@ one_pass <- function(url, dest, record, transport, quiet) {
   size <- file_size(dest)
   if (!is.na(record$size) && size < record$size) {
     unlink(dest)
-    return(list(status = "unreachable", resumed = resumed,
+    return(list(status = "truncated", observed = size, resumed = resumed,
                 reason = sprintf("truncated (%s of %s bytes)", size, record$size)))
   }
 
@@ -148,16 +156,24 @@ promote <- function(id, record, temp_path) {
   dir.create(raw, recursive = TRUE, showWarnings = FALSE)
   final <- file.path(raw, url_basename(record$urls[1]))
   if (file.exists(final)) unlink(final)
-  ok <- file.rename(temp_path, final)
-  if (!ok) {
-    ok <- file.copy(temp_path, final, overwrite = TRUE)
-    unlink(temp_path)
-  }
-  if (!ok) {
+  if (!move_file(temp_path, final)) {
     stop(sprintf("getaca: could not move the verified file into the cache at %s", final),
          call. = FALSE)
   }
   final
+}
+
+# One move, by whichever mechanism the filesystem allows: a rename when both
+# sides sit on one device, a copy when they do not, which a cache pointed at
+# another disk makes routine. `rename` is the seam between the two, the way
+# `transport` is the seam in fetch_to_temp(). A copy that fails leaves the
+# verified temporary file alone, so the retry resumes onto complete bytes
+# rather than starting the transfer again.
+move_file <- function(from, to, rename = file.rename) {
+  if (isTRUE(rename(from, to))) return(TRUE)
+  ok <- file.copy(from, to, overwrite = TRUE)
+  if (ok) unlink(from)
+  ok
 }
 
 url_basename <- function(url) {

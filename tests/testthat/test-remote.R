@@ -22,13 +22,17 @@ one_resource <- function(sha = strrep("a", 64), version = "1.0") {
   resource("res", version, urls = "https://example.invalid/res.csv", sha256 = sha)
 }
 
+# The remote state a bundled registry is behind: a second version published,
+# and the channel head moved onto it.
+ahead_registry <- function(revision = 2L) {
+  with_remote(list(one_resource(), one_resource(strrep("b", 64), "2.0")),
+              revision = revision, current = c(res = "2.0"))
+}
+
 test_that("a reachable remote registry supersedes the bundled one", {
   local_registries()
   bundled <- with_remote(list(one_resource()), revision = 1L)
-  ahead <- with_remote(
-    list(one_resource(), one_resource(strrep("b", 64), "2.0")),
-    revision = 2L
-  )
+  ahead <- ahead_registry()
 
   got <- getaca:::remote_channel(bundled, fetch = fake_fetch(ahead))
   expect_equal(got$revision, 2L)
@@ -38,10 +42,7 @@ test_that("a reachable remote registry supersedes the bundled one", {
 test_that("the remote channel is what makes a new version resolvable", {
   local_registries()
   bundled <- with_remote(list(one_resource()), revision = 1L)
-  ahead <- with_remote(
-    list(one_resource(), one_resource(strrep("b", 64), "2.0")),
-    revision = 2L
-  )
+  ahead <- ahead_registry()
 
   testthat::local_mocked_bindings(fetch_registry = fake_fetch(ahead), .package = "getaca")
   expect_equal(resolve_resource("res", registry = bundled)$id$version, "1.0")
@@ -117,9 +118,7 @@ test_that("a remote registry is fetched once per session", {
   calls <- new.env(parent = emptyenv())
   calls$n <- 0L
   bundled <- with_remote(list(one_resource()))
-  ahead <- with_remote(list(one_resource(), one_resource(strrep("b", 64), "2.0")),
-                       revision = 2L)
-  fetch <- fake_fetch(ahead, calls = calls)
+  fetch <- fake_fetch(ahead_registry(), calls = calls)
 
   getaca:::remote_channel(bundled, fetch = fetch)
   getaca:::remote_channel(bundled, fetch = fetch)
@@ -152,8 +151,7 @@ test_that("pinning under the current policy freezes the remote state", {
   withr::local_options(list(getaca.policy = NULL))
   dir <- withr::local_tempdir()
   pins <- file.path(dir, "getaca.pins.rds")
-  ahead <- with_remote(list(one_resource(), one_resource(strrep("b", 64), "2.0")),
-                       revision = 2L)
+  ahead <- ahead_registry()
 
   testthat::local_mocked_bindings(fetch_registry = fake_fetch(ahead), .package = "getaca")
   testthat::local_mocked_bindings(

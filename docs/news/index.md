@@ -16,6 +16,11 @@ released.
   [`registry_for()`](https://gillescolling.com/getaca/reference/registry_for.md):
   package-scoped declarations, discovered by convention at
   `inst/getaca/registry.rds`.
+- `registry(current = )`: names the channel head, the version a bare
+  request for each resource resolves to. Required for any name declaring
+  more than one version, since version strings are labels and
+  declaration order is not an ordering. A registry that offers a choice
+  and names no head is refused.
 - [`as_registry()`](https://gillescolling.com/getaca/reference/as_registry.md):
   YAML and JSON accepted as authoring formats, gated at call time so
   neither becomes a hard dependency.
@@ -31,6 +36,11 @@ released.
 - [`getaca_policy()`](https://gillescolling.com/getaca/reference/getaca_policy.md):
   `bundled`, `current`, `pinned` and `offline` policies. Resolution
   collapses to `offline` under `R CMD check`.
+- [`resolve_resource()`](https://gillescolling.com/getaca/reference/resolve_resource.md)
+  reports the policy in force, and
+  [`getaca()`](https://gillescolling.com/getaca/reference/getaca.md)
+  reads it, so `policy = "offline"` on a single call keeps that call off
+  the network whatever the session is set to.
 - [`getaca_pin()`](https://gillescolling.com/getaca/reference/getaca_pin.md):
   freeze current resolution into a local snapshot.
 - Remote channels may repair mirrors and publish new versions;
@@ -44,8 +54,10 @@ released.
   atomic move into the cache.
 - Per-resource directory locking, so concurrent sessions never duplicate
   a large transfer or observe a partial one.
-- Six classed conditions distinguishing user, author and upstream
-  causes.
+- Seven classed conditions distinguishing user, author and upstream
+  causes. A transfer that ends short on every mirror raises
+  `getaca_error_incomplete`, whose action is to retry; mixed causes keep
+  `getaca_error_unavailable` and list each mirror’s reason.
 
 ### Verification
 
@@ -74,6 +86,7 @@ released.
 - [`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md):
   one table covering what packages declare and what the cache holds,
   including declared resources never downloaded and cached versions no
-  longer declared.
+  longer declared. A `current` column marks the version a bare request
+  resolves to.
 - [`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.md):
   full provenance for one cached resource.

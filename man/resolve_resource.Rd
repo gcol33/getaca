@@ -24,7 +24,9 @@ resolve_resource(
 \item{version}{Optional explicit version, bypassing channel resolution.}
 }
 \value{
-A list with \code{id}, \code{record}, \code{source} and \code{revision}.
+A list with \code{id}, \code{record}, \code{policy}, \code{source} and \code{revision}.
+\code{policy} is the one actually in force, after the argument, the session
+setting, the registry default and the check clamp have been resolved.
 }
 \description{
 Separates the two things that must not be conflated: an immutable resource

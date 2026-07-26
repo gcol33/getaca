@@ -49,6 +49,20 @@ navbar:
         href: articles/quickstart.html
       - text: Declaring Resources
         href: articles/declaring.html
+      - text: '---'
+      - text: Policies and Channels
+        href: articles/policies.html
+      - text: Surviving R CMD check and CI
+        href: articles/checks.html
+      - text: The Cache
+        href: articles/cache.html
+      - text: Handling Failures
+        href: articles/failures.html
+      - text: '---'
+      - text: Migrating an Existing Downloader
+        href: articles/migrating.html
+      - text: Choosing Between getaca and the Alternatives
+        href: articles/alternatives.html
     github:
       icon: fab fa-github
       href: https://github.com/gcol33/getaca
@@ -104,6 +118,18 @@ articles:
   contents:
   - quickstart
   - declaring
+- title: Using it
+  desc: Resolution, checks and the cache
+  contents:
+  - policies
+  - checks
+  - cache
+  - failures
+- title: Adopting it
+  desc: Coming from something else, and choosing between them
+  contents:
+  - migrating
+  - alternatives
 footer:
   structure:
     left: developed_by

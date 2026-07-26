@@ -34,6 +34,14 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/quickstart.html">Quick Start</a></li>
     <li><a class="dropdown-item" href="../articles/declaring.html">Declaring Resources</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/policies.html">Policies and Channels</a></li>
+    <li><a class="dropdown-item" href="../articles/checks.html">Surviving R CMD check and CI</a></li>
+    <li><a class="dropdown-item" href="../articles/cache.html">The Cache</a></li>
+    <li><a class="dropdown-item" href="../articles/failures.html">Handling Failures</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/migrating.html">Migrating an Existing Downloader</a></li>
+    <li><a class="dropdown-item" href="../articles/alternatives.html">Choosing Between getaca and the Alternatives</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -67,6 +75,8 @@
 <li>
 <code><a href="../reference/registry.html">registry()</a></code>, <code><a href="../reference/registry_write.html">registry_write()</a></code>, <code><a href="../reference/registry_write.html">registry_read()</a></code>, <code><a href="../reference/registry_for.html">registry_for()</a></code>: package-scoped declarations, discovered by convention at <code>inst/getaca/registry.rds</code>.</li>
 <li>
+<code>registry(current = )</code>: names the channel head, the version a bare request for each resource resolves to. Required for any name declaring more than one version, since version strings are labels and declaration order is not an ordering. A registry that offers a choice and names no head is refused.</li>
+<li>
 <code><a href="../reference/as_registry.html">as_registry()</a></code>: YAML and JSON accepted as authoring formats, gated at call time so neither becomes a hard dependency.</li>
 <li>
 <code><a href="../reference/processor.html">processor()</a></code>: post-verification transformation with a stable id, so the derived result gets its own cache slot and provenance.</li>
@@ -78,6 +88,8 @@
 <ul><li>
 <code><a href="../reference/getaca_policy.html">getaca_policy()</a></code>: <code>bundled</code>, <code>current</code>, <code>pinned</code> and <code>offline</code> policies. Resolution collapses to <code>offline</code> under <code>R CMD check</code>.</li>
 <li>
+<code><a href="../reference/resolve_resource.html">resolve_resource()</a></code> reports the policy in force, and <code><a href="../reference/getaca.html">getaca()</a></code> reads it, so <code>policy = "offline"</code> on a single call keeps that call off the network whatever the session is set to.</li>
+<li>
 <code><a href="../reference/getaca_pin.html">getaca_pin()</a></code>: freeze current resolution into a local snapshot.</li>
 <li>Remote channels may repair mirrors and publish new versions; redefining a published version is rejected as an invalid registry.</li>
 </ul></div>
@@ -87,7 +99,7 @@
 <code><a href="../reference/getaca.html">getaca()</a></code>: the single retrieval verb. Returns a local path.</li>
 <li>Resumable transfers into a temporary area, sized and hashed before an atomic move into the cache.</li>
 <li>Per-resource directory locking, so concurrent sessions never duplicate a large transfer or observe a partial one.</li>
-<li>Six classed conditions distinguishing user, author and upstream causes.</li>
+<li>Seven classed conditions distinguishing user, author and upstream causes. A transfer that ends short on every mirror raises <code>getaca_error_incomplete</code>, whose action is to retry; mixed causes keep <code>getaca_error_unavailable</code> and list each mirror’s reason.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="verification-0-0-0-9000">Verification<a class="anchor" aria-label="anchor" href="#verification-0-0-0-9000"></a></h3>
@@ -108,7 +120,7 @@
 <li>
 <code><a href="../reference/getaca_keep.html">getaca_keep()</a></code> to exempt a resource.</li>
 <li>
-<code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code>: one table covering what packages declare and what the cache holds, including declared resources never downloaded and cached versions no longer declared.</li>
+<code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code>: one table covering what packages declare and what the cache holds, including declared resources never downloaded and cached versions no longer declared. A <code>current</code> column marks the version a bare request resolves to.</li>
 <li>
 <code><a href="../reference/getaca_info.html">getaca_info()</a></code>: full provenance for one cached resource.</li>
 </ul></div>

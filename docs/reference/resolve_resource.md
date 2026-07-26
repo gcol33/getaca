@@ -44,4 +44,6 @@ resolve_resource(
 
 ## Value
 
-A list with `id`, `record`, `source` and `revision`.
+A list with `id`, `record`, `policy`, `source` and `revision`. `policy`
+is the one actually in force, after the argument, the session setting,
+the registry default and the check clamp have been resolved.

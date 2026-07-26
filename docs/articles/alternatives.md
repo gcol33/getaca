@@ -1,0 +1,230 @@
+# Choosing Between getaca and the Alternatives
+
+Several established approaches solve neighbouring problems, and for a
+good number of packages one of them is the better fit. This article
+describes what each is built around and where the boundaries fall, so
+the choice can be made on the shape of the problem rather than on which
+package someone met first.
+
+The question `getaca` is built around: a package needs a file it cannot
+ship, and every machine running that package should get the same bytes.
+
+## Bundling the data in the package
+
+The first thing to rule in or out. A dataset in `data/` needs no cache,
+no network, no checksum and no policy, and every one of those is a
+moving part that can fail.
+
+CRAN’s size guidance makes this a question of megabytes rather than
+gigabytes, and the release cadence question usually settles it before
+the size does: data in `data/` release when the package releases. For a
+reference table that changes yearly and a package that releases yearly,
+coupling them is a feature.
+
+Bundle when the data are small, static relative to your release cycle,
+and redistributable. Look further when any of the three fails.
+
+## A companion data package
+
+The classic R answer to data that are too large for the main package but
+still manageable: ship them as their own package, list it in `Suggests`,
+and put it on CRAN, Bioconductor or r-universe.
+
+|  | companion data package | `getaca` |
+|----|----|----|
+| Size | fits a repository | too large to bundle |
+| Release cadence | coupled to code releases | independent of them |
+| Shape | naturally R objects | any file, any format |
+| Granularity | all of it, always | users take what they need |
+| License | redistribution permitted | download permitted, redistribution discouraged |
+| Installation | the usual package machinery | first use, or an explicit prefetch |
+| Offline | works once installed | works once cached |
+
+The licence row is the one that decides it most often. A companion
+package redistributes the data, which needs terms that permit
+redistribution. Plenty of scientific datasets permit download and
+discourage or forbid redistribution, and for those a companion package
+is not available whatever its other merits.
+
+Granularity is the second. A package needing one of fifteen backbones,
+at a gigabyte each, would install fifteen through a companion package.
+Under `getaca` a user takes what they use.
+
+A companion package can itself use `getaca`, which is occasionally the
+right structure when the companion owns expensive build logic. It is
+rarely the first recommendation, since it moves the complexity rather
+than removing it.
+
+## pins
+
+[pins](https://cran.r-project.org/package=pins) publishes “data sets,
+models, and other R objects, making it easy to share them across
+projects and with your colleagues”, across boards including local
+folders, Posit Connect and AWS S3.
+
+The unit is a pin on a board, and the person at the centre of the design
+is the one publishing an artefact for others to read. Boards abstract
+over where that artefact lives, which is what makes the same code work
+against a network drive during development and Posit Connect in
+production.
+
+Reach for `pins` when the artefact is yours, the audience is a team or
+an organisation, the storage backend matters, and writing is part of the
+workflow. It covers a range of backends `getaca` has no interest in
+growing.
+
+Reach for `getaca` when the artefact is a third party’s, the audience is
+everyone who installs your package, and the declaration has to travel
+inside the package so that `R CMD check` and an offline user both
+behave.
+
+The two coexist. A package can declare its public reference data through
+`getaca` and its team’s internal model artefacts through `pins` without
+either knowing about the other.
+
+## BiocFileCache
+
+[BiocFileCache](https://bioconductor.org/packages/BiocFileCache)
+“creates a persistent on-disk cache of files that the user can add,
+update, and retrieve”, for resources that are costly or difficult to
+create and for web resources used across sessions, backed by an SQLite
+metadata database.
+
+It is the established answer inside Bioconductor, and a Bioconductor
+package already carrying that dependency stack has little reason to add
+another. The model is a cache the calling package manages: your code
+decides what to add, when a cached copy needs updating, and what
+identity a resource has.
+
+`getaca` makes those decisions from a declaration instead. Identity is
+`package / name / version`, resolution runs through a policy, and the
+retention sweeps are the package’s rather than the caller’s. That is a
+narrower contract, and it exists because the same behaviour then holds
+for every declaring package rather than being reimplemented per package.
+
+Reach for `BiocFileCache` when you are in the Bioconductor ecosystem,
+when the resources are ones your code creates rather than ones a
+publisher versions, or when you want the cache under your own control.
+
+## A downloader and a cache directory
+
+The common alternative in practice:
+[`download.file()`](https://rdrr.io/r/utils/download.file.html) or
+`curl`, a directory under
+[`tools::R_user_dir()`](https://rdrr.io/r/tools/userdir.html), and a
+[`file.exists()`](https://rdrr.io/r/base/files.html) check. It is a few
+dozen lines and it works.
+
+Two things cost more work than they look. The first is what happens when
+the bytes at the URL differ from the bytes you expected, which covers a
+truncated transfer, a proxy serving an HTML error page, and a publisher
+recutting a file. Each of those reaches your parser as a confusing error
+some distance from its cause.
+
+The second is CRAN’s requirement to fail gracefully with an informative
+message when a resource is unavailable, across tests, examples and
+vignettes, on a machine with no network. That is the part that turns a
+few dozen lines into a few hundred, and it has to be written again in
+every package that depends on external data.
+
+`getaca` is that layer written once. The declaring package supplies a
+registry.
+
+## Targets and the workflow tools
+
+`targets` and `drake` manage a computational pipeline, tracking which
+steps need to re-run when inputs change. That is a different question
+from where a file comes from and whether it is the right file.
+
+They compose. A `targets` pipeline can have a target whose command is
+`getaca("wfo", package = "taxify")`, which gives the pipeline a path,
+and the path a provenance record:
+
+``` r
+
+library(targets)
+
+list(
+  tar_target(backbone_path, getaca::getaca("wfo", package = "taxify"),
+             format = "file"),
+  tar_target(backbone, read_backbone(backbone_path)),
+  tar_target(matched, match_names(species, backbone))
+)
+```
+
+`format = "file"` makes `targets` watch the returned path, so the
+pipeline invalidates downstream targets when the resolved version
+changes. That is the combination worth reaching for: `getaca` decides
+which bytes, `targets` decides what to recompute.
+
+## renv
+
+`renv` records which package versions an analysis used. A `getaca` pin
+records which data versions those packages resolved to. Neither subsumes
+the other: a package version does not determine a data version once the
+package is on the `current` policy, and a data version says nothing
+about the code that read it.
+
+``` r
+
+renv::snapshot()
+getaca_pin(c("taxify", "otherpkg"))
+```
+
+Commit both files. Restoring is `renv::restore()` followed by
+[`getaca_prefetch()`](https://gillescolling.com/getaca/reference/getaca_prefetch.md)
+on a connected machine, after which the analysis runs offline. See
+[`vignette("policies")`](https://gillescolling.com/getaca/articles/policies.md)
+for what a pin holds.
+
+## Decision summary
+
+| If | then |
+|----|----|
+| the data are small, static and redistributable | put them in `data/` |
+| the data are moderate, redistributable and release with your code | a companion data package |
+| you are publishing your own artefacts to a team | `pins` |
+| you are inside Bioconductor, or caching things your code creates | `BiocFileCache` |
+| you are managing which steps re-run | `targets`, with `getaca` supplying the path |
+| your package declares a third party’s versioned file it cannot ship | `getaca` |
+
+## What getaca deliberately does not do
+
+Naming the boundary is part of choosing. None of these is planned:
+
+- **Authentication.** No credentials, no tokens, no private resources.
+  The transport is HTTPS to a public URL.
+- **Cloud storage abstractions.** No S3, no Azure, no board concept. A
+  URL is a URL.
+- **DOI resolution.** Zenodo is a recommendation about where to put
+  files, and there is no Zenodo client.
+- **Reading data.** `getaca` returns a path and knows nothing about file
+  formats. A processor can unpack an archive; nothing reads its
+  contents.
+- **Publishing.** Uploading the data, minting the version, computing the
+  checksum in the first place: all outside.
+- **Semantic version solving.** Version strings are labels, and the
+  registry names the head rather than ranking them.
+- **Workflow orchestration.** Composing with `targets` is the answer,
+  rather than growing a dependency graph.
+
+The list is short on purpose. Each item is a place where a package could
+grow into something else, and the dependency footprint that makes
+`getaca` inexpensive to depend on is the thing that would go first.
+
+``` r
+
+packageDescription("getaca")$Imports
+#> [1] "curl,\ndigest"
+```
+
+## Where to go next
+
+- [`vignette("quickstart")`](https://gillescolling.com/getaca/articles/quickstart.md)
+  for the whole cycle in one pass
+
+- [`vignette("declaring")`](https://gillescolling.com/getaca/articles/declaring.md)
+  for what a declaring package writes
+
+- [`vignette("policies")`](https://gillescolling.com/getaca/articles/policies.md)
+  for reproducibility across machines and time

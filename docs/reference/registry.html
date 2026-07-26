@@ -38,6 +38,14 @@ only its own list of resource records."><script>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/quickstart.html">Quick Start</a></li>
     <li><a class="dropdown-item" href="../articles/declaring.html">Declaring Resources</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/policies.html">Policies and Channels</a></li>
+    <li><a class="dropdown-item" href="../articles/checks.html">Surviving R CMD check and CI</a></li>
+    <li><a class="dropdown-item" href="../articles/cache.html">The Cache</a></li>
+    <li><a class="dropdown-item" href="../articles/failures.html">Handling Failures</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/migrating.html">Migrating an Existing Downloader</a></li>
+    <li><a class="dropdown-item" href="../articles/alternatives.html">Choosing Between getaca and the Alternatives</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -75,7 +83,8 @@ only its own list of resource records.</p>
 <span>  <span class="va">resources</span>,</span>
 <span>  remote <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  policy <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bundled"</span>, <span class="st">"current"</span>, <span class="st">"pinned"</span>, <span class="st">"offline"</span><span class="op">)</span>,</span>
-<span>  revision <span class="op">=</span> <span class="fl">1L</span></span>
+<span>  revision <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  current <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -109,6 +118,14 @@ refers to.</p></dd>
 <dd><p>Monotonically increasing integer identifying this registry
 state, recorded in provenance.</p></dd>
 
+
+<dt id="arg-current">current<a class="anchor" aria-label="anchor" href="#arg-current"></a></dt>
+<dd><p>Named character vector giving the channel head: the version a
+bare request for each resource name resolves to, as
+<code>c(wfo = "2026-09")</code>. Required for any name declaring more than one
+version, and optional for the rest, since a name with one version has only
+one answer.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -120,12 +137,37 @@ state, recorded in provenance.</p></dd>
 getaca discovers it with <code><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file()</a></code>, so no registration call and no
 load hook are required.</p>
     </div>
+    <div class="section level2">
+    <h2 id="channel-heads">Channel heads<a class="anchor" aria-label="anchor" href="#channel-heads"></a></h2>
+
+
+<p>A registry declares records; a channel points at one of them. When a
+resource name carries several versions, which of them <code>getaca("name")</code>
+returns is a decision, so the registry states it in <code>current</code> rather than
+leaving it to declaration order. A registry that declares two versions of a
+name without naming a head is refused, which is what stops a version
+appended in the wrong place from silently moving every user backwards.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">registry</span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"mypackage"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="resource.html">resource</a></span><span class="op">(</span><span class="st">"reference-data"</span>, <span class="st">"2.1"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://example.org/ref-2.1.zip"</span>,</span>
+<span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"b"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Two versions on offer, one of them the channel head:</span></span>
+<span><span class="fu">registry</span><span class="op">(</span></span>
+<span>  package <span class="op">=</span> <span class="st">"mypackage"</span>,</span>
+<span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"reference-data"</span> <span class="op">=</span> <span class="st">"2.1"</span><span class="op">)</span>,</span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="resource.html">resource</a></span><span class="op">(</span><span class="st">"reference-data"</span>, <span class="st">"2.0"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://example.org/ref-2.0.zip"</span>,</span>
+<span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="resource.html">resource</a></span><span class="op">(</span><span class="st">"reference-data"</span>, <span class="st">"2.1"</span>,</span>
 <span>             urls <span class="op">=</span> <span class="st">"https://example.org/ref-2.1.zip"</span>,</span>
 <span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"b"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span></span>

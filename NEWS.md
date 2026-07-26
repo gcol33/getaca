@@ -9,6 +9,10 @@ released.
 * `registry()`, `registry_write()`, `registry_read()`, `registry_for()`:
   package-scoped declarations, discovered by convention at
   `inst/getaca/registry.rds`.
+* `registry(current = )`: names the channel head, the version a bare request
+  for each resource resolves to. Required for any name declaring more than one
+  version, since version strings are labels and declaration order is not an
+  ordering. A registry that offers a choice and names no head is refused.
 * `as_registry()`: YAML and JSON accepted as authoring formats, gated at call
   time so neither becomes a hard dependency.
 * `processor()`: post-verification transformation with a stable id, so the
@@ -20,6 +24,9 @@ released.
 ## Resolution
 * `getaca_policy()`: `bundled`, `current`, `pinned` and `offline` policies.
   Resolution collapses to `offline` under `R CMD check`.
+* `resolve_resource()` reports the policy in force, and `getaca()` reads it, so
+  `policy = "offline"` on a single call keeps that call off the network
+  whatever the session is set to.
 * `getaca_pin()`: freeze current resolution into a local snapshot.
 * Remote channels may repair mirrors and publish new versions; redefining a
   published version is rejected as an invalid registry.
@@ -30,7 +37,10 @@ released.
   move into the cache.
 * Per-resource directory locking, so concurrent sessions never duplicate a
   large transfer or observe a partial one.
-* Six classed conditions distinguishing user, author and upstream causes.
+* Seven classed conditions distinguishing user, author and upstream causes.
+  A transfer that ends short on every mirror raises `getaca_error_incomplete`,
+  whose action is to retry; mixed causes keep `getaca_error_unavailable` and
+  list each mirror's reason.
 
 ## Verification
 * Full SHA-256 on download, cheap size check on access, scheduled re-hash via
@@ -50,5 +60,6 @@ released.
 * `getaca_keep()` to exempt a resource.
 * `getaca_catalogue()`: one table covering what packages declare and what the
   cache holds, including declared resources never downloaded and cached
-  versions no longer declared.
+  versions no longer declared. A `current` column marks the version a bare
+  request resolves to.
 * `getaca_info()`: full provenance for one cached resource.

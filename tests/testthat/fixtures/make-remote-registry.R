@@ -14,6 +14,7 @@ pkgload::load_all(quiet = TRUE)
 
 fixture <- registry(
   package = "getacademo",
+  current = c(demo = "2.0"),
   resources = list(
     resource("demo", "1.0",
              urls = "https://example.org/demo-1.0.csv",

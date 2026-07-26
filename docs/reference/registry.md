@@ -12,7 +12,8 @@ registry(
   resources,
   remote = NULL,
   policy = c("bundled", "current", "pinned", "offline"),
-  revision = 1L
+  revision = 1L,
+  current = NULL
 )
 ```
 
@@ -48,6 +49,13 @@ registry(
   Monotonically increasing integer identifying this registry state,
   recorded in provenance.
 
+- current:
+
+  Named character vector giving the channel head: the version a bare
+  request for each resource name resolves to, as `c(wfo = "2026-09")`.
+  Required for any name declaring more than one version, and optional
+  for the rest, since a name with one version has only one answer.
+
 ## Value
 
 An object of class `getaca_registry`.
@@ -60,12 +68,36 @@ getaca discovers it with
 [`system.file()`](https://rdrr.io/r/base/system.file.html), so no
 registration call and no load hook are required.
 
+## Channel heads
+
+A registry declares records; a channel points at one of them. When a
+resource name carries several versions, which of them `getaca("name")`
+returns is a decision, so the registry states it in `current` rather
+than leaving it to declaration order. A registry that declares two
+versions of a name without naming a head is refused, which is what stops
+a version appended in the wrong place from silently moving every user
+backwards.
+
 ## Examples
 
 ``` r
 registry(
   package = "mypackage",
   resources = list(
+    resource("reference-data", "2.1",
+             urls = "https://example.org/ref-2.1.zip",
+             sha256 = strrep("b", 64))
+  )
+)
+
+# Two versions on offer, one of them the channel head:
+registry(
+  package = "mypackage",
+  current = c("reference-data" = "2.1"),
+  resources = list(
+    resource("reference-data", "2.0",
+             urls = "https://example.org/ref-2.0.zip",
+             sha256 = strrep("a", 64)),
     resource("reference-data", "2.1",
              urls = "https://example.org/ref-2.1.zip",
              sha256 = strrep("b", 64))

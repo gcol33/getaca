@@ -95,11 +95,35 @@ test_that("an empty catalogue keeps its columns", {
   expect_equal(nrow(out), 0L)
   expect_setequal(
     names(out),
-    c("package", "name", "version", "processor", "declared", "cached", "size",
-      "license", "source", "revision", "verified_at", "accessed_at", "pinned",
-      "path")
+    c("package", "name", "version", "current", "processor", "declared", "cached",
+      "size", "license", "source", "revision", "verified_at", "accessed_at",
+      "pinned", "path")
   )
   expect_s3_class(out$verified_at, "POSIXct")
+})
+
+test_that("the catalogue marks the version a bare request resolves to", {
+  cache <- local_cache()
+  reg <- registry("demopkg", current = c(res = "2026-09"), resources = list(
+    resource("res", "2026-09", urls = "https://example.invalid/a", sha256 = strrep("a", 64)),
+    resource("res", "2026-03", urls = "https://example.invalid/b", sha256 = strrep("b", 64)),
+    resource("solo", "1.0", urls = "https://example.invalid/c", sha256 = strrep("c", 64))
+  ))
+
+  out <- getaca_catalogue(registry = reg)
+
+  expect_equal(out$version, c("2026-09", "2026-03", "1.0"))
+  expect_equal(out$current, c(TRUE, FALSE, TRUE))
+})
+
+test_that("current is unknown when no registry could be read", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  seed_cache(demo_registry(f$sha256), f)
+
+  out <- getaca_catalogue(package = "demopkg")
+
+  expect_true(is.na(out$current))
 })
 
 test_that("the catalogue reports every package holding cached resources", {

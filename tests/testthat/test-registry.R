@@ -16,6 +16,79 @@ test_that("duplicate declarations are refused", {
   )
 })
 
+test_that("a name offering several versions must say which one is current", {
+  expect_error(
+    registry("demopkg", list(
+      resource("res", "2026-09", urls = "https://e.org/a", sha256 = strrep("a", 64)),
+      resource("res", "2026-03", urls = "https://e.org/b", sha256 = strrep("b", 64))
+    )),
+    class = "getaca_error_invalid_registry"
+  )
+  expect_error(
+    registry("demopkg", list(
+      resource("res", "2026-09", urls = "https://e.org/a", sha256 = strrep("a", 64)),
+      resource("res", "2026-03", urls = "https://e.org/b", sha256 = strrep("b", 64))
+    )),
+    "names no current one"
+  )
+})
+
+test_that("one version per name needs no channel head", {
+  reg <- registry("demopkg", list(
+    resource("one", "1.0", urls = "https://e.org/a", sha256 = strrep("a", 64)),
+    resource("two", "9.9", urls = "https://e.org/b", sha256 = strrep("b", 64))
+  ))
+  expect_null(reg$current)
+  expect_equal(getaca:::select_record(reg, "two")$version, "9.9")
+})
+
+test_that("a channel head must name a declared resource and a declared version", {
+  expect_error(
+    registry("demopkg", current = c(nope = "1.0"), resources = list(
+      resource("res", "1.0", urls = "https://e.org/a", sha256 = strrep("a", 64))
+    )),
+    "does not declare"
+  )
+  expect_error(
+    registry("demopkg", current = c(res = "7.0"), resources = list(
+      resource("res", "1.0", urls = "https://e.org/a", sha256 = strrep("a", 64))
+    )),
+    "not declared \\(has: 1.0\\)"
+  )
+})
+
+test_that("an unnamed channel head is refused rather than silently ignored", {
+  expect_error(
+    registry("demopkg", current = "1.0", resources = list(
+      resource("res", "1.0", urls = "https://e.org/a", sha256 = strrep("a", 64))
+    )),
+    "must name one version per resource"
+  )
+})
+
+test_that("a channel head survives the stored form", {
+  dir <- withr::local_tempdir()
+  reg <- registry("demopkg", current = c(res = "1.0"), resources = list(
+    resource("res", "1.0", urls = "https://e.org/a", sha256 = strrep("a", 64)),
+    resource("res", "2.0", urls = "https://e.org/b", sha256 = strrep("b", 64))
+  ))
+  path <- registry_write(reg, file.path(dir, "registry.rds"))
+  expect_equal(registry_read(path)$current, c(res = "1.0"))
+})
+
+test_that("a stored registry that lost its channel head is refused on read", {
+  dir <- withr::local_tempdir()
+  reg <- registry("demopkg", current = c(res = "2.0"), resources = list(
+    resource("res", "1.0", urls = "https://e.org/a", sha256 = strrep("a", 64)),
+    resource("res", "2.0", urls = "https://e.org/b", sha256 = strrep("b", 64))
+  ))
+  reg$current <- NULL
+  path <- file.path(dir, "registry.rds")
+  saveRDS(reg, path, version = 3)
+
+  expect_error(registry_read(path), class = "getaca_error_invalid_registry")
+})
+
 test_that("two packages may declare the same resource name without colliding", {
   a <- demo_registry(strrep("a", 64), package = "pkgA")
   b <- demo_registry(strrep("b", 64), package = "pkgB")

@@ -29,11 +29,13 @@ getaca_catalogue(package = NULL, registry = NULL)
 
 ## Value
 
-A data frame, one row per resource version. `declared` is `TRUE` when
-the registry in force names that version, `FALSE` when it does not, and
-`NA` when no registry could be read for the package. `cached` says
-whether a local copy is recorded; the provenance columns are `NA` for
-declared resources that are not cached.
+A data frame, one row per resource version. `current` marks the version
+a bare request for that name resolves to, so a channel head is visible
+rather than implied. `declared` is `TRUE` when the registry in force
+names that version, `FALSE` when it does not, and `NA` when no registry
+could be read for the package; `current` is `NA` in that same case.
+`cached` says whether a local copy is recorded; the provenance columns
+are `NA` for declared resources that are not cached.
 
 ## Examples
 

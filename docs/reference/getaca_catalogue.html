@@ -42,6 +42,14 @@ reclaims.'><script>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/quickstart.html">Quick Start</a></li>
     <li><a class="dropdown-item" href="../articles/declaring.html">Declaring Resources</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/policies.html">Policies and Channels</a></li>
+    <li><a class="dropdown-item" href="../articles/checks.html">Surviving R CMD check and CI</a></li>
+    <li><a class="dropdown-item" href="../articles/cache.html">The Cache</a></li>
+    <li><a class="dropdown-item" href="../articles/failures.html">Handling Failures</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/migrating.html">Migrating an Existing Downloader</a></li>
+    <li><a class="dropdown-item" href="../articles/alternatives.html">Choosing Between getaca and the Alternatives</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -96,11 +104,13 @@ installed declaring package.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame, one row per resource version. <code>declared</code> is <code>TRUE</code>
-when the registry in force names that version, <code>FALSE</code> when it does not,
-and <code>NA</code> when no registry could be read for the package. <code>cached</code> says
-whether a local copy is recorded; the provenance columns are <code>NA</code> for
-declared resources that are not cached.</p>
+    <p>A data frame, one row per resource version. <code>current</code> marks the
+version a bare request for that name resolves to, so a channel head is
+visible rather than implied. <code>declared</code> is <code>TRUE</code> when the registry in
+force names that version, <code>FALSE</code> when it does not, and <code>NA</code> when no
+registry could be read for the package; <code>current</code> is <code>NA</code> in that same
+case. <code>cached</code> says whether a local copy is recorded; the provenance
+columns are <code>NA</code> for declared resources that are not cached.</p>
     </div>
 
     <div class="section level2">
