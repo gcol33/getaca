@@ -44,6 +44,19 @@ test_that("an empty cache produces an empty catalogue, not an error", {
   expect_equal(nrow(getaca_catalogue()), 0L)
 })
 
+# Asking what is cached must work before anything has created the cache, since
+# that is the state every first call starts from and nothing may create the
+# directory merely by looking.
+test_that("a cache directory that does not exist yet holds nothing", {
+  root <- file.path(withr::local_tempdir(), "never-created")
+  withr::local_options(list(getaca.cache = root))
+  withr::local_envvar(list(GETACA_CACHE = ""))
+
+  expect_equal(getaca:::list_cached_packages(), character())
+  expect_equal(nrow(getaca_catalogue()), 0L)
+  expect_false(dir.exists(root))
+})
+
 test_that("forced verification catches a substituted file of the same size", {
   cache <- local_cache()
   src <- withr::local_tempdir()

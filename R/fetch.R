@@ -101,7 +101,11 @@ path_exists <- function(p) !is.null(p) && (file.exists(p) || dir.exists(p))
 # The processed result gets its own slot and its own provenance, so getaca
 # always knows which derived tree the returned path refers to and which raw
 # artefact produced it.
-apply_processor <- function(id, proc, raw) {
+#
+# `rename` is the seam it is in move_file(): promotion of the staging tree can
+# fail, and what happens then is a decision worth testing without needing a
+# filesystem that refuses the rename.
+apply_processor <- function(id, proc, raw, rename = file.rename) {
   out <- cache_proc_dir(id, proc$id)
   staging <- paste0(out, ".staging-", Sys.getpid())
   remove_path(staging)
@@ -117,7 +121,7 @@ apply_processor <- function(id, proc, raw) {
   })
 
   if (file.exists(out) || dir.exists(out)) remove_path(out)
-  if (!file.rename(staging, out)) {
+  if (!isTRUE(rename(staging, out))) {
     remove_path(staging)
     stop(sprintf("getaca: could not promote the processed result for %s", format(id)),
          call. = FALSE)

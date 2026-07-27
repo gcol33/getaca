@@ -100,6 +100,61 @@ test_that("a processed resource re-verifies against its raw artefact", {
   expect_equal(getaca("res", registry = reg, verify = TRUE, quiet = TRUE), path)
 })
 
+# The returned paths are the processor's own, taken while it was working in the
+# staging tree, so a result naming anything outside that tree is not a path the
+# rename can carry over and is refused rather than rewritten.
+test_that("a processor returning a path outside its output directory is refused", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "payload")
+  elsewhere <- withr::local_tempdir()
+  escapes <- processor("escapes", function(input, output_dir) {
+    file.path(elsewhere, "not-mine.txt")
+  })
+  reg <- processed_registry(f$sha256, escapes)
+  testthat::local_mocked_bindings(try_one = serves(f), .package = "getaca")
+
+  expect_error(getaca("res", registry = reg, quiet = TRUE),
+               "returned a path outside its output directory")
+})
+
+test_that("a processed result that cannot be promoted leaves no staging tree", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "payload")
+  id <- resource_id("demopkg", "res", "1.0")
+  reg <- processed_registry(f$sha256)
+  testthat::local_mocked_bindings(try_one = serves(f), .package = "getaca")
+  raw <- getaca("res", registry = reg, processed = FALSE, quiet = TRUE)
+
+  expect_error(
+    getaca:::apply_processor(id, unpacker(), raw, rename = function(from, to) FALSE),
+    "could not promote the processed result"
+  )
+  leftovers <- list.files(getaca:::cache_version_dir(id), pattern = "staging")
+  expect_length(leftovers, 0L)
+})
+
+# Reprocessing replaces the slot rather than merging into it, so a stale tree
+# from an earlier run cannot leave files the current processor did not write.
+test_that("processing again replaces the slot it wrote before", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "payload")
+  id <- resource_id("demopkg", "res", "1.0")
+  reg <- processed_registry(f$sha256)
+  testthat::local_mocked_bindings(try_one = serves(f), .package = "getaca")
+
+  first <- getaca("res", registry = reg, quiet = TRUE)
+  stale <- file.path(dirname(first), "left-behind.txt")
+  getaca:::remove_path(first)
+  writeBin(charToRaw("stale"), stale)
+  getaca:::drop_entry(id, "unpack")
+
+  second <- getaca("res", registry = reg, quiet = TRUE)
+
+  expect_equal(second, first)
+  expect_true(file.exists(second))
+  expect_false(file.exists(stale))
+})
+
 test_that("prefetch warms every resource a registry declares", {
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")

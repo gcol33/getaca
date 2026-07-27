@@ -33,6 +33,32 @@ test_that("a lock names its own removal in the timeout message", {
   expect_error(getaca:::acquire_lock(key, timeout = 0.2, poll = 0.05), "unlink")
 })
 
+# Whoever waited for the lock is looking at a cache that has changed since they
+# last read it: the session that held it may have finished the very transfer
+# they were about to start. The entry is therefore read again after the wait,
+# and the waiter serves what arrived rather than fetching it a second time.
+test_that("a resource another session completed during the wait is not fetched again", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "payload")
+  reg <- demo_registry(f$sha256)
+
+  # Standing in for the other session: the entry appears while the lock is
+  # being acquired, which is exactly the window the re-check exists for.
+  real_acquire <- getaca:::acquire_lock
+  testthat::local_mocked_bindings(
+    acquire_lock = function(...) {
+      held <- real_acquire(...)
+      seed_cache(reg, f)
+      held
+    },
+    try_one = function(...) stop("the other session's result should have answered this"),
+    .package = "getaca"
+  )
+
+  path <- getaca("res", registry = reg, quiet = TRUE)
+  expect_equal(getaca:::sha256_file(path), f$sha256)
+})
+
 test_that("the lock is on the bytes, so two declarations of one file wait", {
   cache <- local_cache()
   sha <- strrep("b", 64)

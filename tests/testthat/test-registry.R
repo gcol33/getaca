@@ -58,6 +58,48 @@ test_that("a registry with no usable schema version is refused", {
   expect_error(registry_read(path), "no usable schema version")
 })
 
+test_that("a lone resource needs no list around it", {
+  reg <- registry("demopkg",
+                  resource("res", "1.0", urls = "https://e.org/f",
+                           sha256 = strrep("a", 64)))
+
+  expect_named(reg$resources, "res")
+  expect_s3_class(reg$resources[["res"]], "getaca_resource")
+})
+
+test_that("a registry has to declare something", {
+  expect_error(registry("demopkg", list()), "declares no resources")
+})
+
+test_that("a resource has to come from resource()", {
+  expect_error(registry("demopkg", list(list(name = "res", version = "1.0"))),
+               "must come from resource\\(\\)")
+})
+
+test_that("a remote has to be an https URL", {
+  make <- function(remote) {
+    registry("demopkg", remote = remote,
+             resources = list(resource("res", "1.0", urls = "https://e.org/f",
+                                       sha256 = strrep("a", 64))))
+  }
+  expect_error(make("http://registry.invalid/demopkg.rds"), "must be an https URL")
+  expect_error(make("registry.invalid/demopkg.rds"), "must be an https URL")
+  expect_silent(make("https://registry.invalid/demopkg.rds"))
+})
+
+# A key set that is not text cannot be a key set, and a stored form is where
+# that arrives: registry() coerces what the author passes, so this is the shape
+# a rewritten file takes rather than a mistake made at the keyboard.
+test_that("a stored key set that is not text is refused on read", {
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "registry.rds")
+  broken <- demo_registry(strrep("a", 64))
+  broken$keys <- 42
+  saveRDS(broken, path, version = 3)
+
+  expect_error(registry_read(path), "must be public keys")
+})
+
 test_that("duplicate declarations are refused", {
   expect_error(
     registry("demopkg", list(
@@ -116,6 +158,28 @@ test_that("an unnamed channel head is refused rather than silently ignored", {
     )),
     "must name one version per resource"
   )
+})
+
+test_that("a channel head naming one resource twice is refused", {
+  expect_error(
+    registry("demopkg", current = c(res = "1.0", res = "2.0"), resources = list(
+      resource("res", "1.0", urls = "https://e.org/a", sha256 = strrep("a", 64)),
+      resource("res", "2.0", urls = "https://e.org/b", sha256 = strrep("b", 64))
+    )),
+    "names resource 'res' more than once"
+  )
+})
+
+# A YAML or JSON authoring file arrives as a list, so the same channel head has
+# to be accepted in that shape as in the named vector the R constructor takes.
+test_that("a channel head may arrive as a list", {
+  reg <- registry("demopkg", current = list(res = "2.0"), resources = list(
+    resource("res", "1.0", urls = "https://e.org/a", sha256 = strrep("a", 64)),
+    resource("res", "2.0", urls = "https://e.org/b", sha256 = strrep("b", 64))
+  ))
+
+  expect_equal(reg$current, c(res = "2.0"))
+  expect_equal(resolve_resource("res", registry = reg)$id$version, "2.0")
 })
 
 test_that("a channel head survives the stored form", {
@@ -217,19 +281,6 @@ test_that("an authoring format getaca does not read is named", {
   writeLines("res = 1", path)
   expect_error(as_registry(path, package = "demopkg"), "Unsupported registry format")
 })
-
-# A package declares resources by shipping inst/getaca/registry.rds and nothing
-# else. These build that layout on a temporary library so discovery is tested
-# the way it actually happens.
-install_declaring_package <- function(name, reg, env = parent.frame()) {
-  lib <- withr::local_tempdir(.local_envir = env)
-  dir.create(file.path(lib, name, "getaca"), recursive = TRUE)
-  writeLines(c(paste0("Package: ", name), "Version: 0.0.1"),
-             file.path(lib, name, "DESCRIPTION"))
-  registry_write(reg, file.path(lib, name, "getaca", "registry.rds"))
-  withr::local_libpaths(lib, action = "prefix", .local_envir = env)
-  lib
-}
 
 test_that("a registry is discovered from the conventional path, with no registration", {
   local_registries()

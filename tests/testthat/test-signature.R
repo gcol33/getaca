@@ -177,6 +177,13 @@ test_that("a malformed signature file is refused", {
   broken$key <- "rsa:0011"
   expect_match(getaca:::signature_problem(broken, signed$registry, key$public),
                "malformed")
+
+  # A signature naming no key at all, which cannot be checked against the
+  # trusted set and so never reaches it.
+  broken <- sig
+  broken$key <- NULL
+  expect_match(getaca:::signature_problem(broken, signed$registry, key$public),
+               "malformed")
 })
 
 test_that("a signature whose bytes were altered does not verify", {
@@ -205,6 +212,66 @@ test_that("a signature and a registry must agree on the publication time", {
 
   expect_error(registry_verify(signed$path), class = "getaca_error_signature")
   expect_error(registry_verify(signed$path), "disagree about when it was published")
+})
+
+# A time the signature covers but this getaca cannot read is a signature that
+# establishes nothing about freshness, so both stamps fail closed rather than
+# being treated as absent. Mutating the parsed object leaves the payload alone,
+# so the cryptography still passes and the decision under test is the one
+# reached.
+test_that("a publication time that cannot be read is refused, not skipped", {
+  key <- signing_key()
+  signed <- signed_registry(key)
+  sig <- getaca:::signature_read(getaca:::signature_path(signed$path))
+
+  garbled <- sig
+  garbled$created <- "the first of January"
+  expect_match(getaca:::signature_problem(garbled, signed$registry, key$public),
+               "no readable publication time")
+
+  absent <- sig
+  absent$created <- NULL
+  expect_match(getaca:::signature_problem(absent, signed$registry, key$public),
+               "no readable publication time")
+})
+
+test_that("an expiry that cannot be read is refused rather than ignored", {
+  key <- signing_key()
+  signed <- signed_registry(key)
+  sig <- getaca:::signature_read(getaca:::signature_path(signed$path))
+  sig$expires <- "whenever"
+
+  expect_match(getaca:::signature_problem(sig, signed$registry, key$public),
+               "no readable expiry")
+})
+
+# signature_read() answers one question: is there a signature here to check.
+# Every no is the same answer, so that resolution can tell "nothing to check"
+# from "checked and failed" without parsing error text.
+test_that("anything that is not a signature file reads as no signature", {
+  path <- withr::local_tempfile()
+
+  writeLines("digest sha256:0000", path)
+  expect_null(getaca:::signature_read(path))
+
+  writeLines(c("getaca-signature one", "sig ed25519:00"), path)
+  expect_null(getaca:::signature_read(path))
+
+  # A file that names no signature covers nothing, whatever else it carries.
+  writeLines(c(paste("getaca-signature", getaca:::SIGNATURE_FORMAT),
+               "digest sha256:0000"), path)
+  expect_null(getaca:::signature_read(path))
+})
+
+test_that("a signing key that is absent or unreadable says which", {
+  dir <- withr::local_tempdir()
+  missing <- file.path(dir, "no-such-key")
+  expect_error(getaca:::read_key_file(missing), "No signing key at")
+  expect_error(getaca:::read_key_file(missing), "registry_keygen")
+
+  not_a_key <- file.path(dir, "notes.txt")
+  writeLines(c("getaca-key 1", "secret ed25519:xyz"), not_a_key)
+  expect_error(getaca:::read_key_file(not_a_key), "not readable as one")
 })
 
 # ---------------------------------------------------------------------- model

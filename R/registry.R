@@ -11,7 +11,7 @@
 #' @param package Name of the declaring package. Becomes part of every
 #'   resource identity and scopes the cache, so two packages declaring the
 #'   same resource name never collide.
-#' @param resources A list of [resource()] records.
+#' @param resources A list of [resource()] records, or a single record.
 #' @param remote Optional URL of an author-controlled registry file. Consulted
 #'   only under the `"current"` policy. It may repair or add mirrors and may
 #'   introduce new versions. It may never change the bytes a published version
@@ -79,8 +79,10 @@ registry <- function(package, resources, remote = NULL,
                      current = NULL, keys = NULL) {
   policy <- match.arg(policy)
   stopifnot(is_string(package))
+  # A record is itself a list, so a lone one is recognised by its class. Asking
+  # whether it is a list would see the record's own fields as the declarations.
+  if (inherits(resources, "getaca_resource")) resources <- list(resources)
   if (!is.list(resources)) resources <- list(resources)
-  names(resources) <- vapply(resources, function(r) r$name, character(1))
 
   reg <- structure(
     list(
@@ -99,6 +101,9 @@ registry <- function(package, resources, remote = NULL,
   )
   problems <- validate_registry(reg)
   if (length(problems)) err_invalid_registry(problems, package = package)
+  # Named once every element is known to be a record, so an element that is not
+  # one is reported as an invalid registry rather than failing on the name.
+  names(reg$resources) <- vapply(reg$resources, function(r) r$name, character(1))
   reg
 }
 

@@ -18,7 +18,7 @@ registry(
 resource identity and scopes the cache, so two packages declaring the
 same resource name never collide.}
 
-\item{resources}{A list of \code{\link[=resource]{resource()}} records.}
+\item{resources}{A list of \code{\link[=resource]{resource()}} records, or a single record.}
 
 \item{remote}{Optional URL of an author-controlled registry file. Consulted
 only under the \code{"current"} policy. It may repair or add mirrors and may

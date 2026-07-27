@@ -67,6 +67,26 @@ test_that("printing a registry marks the channel head", {
   expect_false(any(grepl("(current)", grep("2026-03", lines, value = TRUE), fixed = TRUE)))
 })
 
+# A registry gains its publication date and its signing keys only once it has
+# been written and read back, so both lines are absent from a registry built in
+# a session and present on the one a package ships.
+test_that("printing a published registry shows when it was published and who may sign it", {
+  dir <- withr::local_tempdir()
+  key <- registry_keygen(file.path(dir, "key"))
+  reg <- registry("demopkg", keys = key, resources = list(
+    resource("res", "1.0", urls = "https://a.invalid/a", sha256 = strrep("a", 64))
+  ))
+
+  expect_false(grepl("created:", shown(reg)))
+
+  path <- registry_write(reg, file.path(dir, "registry.rds"),
+                         created = as.POSIXct("2026-01-01 09:30:00", tz = "UTC"))
+  out <- shown(registry_read(path))
+
+  expect_match(out, "created: 2026-01-01")
+  expect_match(out, "signed by: ed25519:")
+})
+
 test_that("printing a cache entry shows the provenance getaca kept", {
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir())

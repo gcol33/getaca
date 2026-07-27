@@ -149,3 +149,19 @@ test_that("a package is discovered by the registry it ships, not by registration
 
   expect_true("shippingpkg" %in% getaca:::packages_declaring_resources())
 })
+
+# Discovery walks every library path, and a library holding no packages is an
+# ordinary state rather than a reason to stop walking the rest.
+test_that("a library holding no packages is skipped, not an error", {
+  cache <- local_cache()
+  empty <- withr::local_tempdir()
+  lib <- withr::local_tempdir()
+  dir.create(file.path(lib, "shippingpkg", "getaca"), recursive = TRUE)
+  registry_write(
+    demo_registry(strrep("a", 64), package = "shippingpkg"),
+    file.path(lib, "shippingpkg", "getaca", "registry.rds")
+  )
+  withr::local_libpaths(c(empty, lib), action = "prefix")
+
+  expect_true("shippingpkg" %in% getaca:::packages_declaring_resources())
+})

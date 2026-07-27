@@ -214,6 +214,67 @@ test_that("a mismatch in shared bytes withdraws every other slot's verification"
                class = "getaca_error_cache_corrupt")
 })
 
+# A verdict is about one digest. Withdrawing every stamp in the cache would make
+# a single corrupt blob re-hash every unrelated resource on the next access,
+# which for a cache holding tens of gigabytes is the cost the shared verdict was
+# measured against avoiding.
+test_that("a mismatch reaches the bytes it is about and no others", {
+  cache <- local_cache()
+  src <- withr::local_tempdir()
+  shared <- seed_file(src, contents = "the shared backbone", name = "shared.csv")
+  other <- seed_file(src, contents = "an unrelated resource", name = "other.csv")
+
+  alpha <- demo_registry(shared$sha256, package = "alpha")
+  beta <- demo_registry(shared$sha256, package = "beta")
+  gamma <- demo_registry(other$sha256, package = "gamma")
+  testthat::local_mocked_bindings(try_one = serves_file(shared), .package = "getaca")
+  getaca("res", registry = alpha, quiet = TRUE)
+  getaca("res", registry = beta, quiet = TRUE)
+  skip_unless_linked(getaca_info("res", registry = alpha))
+  seed_cache(gamma, other)
+  untouched <- getaca_info("res", registry = gamma)$verified_at
+
+  corrupt(getaca:::blob_path(shared$sha256), "the shared backbome")
+  expect_error(getaca("res", registry = alpha, verify = TRUE),
+               class = "getaca_error_cache_corrupt")
+
+  expect_true(is.na(getaca_info("res", registry = beta)$verified_at))
+  expect_equal(getaca_info("res", registry = gamma)$verified_at, untouched)
+})
+
+test_that("a sharer that already has no stamp is left as it is", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
+  testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
+  alpha <- demo_registry(f$sha256, package = "alpha")
+  beta <- demo_registry(f$sha256, package = "beta")
+  getaca("res", registry = alpha, quiet = TRUE)
+  getaca("res", registry = beta, quiet = TRUE)
+  skip_unless_linked(getaca_info("res", registry = alpha))
+
+  corrupt(getaca:::blob_path(f$sha256), "the shared backbome")
+  expect_error(getaca("res", registry = alpha, verify = TRUE),
+               class = "getaca_error_cache_corrupt")
+  expect_true(is.na(getaca_info("res", registry = beta)$verified_at))
+
+  # Beta's stamp is already withdrawn, so a second verdict on the same bytes has
+  # nothing to withdraw from it and leaves the entry alone.
+  expect_error(getaca("res", registry = alpha, verify = TRUE),
+               class = "getaca_error_cache_corrupt")
+  expect_true(is.na(getaca_info("res", registry = beta)$verified_at))
+})
+
+test_that("a vanished path fails the cheap check rather than its comparison", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  reg <- demo_registry(f$sha256)
+  seeded <- seed_cache(reg, f)
+
+  expect_true(getaca:::cheap_check_ok(seeded$entry))
+  getaca:::remove_path(seeded$path)
+  expect_false(getaca:::cheap_check_ok(seeded$entry))
+})
+
 test_that("a mismatch in a slot's own copy says nothing about the shared bytes", {
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")

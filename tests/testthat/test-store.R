@@ -271,3 +271,83 @@ test_that("provenance says how the slot reaches its bytes", {
                "store       ")
   expect_equal(getaca_catalogue(registry = reg)$link, info$link)
 })
+
+# An entry cached before the store existed holds its bytes in the slot itself
+# and names no blob. The sweeps read that from the absent `link` field, so an
+# entry without one must not be reported as naming bytes the store owns: doing
+# so would let a sweep of the old entry go looking for a blob nothing admitted.
+test_that("an entry from before the store names no blob", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  id <- getaca::resource_id("demopkg", "res", "1.0")
+  rec <- demo_registry(f$sha256)$resources[["res"]]
+  entry <- getaca:::new_entry(id, rec, f$path, f$sha256, source = "bundled",
+                              digest = "sha256:none", url_used = rec$urls[1])
+
+  expect_null(getaca:::entry_blob(entry))
+  expect_equal(getaca:::blob_names(entry), character())
+  expect_null(getaca:::reseal_blob(getaca:::entry_blob(entry)))
+})
+
+test_that("a cache that has admitted nothing sweeps rather than erroring", {
+  cache <- local_cache()
+
+  expect_equal(getaca:::all_blobs(), character())
+  expect_equal(getaca:::cache_bytes(), 0)
+  expect_equal(nrow(getaca_clean(what = "unreferenced", dry_run = TRUE)), 0L)
+})
+
+# Bytes the store shares count once for the whole cache; bytes belonging to one
+# slot count for that slot. A processed tree is derived rather than named, so it
+# is its own.
+test_that("bytes a slot owns outright count toward the ceiling", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = strrep("x", 500))
+  id <- getaca::resource_id("demopkg", "res", "1.0")
+  rec <- demo_registry(f$sha256)$resources[["res"]]
+
+  linked <- getaca:::new_entry(id, rec, f$path, f$sha256, source = "bundled",
+                               digest = "sha256:none", url_used = rec$urls[1],
+                               link = "hardlink")
+  copied <- getaca:::new_entry(id, rec, f$path, f$sha256, source = "bundled",
+                               digest = "sha256:none", url_used = rec$urls[1],
+                               link = "copy")
+  processed <- getaca:::new_entry(id, rec, f$path, f$sha256, source = "bundled",
+                                 digest = "sha256:none", url_used = rec$urls[1],
+                                 processor_id = "unzip", link = "hardlink")
+
+  expect_equal(getaca:::unshared_bytes(linked), 0)
+  expect_equal(getaca:::unshared_bytes(copied), 500)
+  expect_equal(getaca:::unshared_bytes(processed), 500)
+})
+
+# Verified bytes that cannot enter the store must stop the retrieval. Returning
+# the destination anyway would hand back a path nothing ever wrote.
+test_that("bytes that cannot be admitted raise rather than return a path", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  testthat::local_mocked_bindings(move_file = function(...) FALSE,
+                                  .package = "getaca")
+
+  expect_error(getaca:::admit(staged(f), f$sha256),
+               "could not admit verified bytes to the store")
+  expect_false(getaca:::blob_exists(f$sha256))
+})
+
+# Adoption is an optimisation over refetching, so a filesystem that will not
+# link the slot's copy into the store has to leave the fetch to proceed rather
+# than report a blob that is not there.
+test_that("a copy that cannot be linked into the store is not adopted", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  rec <- demo_registry(f$sha256)$resources[["res"]]
+  id <- getaca::resource_id("demopkg", "res", "1.0")
+  raw <- getaca:::cache_raw_dir(id)
+  dir.create(raw, recursive = TRUE, showWarnings = FALSE)
+  file.copy(f$path, file.path(raw, "res-1.0.csv"))
+  testthat::local_mocked_bindings(link_file = function(from, to) NA_character_,
+                                  .package = "getaca")
+
+  expect_false(getaca:::adopt(id, rec))
+  expect_false(getaca:::blob_exists(f$sha256))
+})

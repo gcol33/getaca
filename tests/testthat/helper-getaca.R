@@ -83,6 +83,20 @@ skip_unless_linked <- function(entry) {
   }
 }
 
+# A package declares resources by shipping inst/getaca/registry.rds and nothing
+# else. This builds that layout on a temporary library so discovery is exercised
+# the way it actually happens, which is also what the superseded sweep needs:
+# what a version is superseded by is whatever the installed registry now names.
+install_declaring_package <- function(name, reg, env = parent.frame()) {
+  lib <- withr::local_tempdir(.local_envir = env)
+  dir.create(file.path(lib, name, "getaca"), recursive = TRUE)
+  writeLines(c(paste0("Package: ", name), "Version: 0.0.1"),
+             file.path(lib, name, "DESCRIPTION"))
+  getaca::registry_write(reg, file.path(lib, name, "getaca", "registry.rds"))
+  withr::local_libpaths(lib, action = "prefix", .local_envir = env)
+  lib
+}
+
 # The store is read-only, so damaging a cached file takes the same step bit rot
 # or a determined user would.
 corrupt <- function(path, contents) {
