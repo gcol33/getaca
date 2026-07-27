@@ -43,6 +43,15 @@ r-devel, release, `oldrel-1` and `oldrel-2`) and a separate coverage job that se
 `oldrel` rows are what hold the `Depends: R (>= 4.0.0)` floor honest, since the only
 R installed locally is far above it.
 
+A third workflow, `sanitizers.yaml`, runs the tests inside the five R-hub containers
+CRAN's own incoming checks use: `clang-asan`, `gcc-asan`, `clang-ubsan`, `valgrind`
+and `rchk`. `R CMD check` does not look for a bad memory access or an undefined
+shift, and `test-digest.R` and `test-ed25519.R` only catch a wrong answer, so this
+is the only place the C is held to anything but its output. Each container ships an
+`r-check` script that greps its own diagnostics out of the check log; `rchk` only
+prints, so the workflow greps that one itself. It also runs weekly, since R-devel
+moves underneath the containers whether or not the package does.
+
 ## Architecture
 
 One retrieval path, `getaca()` in `R/fetch.R`:

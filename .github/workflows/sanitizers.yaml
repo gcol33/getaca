@@ -1,0 +1,104 @@
+# Memory safety and undefined behaviour in src/, which R CMD check does not look
+# for. The package carries around 1,100 lines of hand-written C -- two digests, a
+# signature scheme and the R entry points -- and test-digest.R and test-ed25519.R
+# hold all of it against FIPS 180-4 and RFC 8032. A wrong answer is what those
+# catch. An out-of-bounds read that happens to return the right digest, a shift
+# whose result the standard does not define, or a PROTECT the garbage collector
+# will eventually punish are all invisible to them.
+#
+# The five containers are the ones CRAN's own incoming checks use, so a finding
+# here is a finding that would otherwise arrive during a submission.
+#
+#   clang-asan   out-of-bounds and use-after-free, clang, Ubuntu, R-devel
+#   gcc-asan     the same class through a different compiler's codegen, Fedora
+#   clang-ubsan  undefined behaviour: signed overflow, bad shifts, pointer
+#                overflow. The field arithmetic in ed25519.c is where this bites
+#   valgrind     reads of uninitialised memory, which no sanitizer above sees
+#   rchk         static analysis of the R API use in init.c: unprotected SEXPs
+#                and protection-stack imbalance
+#
+# Each container ships an `r-check` script that installs dependencies, runs
+# R CMD check with the arguments that container wants, and greps the output for
+# its own diagnostics. CHECK_ARGS is left at the container's default, which is
+# --extra-arch: only the checks that depend on the architecture run, so examples
+# and tests execute and the static checks the other workflow already covers do
+# not run twice.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # R-devel moves underneath these containers, so they run weekly even when
+    # nothing in the package has changed.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+name: sanitizers
+
+permissions: read-all
+
+jobs:
+  sanitizers:
+    runs-on: ubuntu-latest
+
+    name: ${{ matrix.container }}
+
+    # valgrind runs the tests two orders of magnitude slower than native, and
+    # every container installs its dependencies from source under instrumentation.
+    timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix:
+        container: [clang-asan, gcc-asan, clang-ubsan, valgrind, rchk]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # The containers check a tarball rather than a source tree. Vignettes are
+      # not built: nothing in them reaches src/, and building them here would
+      # mean knitr and rmarkdown on the runner for no added coverage.
+      - name: Build the tarball
+        shell: bash
+        run: |
+          mkdir -p check
+          R CMD build --no-build-vignettes --no-manual .
+          mv getaca_*.tar.gz check/
+
+      - name: Check under ${{ matrix.container }}
+        shell: bash
+        run: |
+          docker run --rm -v "${PWD}/check:/check" \
+            "ghcr.io/r-hub/containers/${{ matrix.container }}:latest" \
+            r-check | tee container.log
+
+      # The four runtime containers fail the run themselves. rchk only prints:
+      # its exit status says the analysis completed, not that it found nothing,
+      # so the messages that name a real defect have to be looked for.
+      - name: Fail on an rchk finding
+        if: matrix.container == 'rchk'
+        shell: bash
+        run: |
+          findings='unprotected|protection stack imbalance|negative depth'
+          if grep -Eq "$findings" container.log; then
+            echo "::error::rchk reported a protection defect in src/"
+            grep -E "$findings" container.log
+            exit 1
+          fi
+          echo "rchk found nothing to report."
+
+      - name: Upload the check directory
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.container }}-results
+          path: |
+            check/getaca.Rcheck
+            container.log
+          retention-days: 14
