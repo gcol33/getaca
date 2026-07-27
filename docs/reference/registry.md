@@ -29,7 +29,7 @@ registry(
 
   A list of
   [`resource()`](https://gillescolling.com/getaca/reference/resource.md)
-  records.
+  records, or a single record.
 
 - remote:
 
