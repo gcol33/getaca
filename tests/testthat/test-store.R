@@ -34,7 +34,11 @@ test_that("a blob is read-only, so a caller cannot damage what others share", {
   f <- seed_file(withr::local_tempdir())
   blob <- getaca:::admit(staged(f), f$sha256)
 
-  expect_false(file.access(blob, 2) == 0)
+  # The mode the store left, rather than whether this process could write. Root
+  # ignores the write bits, so file.access() answers who is asking rather than
+  # how the file was sealed, and reports every blob writable under any check
+  # that runs as root.
+  expect_equal(bitwAnd(as.integer(file.mode(blob)), strtoi("222", 8L)), 0L)
 })
 
 test_that("a view carries the readable name and the bytes of its blob", {
