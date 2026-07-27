@@ -79,7 +79,12 @@ static void set25519(gf r, const gf a)
 
 /* Folds every limb back to 16 bits, carrying the top limb's overflow into the
    bottom scaled by 38, which is 2 * 19 and therefore the reduction of 2^256
-   modulo 2^255 - 19. */
+   modulo 2^255 - 19.
+
+   The carry is signed and routinely negative, so it is scaled by the limb
+   radix through a multiplication: C leaves a left shift of a negative value
+   undefined, while the multiplication is defined for every value reached here
+   and yields the same number. */
 static void car25519(gf o)
 {
   int i;
@@ -89,7 +94,7 @@ static void car25519(gf o)
     o[i] += (i64) 1 << 16;
     c = o[i] >> 16;
     o[(i + 1) * (i < 15)] += c - 1 + 37 * (c - 1) * (i == 15);
-    o[i] -= c << 16;
+    o[i] -= c * 65536;
   }
 }
 
@@ -294,6 +299,8 @@ static void scalarbase(gf p[4], const u8 *s)
   scalarmult(p, q, s);
 }
 
+/* Reduction runs in base 256, and its carry is signed and routinely negative,
+   so it is scaled by a multiplication for the reason car25519() gives. */
 static void modL(u8 *r, i64 x[64])
 {
   i64 carry;
@@ -304,7 +311,7 @@ static void modL(u8 *r, i64 x[64])
     for (j = i - 32; j < i - 12; j++) {
       x[j] += carry - 16 * x[i] * L[j - (i - 32)];
       carry = (x[j] + 128) >> 8;
-      x[j] -= carry << 8;
+      x[j] -= carry * 256;
     }
     x[j] += carry;
     x[i] = 0;
