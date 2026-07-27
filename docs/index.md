@@ -242,7 +242,10 @@ Verification asks three questions and keeps the answers apart:
 | use | on ordinary access | `accessed_at` |
 
 “Verified” therefore means the bytes were re-hashed then, rather than
-that somebody looked at the file at some point.
+that somebody looked at the file at some point. A mismatch found in
+shared bytes reaches every package holding them: the stamp is withdrawn
+from each slot naming those bytes, and each re-hashes its own copy on
+next access.
 
 Two sessions asking for the same 4 GB file wait on a portable directory
 mutex keyed on the checksum, and the second observes the first’s

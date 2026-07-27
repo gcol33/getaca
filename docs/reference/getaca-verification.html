@@ -81,8 +81,8 @@ sometime in the past".</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
 
 <dl><dt>full verification</dt>
-<dd><p>Re-hash the bytes. Recorded as <code>verified_at</code>.
-Always performed on download.</p></dd>
+<dd><p>Re-hash the bytes the caller is handed. Recorded
+as <code>verified_at</code>. Always performed on download.</p></dd>
 
 <dt>cheap check</dt>
 <dd><p>Compare size and modification time against the entry.
@@ -98,6 +98,11 @@ corruption and all kinds of substitution.</p></dd>
 for one thing first: that the declaration still names the same bytes it
 named when they were fetched. Bytes matching a superseded declaration are
 not what was asked for, however intact they are.</p>
+<p>A mismatch is a verdict on bytes rather than on the slot that found it.
+Where those bytes are ones the store shares, the verdict withdraws
+<code>verified_at</code> from every other slot naming that digest, so each re-hashes
+against its own copy on next access instead of continuing on a stamp this
+failure has already contradicted.</p>
     </div>
 
   </main></div>

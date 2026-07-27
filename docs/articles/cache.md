@@ -14,7 +14,7 @@ from a CI cache action, or looking at it with a file browser all work.
 ``` r
 
 getaca_cache_dir()
-#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpeAj1wj/getaca-cache-vignette"
+#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\Rtmpei2GGx/getaca-cache-vignette"
 ```
 
 That is the sandbox this vignette runs in. The default is
@@ -113,6 +113,14 @@ A cached copy that fails either check raises
 the message names the clean-up call. Silent repair would hide a disk
 going bad, and hide a colleague who edited a file in the cache
 directory.
+
+The failure is a verdict on bytes rather than on the slot that found it.
+Bytes live once and every package declaring them holds its own record,
+so a mismatch in the shared copy withdraws `verified_at` from every
+other slot naming it and each re-hashes on next access. A slot holding
+its own copy, which is what a filesystem refusing links leaves, and a
+processed tree derived from the bytes are answerable only for
+themselves.
 
 The fourth timestamp is `fetched_at`, which never moves. Together the
 four answer questions that collapsing them would destroy: a resource

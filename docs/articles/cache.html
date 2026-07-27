@@ -111,7 +111,7 @@ browser all work.</p>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_cache_dir.html">getaca_cache_dir</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\RtmpeAj1wj/getaca-cache-vignette"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\Rtmpei2GGx/getaca-cache-vignette"</span></span></code></pre></div>
 <p>That is the sandbox this vignette runs in. The default is
 <code>tools::R_user_dir("getaca", "cache")</code>, the location CRAN
 permits for cached downloads. Two overrides take precedence, in this
@@ -228,6 +228,13 @@ to catch.</p>
 refetched, and the message names the clean-up call. Silent repair would
 hide a disk going bad, and hide a colleague who edited a file in the
 cache directory.</p>
+<p>The failure is a verdict on bytes rather than on the slot that found
+it. Bytes live once and every package declaring them holds its own
+record, so a mismatch in the shared copy withdraws
+<code>verified_at</code> from every other slot naming it and each
+re-hashes on next access. A slot holding its own copy, which is what a
+filesystem refusing links leaves, and a processed tree derived from the
+bytes are answerable only for themselves.</p>
 <p>The fourth timestamp is <code>fetched_at</code>, which never moves.
 Together the four answer questions that collapsing them would destroy: a
 resource fetched in January, re-hashed in April and read this morning

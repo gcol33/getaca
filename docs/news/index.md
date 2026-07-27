@@ -106,6 +106,24 @@ released.
 
 - Full SHA-256 on download, cheap size check on access, scheduled
   re-hash via `getaca.verify_days`.
+- A full re-hash reads the file the caller is handed. Where the
+  filesystem allowed a link that is the blob’s own bytes, and where it
+  refused one the view is an independent copy that nothing else would
+  ever read. A processed slot holds a derived tree the declared checksum
+  does not describe, so it is verified against the artefact it was made
+  from instead.
+- A verification whose target cannot be found raises rather than
+  recording a pass. Moving `verified_at` forward for a check that never
+  ran would put the entry beyond re-verification for good, since every
+  later access would do the same.
+- A mismatch is a verdict on bytes rather than on the slot that found
+  it. Where those bytes are ones the store shares, it withdraws
+  `verified_at` from every other slot naming that digest, so each
+  re-hashes against its own copy on next access. Previously a second
+  package holding the same corrupt bytes kept passing the cheap size
+  check and kept being handed them as verified for the remainder of its
+  own window, up to 90 days. A slot’s own copy and a processed tree
+  indict nothing but themselves.
 - A cache hit is measured against the declaration in force as well as
   against the entry’s own record. A version whose declaration has moved
   to different bytes raises `getaca_error_redeclared` naming both

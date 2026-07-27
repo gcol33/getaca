@@ -129,6 +129,16 @@ entry_blob <- function(entry) {
   if (is.null(entry$link)) NULL else entry$observed_sha256
 }
 
+# Every path that is another name for an entry's bytes rather than a separate
+# copy of them: the blob itself, and the raw view wherever the filesystem
+# allowed a link. A copy is the slot's own, and a processed tree is derived
+# rather than named, so neither belongs here.
+blob_names <- function(entry) {
+  sha <- entry_blob(entry)
+  if (is.null(sha)) return(character())
+  c(blob_path(sha), if (!identical(entry$link, "copy")) raw_file_for(entry$id))
+}
+
 all_blobs <- function() {
   root <- blob_root()
   if (!dir.exists(root)) return(character())

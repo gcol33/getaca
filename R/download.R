@@ -156,10 +156,12 @@ promote <- function(id, record, temp_path) {
   place(id, record)
 }
 
-# The version slot's name for bytes that are already in the store.
-place <- function(id, record) {
+# The version slot's name for bytes that are already in the store. `link`
+# carries through to materialise(), so which mechanism the filesystem allows is
+# a decision a caller can stand in for.
+place <- function(id, record, link = link_file) {
   view <- file.path(cache_raw_dir(id), url_basename(record$urls[1]))
-  list(path = view, link = materialise(record$sha256, view))
+  list(path = view, link = materialise(record$sha256, view, link = link))
 }
 
 # One move, by whichever mechanism the filesystem allows: a rename when both

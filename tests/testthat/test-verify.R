@@ -3,6 +3,15 @@
 # what that version means, and a cache hit must not settle the disagreement by
 # staying quiet.
 
+# A processed slot, without depending on an archive format for one.
+copying_processor <- function() {
+  processor("copy", function(path, dir) {
+    out <- file.path(dir, "processed.csv")
+    file.copy(path, out)
+    out
+  })
+}
+
 test_that("a cache hit under a changed declaration is refused, not returned", {
   cache <- local_cache()
   src <- withr::local_tempdir()
@@ -61,11 +70,7 @@ test_that("a processed slot is held to the declaration of the bytes behind it", 
   cache <- local_cache()
   src <- withr::local_tempdir()
   f <- seed_file(src)
-  proc <- processor("copy", function(path, dir) {
-    out <- file.path(dir, "processed.csv")
-    file.copy(path, out)
-    out
-  })
+  proc <- copying_processor()
   reg <- demo_registry(f$sha256, processor = proc)
   testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
   getaca("res", registry = reg, quiet = TRUE)
@@ -109,4 +114,139 @@ test_that("dropping the cached copy accepts the new declaration", {
 
   expect_equal(getaca:::sha256_file(getaca("res", registry = moved, quiet = TRUE)),
                new$sha256)
+})
+
+# A full re-hash has to read the file the caller is handed. Where the
+# filesystem allowed a link that is the blob's own bytes either way, but where
+# it refused one the view is an independent copy, and hashing the blob would
+# certify bytes nobody is going to read.
+
+test_that("a copy view is verified against itself, not against its blob", {
+  cache <- local_cache()
+  src <- withr::local_tempdir()
+  f <- seed_file(src, contents = "the bytes as served")
+  reg <- demo_registry(f$sha256)
+  seeded <- seed_cache(reg, f, link = copies_only)
+  expect_equal(seeded$entry$link, "copy")
+
+  # Same size, different bytes: what the cheap check is documented to miss.
+  corrupt(seeded$path, "the bytes as merved")
+  expect_equal(getaca:::sha256_file(getaca:::blob_path(f$sha256)), f$sha256)
+
+  expect_error(getaca("res", registry = reg, verify = TRUE),
+               class = "getaca_error_cache_corrupt")
+})
+
+test_that("a raw view outlives its blob and is still answerable for its bytes", {
+  cache <- local_cache()
+  src <- withr::local_tempdir()
+  f <- seed_file(src, contents = "the bytes as served")
+  reg <- demo_registry(f$sha256)
+  seeded <- seed_cache(reg, f)
+  skip_unless_linked(seeded$entry)
+
+  # A hardlinked view keeps the bytes readable when the blob name goes.
+  getaca:::remove_path(getaca:::blob_path(f$sha256))
+  expect_equal(getaca("res", registry = reg, verify = TRUE), seeded$path)
+
+  corrupt(seeded$path, "the bytes as merved")
+  expect_error(getaca("res", registry = reg, verify = TRUE),
+               class = "getaca_error_cache_corrupt")
+})
+
+test_that("a processed slot stays verifiable after its raw view is swept", {
+  cache <- local_cache()
+  src <- withr::local_tempdir()
+  f <- seed_file(src)
+  reg <- demo_registry(f$sha256, processor = copying_processor())
+  testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
+  path <- getaca("res", registry = reg, quiet = TRUE)
+
+  getaca:::remove_path(getaca:::cache_raw_dir(resource_id("demopkg", "res", "1.0")))
+
+  expect_equal(getaca("res", registry = reg, verify = TRUE), path)
+})
+
+test_that("an entry with nothing left to hash is refused, not called verified", {
+  cache <- local_cache()
+  src <- withr::local_tempdir()
+  f <- seed_file(src)
+  reg <- demo_registry(f$sha256, processor = copying_processor())
+  testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
+  getaca("res", registry = reg, quiet = TRUE)
+  before <- getaca_info("res", registry = reg)$verified_at
+
+  # A processed tree is identified by the artefact it came from. With the blob
+  # and the raw view both gone, nothing the declared checksum describes is left.
+  id <- resource_id("demopkg", "res", "1.0")
+  getaca:::remove_path(getaca:::blob_path(f$sha256))
+  getaca:::remove_path(getaca:::cache_raw_dir(id))
+
+  expect_error(getaca("res", registry = reg, verify = TRUE),
+               class = "getaca_error_cache_corrupt")
+  # The clock must not move on a check that never ran, or it never runs again.
+  expect_equal(getaca_info("res", registry = reg)$verified_at, before)
+})
+
+# Bytes are shared and verification stamps are not, so one package can diagnose
+# corruption that every other sharer then keeps quiet about for the rest of its
+# own window. A verdict on the store's bytes has to reach every slot naming
+# them; a verdict on one slot's own copy has to reach no further.
+
+test_that("a mismatch in shared bytes withdraws every other slot's verification", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
+  testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
+  alpha <- demo_registry(f$sha256, package = "alpha")
+  beta <- demo_registry(f$sha256, package = "beta")
+  getaca("res", registry = alpha, quiet = TRUE)
+  getaca("res", registry = beta, quiet = TRUE)
+  skip_unless_linked(getaca_info("res", registry = alpha))
+
+  corrupt(getaca:::blob_path(f$sha256), "the shared backbome")
+
+  expect_error(getaca("res", registry = alpha, verify = TRUE),
+               class = "getaca_error_cache_corrupt")
+  expect_true(is.na(getaca_info("res", registry = beta)$verified_at))
+  # Beta is well inside its own window, and its bytes pass the cheap size
+  # check, so this is the access that used to hand back corrupt bytes.
+  expect_error(getaca("res", registry = beta),
+               class = "getaca_error_cache_corrupt")
+})
+
+test_that("a mismatch in a slot's own copy says nothing about the shared bytes", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
+  alpha <- demo_registry(f$sha256, package = "alpha")
+  beta <- demo_registry(f$sha256, package = "beta")
+  seeded <- seed_cache(alpha, f, link = copies_only)
+  seed_cache(beta, f)
+  before <- getaca_info("res", registry = beta)$verified_at
+
+  corrupt(seeded$path, "the shared backbome")
+
+  expect_error(getaca("res", registry = alpha, verify = TRUE),
+               class = "getaca_error_cache_corrupt")
+  expect_equal(getaca_info("res", registry = beta)$verified_at, before)
+  expect_equal(getaca:::sha256_file(getaca("res", registry = beta, verify = TRUE)),
+               f$sha256)
+})
+
+test_that("a processed tree failing its own check says nothing about them either", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
+  testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
+  alpha <- demo_registry(f$sha256, package = "alpha", processor = copying_processor())
+  beta <- demo_registry(f$sha256, package = "beta")
+  path <- getaca("res", registry = alpha, quiet = TRUE)
+  getaca("res", registry = beta, quiet = TRUE)
+  before <- getaca_info("res", registry = beta)$verified_at
+
+  # A derived tree belongs to the slot that declared the processor, whatever
+  # the bytes it was made from are.
+  corrupt(path, "shorter")
+
+  expect_error(getaca("res", registry = alpha),
+               class = "getaca_error_cache_corrupt")
+  expect_equal(getaca_info("res", registry = beta)$verified_at, before)
 })

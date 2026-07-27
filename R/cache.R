@@ -185,7 +185,13 @@ print.getaca_entry <- function(x, ...) {
   if (!is.null(x$processor_id)) cat("  processor   ", x$processor_id, "\n", sep = "")
   cat("  getaca      ", x$getaca_version %||% "unknown", "\n", sep = "")
   cat("  fetched     ", format(x$fetched_at, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
-  cat("  verified    ", format(x$verified_at, "%Y-%m-%d %H:%M:%S"), " (full re-hash)\n", sep = "")
+  cat("  verified    ",
+      if (isTRUE(is.na(x$verified_at))) {
+        "withdrawn (re-hashed on next access)"
+      } else {
+        paste0(format(x$verified_at, "%Y-%m-%d %H:%M:%S"), " (full re-hash)")
+      },
+      "\n", sep = "")
   cat("  checked     ", format(x$checked_at, "%Y-%m-%d %H:%M:%S"), " (size and mtime)\n", sep = "")
   if (isTRUE(x$pinned)) cat("  pinned      yes (never garbage collected)\n")
   invisible(x)

@@ -10,8 +10,8 @@ sometime in the past".
 }
 \details{
 \describe{
-\item{full verification}{Re-hash the bytes. Recorded as \code{verified_at}.
-Always performed on download.}
+\item{full verification}{Re-hash the bytes the caller is handed. Recorded
+as \code{verified_at}. Always performed on download.}
 \item{cheap check}{Compare size and modification time against the entry.
 Recorded as \code{checked_at}. Performed on ordinary access.}
 \item{periodic re-verification}{A full re-hash once the last one is older
@@ -23,5 +23,11 @@ All three ask whether the bytes are still the bytes. A cache hit is checked
 for one thing first: that the declaration still names the same bytes it
 named when they were fetched. Bytes matching a superseded declaration are
 not what was asked for, however intact they are.
+
+A mismatch is a verdict on bytes rather than on the slot that found it.
+Where those bytes are ones the store shares, the verdict withdraws
+\code{verified_at} from every other slot naming that digest, so each re-hashes
+against its own copy on next access instead of continuing on a stamp this
+failure has already contradicted.
 }
 \keyword{internal}

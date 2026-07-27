@@ -53,19 +53,25 @@ serves_file <- function(file) {
 
 # Seed the cache as though a successful retrieval had happened: through the
 # store, so a seeded entry is shaped like a fetched one.
-seed_cache <- function(reg, file, name = "res") {
+seed_cache <- function(reg, file, name = "res", link = getaca:::link_file) {
   rec <- reg$resources[[name]]
   id <- getaca::resource_id(reg$package, rec$name, rec$version)
   staged <- file.path(getaca:::cache_tmp_dir(), basename(file$path))
   file.copy(file$path, staged, overwrite = TRUE)
   getaca:::admit(staged, rec$sha256)
-  placed <- getaca:::place(id, rec)
+  placed <- getaca:::place(id, rec, link = link)
   entry <- getaca:::new_entry(id, rec, placed$path, rec$sha256,
                               source = "bundled",
                               digest = getaca::registry_digest(reg),
                               url_used = rec$urls[1], link = placed$link)
   getaca:::put_entry(entry)
   list(id = id, path = placed$path, entry = entry)
+}
+
+# What a FAT volume or a network mount leaves: both link calls refuse, and the
+# view is an independent copy of the blob rather than another name for it.
+copies_only <- function(from, to) {
+  if (isTRUE(file.copy(from, to, overwrite = TRUE))) "copy" else NA_character_
 }
 
 # A view is a name for shared bytes only where the filesystem allows a link.

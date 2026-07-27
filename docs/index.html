@@ -335,7 +335,7 @@
 </tr>
 </tbody>
 </table>
-<p>“Verified” therefore means the bytes were re-hashed then, rather than that somebody looked at the file at some point.</p>
+<p>“Verified” therefore means the bytes were re-hashed then, rather than that somebody looked at the file at some point. A mismatch found in shared bytes reaches every package holding them: the stamp is withdrawn from each slot naming those bytes, and each re-hashes its own copy on next access.</p>
 <p>Two sessions asking for the same 4 GB file wait on a portable directory mutex keyed on the checksum, and the second observes the first’s success. A lock whose holder died goes stale and is taken over.</p>
 </div>
 <div class="section level2">
