@@ -101,6 +101,26 @@ jobs:
         shell: bash
         run: |
           rcheck=check/getaca.Rcheck
+
+          # rchk runs no R CMD check at all. It installs the LinkingTo
+          # dependencies, unpacks the tarball and runs the analyser, which
+          # prints its findings and exits 0 either way, so there is no check
+          # directory to read and its own banner is what says it ran.
+          if [ "${{ matrix.container }}" = rchk ]; then
+            if ! grep -q "==== rchk bcheck" container.log; then
+              echo "::error::rchk produced no bcheck output, so it never ran"
+              exit 1
+            fi
+            findings='unprotected|protection stack imbalance|negative depth'
+            if grep -qE "$findings" container.log; then
+              echo "::error::rchk reported a protection defect in src/"
+              grep -E "$findings" container.log | sort -u
+              exit 1
+            fi
+            echo "Clean."
+            exit 0
+          fi
+
           log="$rcheck/00check.log"
           if [ ! -f "$log" ]; then
             echo "::error::the container produced no 00check.log, so the check did not run"
@@ -137,14 +157,6 @@ jobs:
                 printf '%s\n' "$summaries"
                 grep -hE "Invalid (read|write)|uninitialised|Mismatched free" \
                   "${readable[@]}" | sort -u | head -40
-                verdict=1
-              fi
-              ;;
-            rchk)
-              findings='unprotected|protection stack imbalance|negative depth'
-              if grep -hqE "$findings" "${readable[@]}"; then
-                echo "::error::rchk reported a protection defect in src/"
-                grep -hE "$findings" "${readable[@]}" | sort -u
                 verdict=1
               fi
               ;;
