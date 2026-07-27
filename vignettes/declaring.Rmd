@@ -219,7 +219,7 @@ schedule:
 remote_reg <- registry(
   package = "taxify",
   policy  = "current",
-  remote  = "https://gcol33.github.io/taxify/getaca-registry.rds",
+  remote  = "https://taxify.invalid/getaca-registry.rds",
   resources = list(
     resource("wfo", "2026-06",
              urls   = "https://primary.invalid/wfo-2026-06.zip",
@@ -373,7 +373,7 @@ the list is a list and `current` sits beside it. Arguments passed to
 ```{r, eval = FALSE}
 as_registry("data-raw/resources.yml", package = "taxify",
             policy = "current",
-            remote = "https://gcol33.github.io/taxify/getaca-registry.rds")
+            remote = "https://taxify.invalid/getaca-registry.rds")
 ```
 
 JSON works the same way through `jsonlite`. Both are `Suggests`, and asking

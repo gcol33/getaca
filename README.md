@@ -184,7 +184,7 @@ registry_write(
   registry(
     package  = "taxify",
     policy   = "current",
-    remote   = "https://gcol33.github.io/taxify/getaca-registry.rds",
+    remote   = "https://taxify.invalid/getaca-registry.rds",
     current  = c(wfo = "2026-06"),
     resources = list(
       resource("wfo", "2026-06",

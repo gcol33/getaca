@@ -87,7 +87,7 @@ resolving:
 remote_reg <- registry(
   package = "taxify",
   policy  = "current",
-  remote  = "https://gcol33.github.io/taxify/getaca-registry.rds",
+  remote  = "https://taxify.invalid/getaca-registry.rds",
   resources = list(rec)
 )
 remote_reg

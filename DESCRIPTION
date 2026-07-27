@@ -1,6 +1,6 @@
 Package: getaca
 Title: Reproducible External Data Dependencies for R Packages
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R:
     person("Gilles", "Colling", email = "gilles.colling051@gmail.com",
            role = c("aut", "cre", "cph"),
@@ -8,9 +8,12 @@ Authors@R:
 Language: en-GB
 Description: Declares, retrieves, verifies, tracks and actively manages
     external data dependencies for R packages. Resources are identified by
-    package, name and version, pinned to a SHA-256 checksum, and resolved
-    through an explicit policy so that the same installed package always
-    resolves the same bytes. Designed for reproducible offline use and
+    package, name and version, pinned to a Secure Hash Algorithm ('SHA-256')
+    checksum, and resolved through an explicit policy so that the same
+    installed package always resolves the same bytes. A registry served from
+    a remote host may be signed with Ed25519 and verified against a key the
+    declaring package ships, so the declaration and the key that vouches for
+    it arrive by different routes. Designed for reproducible offline use and
     graceful behaviour during R package checks.
 License: MIT + file LICENSE
 URL: https://gillescolling.com/getaca/, https://github.com/gcol33/getaca
