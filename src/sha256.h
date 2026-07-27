@@ -27,8 +27,9 @@ typedef struct {
 void sha256_backend_select(void);
 const char *sha256_backend_name(void);
 
-/* Every path compiled into this build, so all of them can be compared against
-   each other on whichever machine happens to be running the tests. */
+/* Every path this host can execute, so all of them can be compared against each
+   other on whichever machine happens to be running the tests. A path the build
+   compiled but the host would trap on is not among them. */
 int sha256_backend_count(void);
 const char *sha256_backend_at(int i);
 

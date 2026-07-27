@@ -51,8 +51,11 @@ test_that("hashing a file agrees with tools::sha256sum across the read chunk", {
 
 # A host selects one compression path and never exercises the others, so the
 # comparison has to be asked for explicitly or an accelerated machine would
-# never test the portable path it falls back to.
-test_that("every compiled compression path agrees with the others", {
+# never test the portable path it falls back to. What is enumerated is what this
+# host can execute, not what the build compiled: an x86 build always carries the
+# SHA-NI path, and driving it where the CPU or the emulator underneath cannot
+# decode it does not fail an expectation, it takes the session down with SIGILL.
+test_that("every compression path this host can run agrees with the others", {
   backends <- getaca:::sha256_backends()
   expect_true("portable" %in% backends)
   expect_true(getaca:::sha256_backend() %in% backends)

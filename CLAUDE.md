@@ -195,7 +195,7 @@ when touching the mirror loop in `R/download.R`.
   `R/verify.R`, both of which `.Call` into `src/sha256.c`. No `LinkingTo`, no Rcpp, no
   `configure`: the x86 SHA-NI path is a `target` attribute selected by CPUID at load, and the
   ARMv8 path compiles only where the compiler already targets the extension. A change to any
-  compression path must keep `test-digest.R` green, which holds each compiled path against the
+  compression path must keep `test-digest.R` green, which holds each runnable path against the
   FIPS 180-4 vectors, against every other path, and against `tools::sha256sum()` on R >= 4.6.0.
 - Signing uses `src/ed25519.c` and `src/sha512.c` on the same terms: plain C behind `.Call`,
   reached through the thin wrappers at the top of `R/signature.R`. The field arithmetic is

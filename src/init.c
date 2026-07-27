@@ -97,9 +97,8 @@ static SEXP sha256_file(SEXP path)
 
 /*
  * `backend` names which compression path to drive. NULL takes the one this
- * host selected; anything else lets the tests hold every compiled path against
- * the others on whichever machine is running them, since a machine only ever
- * selects one of them for itself.
+ * host selected; anything else lets the tests hold every path the host can run
+ * against the others, since a machine only ever selects one of them for itself.
  */
 static SEXP sha256_raw(SEXP bytes, SEXP backend)
 {
@@ -116,7 +115,7 @@ static SEXP sha256_raw(SEXP bytes, SEXP backend)
   } else {
     const char *name = Rf_translateChar(STRING_ELT(backend, 0));
     if (!sha256_start_with(&ctx, name)) {
-      Rf_error("getaca: no sha256 backend '%s' in this build", name);
+      Rf_error("getaca: no sha256 backend '%s' on this host", name);
     }
   }
 

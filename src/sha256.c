@@ -265,41 +265,63 @@ static void blocks_armce(uint32_t *state, const unsigned char *data, size_t nblo
 
 /* ------------------------------------------------------------------ dispatch */
 
-/* The portable path is first because it is the one every build has. */
+/*
+ * Compiling a path in is not the same as the host being able to run it. Every
+ * x86-64 build carries blocks_shani, because the compiler can always emit it,
+ * and a machine whose CPU lacks the SHA extension does not get a wrong digest
+ * from it: the first instruction traps and takes the session with it. So a
+ * path also carries the question of whether it can run here, and every answer
+ * below is drawn from the paths that can.
+ *
+ * The portable path is first because it is the one every build has, and the
+ * accelerated paths follow it, so the last runnable entry is the fastest one
+ * this host offers.
+ */
 static const struct {
   const char *name;
   sha256_blocks_fn fn;
+  /* NULL where compiling the path already settles it. */
+  int (*runnable)(void);
 } paths[] = {
-  {"portable",  blocks_plain},
+  {"portable",  blocks_plain, NULL},
 #ifdef GETACA_SHANI
-  {"x86-shani", blocks_shani},
+  {"x86-shani", blocks_shani, host_has_shani},
 #endif
 #ifdef GETACA_ARMCE
-  {"arm-sha2",  blocks_armce},
+  {"arm-sha2",  blocks_armce, NULL},
 #endif
-  {NULL, NULL}
+  {NULL, NULL, NULL}
 };
 
+#define PATH_COUNT ((int) (sizeof paths / sizeof paths[0]))
+
+/* Indices into paths[], settled once at load. The initial state names the
+   portable path alone, so a digest taken before the selection runs still has a
+   path it can execute. */
+static int runnable[PATH_COUNT];
+static int n_runnable = 1;
 static int selected = 0;
 
 static int find_path(const char *name)
 {
   int i;
-  for (i = 0; paths[i].name != NULL; i++) {
-    if (strcmp(paths[i].name, name) == 0) return i;
+  for (i = 0; i < n_runnable; i++) {
+    if (strcmp(paths[runnable[i]].name, name) == 0) return runnable[i];
   }
   return -1;
 }
 
 void sha256_backend_select(void)
 {
-  int i = -1;
-#ifdef GETACA_ARMCE
-  i = find_path("arm-sha2");
-#elif defined(GETACA_SHANI)
-  if (host_has_shani()) i = find_path("x86-shani");
-#endif
-  selected = (i < 0) ? 0 : i;
+  int i;
+
+  n_runnable = 0;
+  for (i = 0; paths[i].name != NULL; i++) {
+    if (paths[i].runnable == NULL || paths[i].runnable()) {
+      runnable[n_runnable++] = i;
+    }
+  }
+  selected = runnable[n_runnable - 1];
 }
 
 const char *sha256_backend_name(void)
@@ -309,15 +331,13 @@ const char *sha256_backend_name(void)
 
 int sha256_backend_count(void)
 {
-  int n = 0;
-  while (paths[n].name != NULL) n++;
-  return n;
+  return n_runnable;
 }
 
 const char *sha256_backend_at(int i)
 {
-  if (i < 0 || i >= sha256_backend_count()) return NULL;
-  return paths[i].name;
+  if (i < 0 || i >= n_runnable) return NULL;
+  return paths[runnable[i]].name;
 }
 
 /* ----------------------------------------------------------------- streaming */
