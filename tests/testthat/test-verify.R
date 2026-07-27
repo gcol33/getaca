@@ -67,6 +67,7 @@ test_that("an unchanged declaration still resolves from the cache", {
 })
 
 test_that("a processed slot is held to the declaration of the bytes behind it", {
+  local_fetchable()
   cache <- local_cache()
   src <- withr::local_tempdir()
   f <- seed_file(src)
@@ -99,6 +100,7 @@ test_that("a different version is a different resource, not a redeclaration", {
 })
 
 test_that("dropping the cached copy accepts the new declaration", {
+  local_fetchable()
   cache <- local_cache()
   src <- withr::local_tempdir()
   old <- seed_file(src, contents = "the old bytes")
@@ -155,6 +157,7 @@ test_that("a raw view outlives its blob and is still answerable for its bytes", 
 })
 
 test_that("a processed slot stays verifiable after its raw view is swept", {
+  local_fetchable()
   cache <- local_cache()
   src <- withr::local_tempdir()
   f <- seed_file(src)
@@ -168,6 +171,7 @@ test_that("a processed slot stays verifiable after its raw view is swept", {
 })
 
 test_that("an entry with nothing left to hash is refused, not called verified", {
+  local_fetchable()
   cache <- local_cache()
   src <- withr::local_tempdir()
   f <- seed_file(src)
@@ -194,6 +198,7 @@ test_that("an entry with nothing left to hash is refused, not called verified", 
 # them; a verdict on one slot's own copy has to reach no further.
 
 test_that("a mismatch in shared bytes withdraws every other slot's verification", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
   testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
@@ -219,6 +224,7 @@ test_that("a mismatch in shared bytes withdraws every other slot's verification"
 # which for a cache holding tens of gigabytes is the cost the shared verdict was
 # measured against avoiding.
 test_that("a mismatch reaches the bytes it is about and no others", {
+  local_fetchable()
   cache <- local_cache()
   src <- withr::local_tempdir()
   shared <- seed_file(src, contents = "the shared backbone", name = "shared.csv")
@@ -243,6 +249,7 @@ test_that("a mismatch reaches the bytes it is about and no others", {
 })
 
 test_that("a sharer that already has no stamp is left as it is", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
   testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
@@ -294,6 +301,7 @@ test_that("a mismatch in a slot's own copy says nothing about the shared bytes",
 })
 
 test_that("a processed tree failing its own check says nothing about them either", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
   testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")

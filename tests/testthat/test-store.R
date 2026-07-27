@@ -80,6 +80,7 @@ test_that("a link that cannot be made at all is reported, not returned", {
 })
 
 test_that("two packages declaring one file store it once and transfer it once", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
   transfers <- 0L
@@ -102,6 +103,7 @@ test_that("two packages declaring one file store it once and transfer it once", 
 })
 
 test_that("each package keeps its own record of shared bytes", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
   testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
@@ -133,6 +135,7 @@ test_that("bytes nothing declares are swept, and bytes something declares are no
 })
 
 test_that("one package's sweep never takes bytes another package still names", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
   testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
@@ -163,6 +166,7 @@ test_that("a blob under an active lock survives a sweep that cannot see its entr
 })
 
 test_that("the size ceiling counts shared bytes once", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = strrep("x", 500))
   testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
@@ -176,6 +180,7 @@ test_that("the size ceiling counts shared bytes once", {
 })
 
 test_that("eviction frees the bytes only when it removes the last name for them", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = strrep("x", 500))
   testthat::local_mocked_bindings(try_one = serves_file(f), .package = "getaca")
@@ -191,6 +196,7 @@ test_that("eviction frees the bytes only when it removes the last name for them"
 })
 
 test_that("a copy left in a slot is adopted rather than downloaded again", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   reg <- demo_registry(f$sha256)
@@ -212,6 +218,7 @@ test_that("a copy left in a slot is adopted rather than downloaded again", {
 })
 
 test_that("a slot holding the wrong bytes is refetched rather than adopted", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   reg <- demo_registry(f$sha256)

@@ -23,6 +23,7 @@ processed_registry <- function(sha, proc = unpacker()) {
 }
 
 test_that("a processed result gets its own slot and its own provenance", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   reg <- processed_registry(f$sha256)
@@ -37,6 +38,7 @@ test_that("a processed result gets its own slot and its own provenance", {
 })
 
 test_that("the raw artefact stays reachable beside the processed one", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   reg <- processed_registry(f$sha256)
@@ -51,6 +53,7 @@ test_that("the raw artefact stays reachable beside the processed one", {
 })
 
 test_that("changing the processor id gives the result a different slot", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   testthat::local_mocked_bindings(try_one = serves(f), .package = "getaca")
@@ -66,6 +69,7 @@ test_that("changing the processor id gives the result a different slot", {
 })
 
 test_that("a failing processor names itself and the resource it was applied to", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   boom <- processor("boom", function(input, output_dir) stop("could not unpack"))
@@ -91,6 +95,7 @@ test_that("a failed processor leaves no staging directory behind", {
 })
 
 test_that("a processed resource re-verifies against its raw artefact", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   reg <- processed_registry(f$sha256)
@@ -104,6 +109,7 @@ test_that("a processed resource re-verifies against its raw artefact", {
 # staging tree, so a result naming anything outside that tree is not a path the
 # rename can carry over and is refused rather than rewritten.
 test_that("a processor returning a path outside its output directory is refused", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   elsewhere <- withr::local_tempdir()
@@ -118,6 +124,7 @@ test_that("a processor returning a path outside its output directory is refused"
 })
 
 test_that("a processed result that cannot be promoted leaves no staging tree", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   id <- resource_id("demopkg", "res", "1.0")
@@ -136,6 +143,7 @@ test_that("a processed result that cannot be promoted leaves no staging tree", {
 # Reprocessing replaces the slot rather than merging into it, so a stale tree
 # from an earlier run cannot leave files the current processor did not write.
 test_that("processing again replaces the slot it wrote before", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   id <- resource_id("demopkg", "res", "1.0")
@@ -156,6 +164,7 @@ test_that("processing again replaces the slot it wrote before", {
 })
 
 test_that("prefetch warms every resource a registry declares", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   reg <- registry("demopkg", list(
@@ -172,6 +181,7 @@ test_that("prefetch warms every resource a registry declares", {
 })
 
 test_that("prefetching a named subset leaves the rest alone", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   reg <- registry("demopkg", list(

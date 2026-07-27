@@ -14,6 +14,17 @@ local_registries <- function(env = parent.frame()) {
   withr::defer(getaca::getaca_refresh(), envir = env)
 }
 
+# Resolution collapses to offline under R CMD check, and `in_r_check()` is read
+# inside `effective_policy()` so that no argument or option can route around it.
+# A test driving a fetch through an injected transport therefore has to set the
+# clamp aside, and NOT_CRAN is the only thing that does. Kept apart from
+# local_cache() so that releasing the clamp is always something a test states,
+# never something it inherits from having asked for a cache; a test asserting
+# that the clamp holds sets the variables it needs itself and is unaffected.
+local_fetchable <- function(env = parent.frame()) {
+  withr::local_envvar(list(NOT_CRAN = "true"), .local_envir = env)
+}
+
 # Skips unless this is a run where reaching the network is both allowed and
 # possible, and releases the check clamp for the duration. The host tested is
 # the one the fixtures are served from, so an outage there skips rather than

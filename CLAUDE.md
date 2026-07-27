@@ -172,6 +172,16 @@ when touching the mirror loop in `R/download.R`.
 
 - `local_cache()` points `getaca.cache` at a temp dir; every test that touches the cache calls
   it. Nothing may write to the real `R_user_dir`.
+- `local_fetchable()` releases the check clamp, and any test that drives a fetch calls it
+  first. Invariant 3 collapses resolution to `offline` under `R CMD check`, so without it a
+  test reaching `getaca()` through an injected transport gets `err_offline()` rather than the
+  behaviour it is asserting. `NOT_CRAN` is the only lever, by design. It is deliberately not
+  folded into `local_cache()`: releasing the clamp is something a test states, never something
+  it inherits from having asked for a cache, and a test asserting that the clamp *holds* sets
+  the variables it needs itself. In `test-network.R` the release belongs to `online_only()`
+  and must stay after its `skip_on_cran()`, which reads the same variable.
+  A plain `R CMD check` with `NOT_CRAN` unset is what CRAN runs and what catches a test that
+  forgot; `r-lib/actions` and `devtools::test()` both set it, so neither will.
 - `local_registries()` clears the two session caches (`registry_cache` in `R/registry.R`,
   `remote_cache` in `R/resolve.R`) before and after. Any test resolving through a package or
   a remote needs it.

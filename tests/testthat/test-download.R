@@ -354,6 +354,7 @@ test_that("an interrupted transfer keeps its partial for the next attempt", {
 })
 
 test_that("an end-to-end retrieval records the mirror that served it", {
+  local_fetchable()
   cache <- local_cache()
   reg <- registry("demopkg", list(
     fake_record("payload", c("https://a.invalid/f.csv", "https://b.invalid/f.csv"))

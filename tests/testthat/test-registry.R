@@ -322,6 +322,7 @@ test_that("a discovered registry is read once per session", {
 })
 
 test_that("retrieval reaches a declaring package by name alone", {
+  local_fetchable()
   local_registries()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")

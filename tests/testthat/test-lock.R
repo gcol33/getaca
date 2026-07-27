@@ -38,6 +38,7 @@ test_that("a lock names its own removal in the timeout message", {
 # they were about to start. The entry is therefore read again after the wait,
 # and the waiter serves what arrived rather than fetching it a second time.
 test_that("a resource another session completed during the wait is not fetched again", {
+  local_fetchable()
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   reg <- demo_registry(f$sha256)
