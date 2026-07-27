@@ -46,6 +46,19 @@ Which record a name resolves to
 - [`getaca_pin()`](https://gillescolling.com/getaca/reference/getaca_pin.md)
   : Freeze current resolution into a pin file
 
+## Signing
+
+Who a remote registry came from
+
+- [`getaca-signing`](https://gillescolling.com/getaca/reference/getaca-signing.md)
+  : Signing a registry
+- [`registry_keygen()`](https://gillescolling.com/getaca/reference/registry_keygen.md)
+  : Create a signing key
+- [`registry_sign()`](https://gillescolling.com/getaca/reference/registry_sign.md)
+  : Sign a registry file
+- [`registry_verify()`](https://gillescolling.com/getaca/reference/registry_verify.md)
+  : Verify a signed registry file
+
 ## Checks and Offline Use
 
 Behaving during R CMD check

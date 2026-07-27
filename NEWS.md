@@ -62,6 +62,28 @@ released.
   and verified, so a version that only ever existed remotely is held to its
   bytes as firmly as one that shipped with the package.
 
+## Signing
+* `registry(keys = )` declares the Ed25519 public keys allowed to sign a
+  package's remote registry, and `registry_keygen()`, `registry_sign()` and
+  `registry_verify()` are the author-side workflow. Declaring a key makes a
+  signature mandatory under the `current` policy; declaring none leaves
+  resolution exactly as it was, and no signature is ever fetched.
+* The keys trusted are the ones in the registry the package *ships*, which
+  reaches a user over the R install channel while the remote registry comes
+  from the author's own host. A signature is worth something because those are
+  two different routes.
+* The signature covers `registry_manifest()`, plus the publication time and an
+  expiry. Binding the time is what stops an old genuine declaration being
+  replayed indefinitely; a state older than the installed one is refused as a
+  rollback.
+* A remote that cannot be reached still falls back to the bundled registry with
+  a message. A remote that arrives and fails verification raises
+  `getaca_error_signature` instead, including when the registry arrives and its
+  signature does not.
+* Ed25519 and SHA-512 are implemented in C, in `src/ed25519.c` and
+  `src/sha512.c`, checked against RFC 8032 and FIPS 180-4. No new dependency:
+  `Imports` remains `curl` plus three base packages.
+
 ## Retrieval
 * `getaca()`: the single retrieval verb. Returns a local path.
 * Resumable transfers into a temporary area, sized and hashed before an atomic

@@ -92,6 +92,13 @@ reference:
   - resolve_resource
   - getaca_policy
   - getaca_pin
+- title: Signing
+  desc: Who a remote registry came from
+  contents:
+  - getaca-signing
+  - registry_keygen
+  - registry_sign
+  - registry_verify
 - title: Checks and Offline Use
   desc: Behaving during R CMD check
   contents:

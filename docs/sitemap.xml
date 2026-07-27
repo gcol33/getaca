@@ -23,6 +23,7 @@
 <url><loc>https://gillescolling.com/getaca/reference/getaca-gc.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-locking.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-package.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/getaca-signing.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-store.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-transfer.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-verification.html</loc></url>
@@ -40,7 +41,10 @@
 <url><loc>https://gillescolling.com/getaca/reference/registry.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/registry_digest.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/registry_for.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/registry_keygen.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/registry_manifest.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/registry_sign.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/registry_verify.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/registry_write.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/resolve_resource.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/resource.html</loc></url>

@@ -27,7 +27,19 @@ actor: author.}
 inconsistent registry. actor: author.}
 \item{\code{getaca_error_declaration}}{Several independent mirrors agreed with
 each other and disagreed with the declared checksum. actor: author.}
+\item{\code{getaca_error_signature}}{A registry that must be signed carried no
+usable signature from a trusted key. actor: author.}
 }
+}
+
+\section{Reachability and authenticity}{
+
+A remote registry that cannot be reached is an availability problem, and
+resolution falls back to the bundled declaration with a message. A remote
+registry that arrives and fails its signature is an integrity problem, and
+resolution stops. The two are deliberately not the same: falling back on a
+failed signature would work, in that the bundled registry is trustworthy,
+but it would silently discard the one event the signature exists to report.
 }
 
 \keyword{internal}

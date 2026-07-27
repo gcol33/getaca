@@ -21,6 +21,7 @@
 #' getaca-manifest 1
 #' package taxify
 #' remote https://taxify.example.org/registry.rds
+#' key ed25519:9f8a...
 #' current wfo 2026-09
 #' resource wfo 2026-06
 #'   sha256 3f9ac2...
@@ -34,9 +35,18 @@
 #'
 #' Resources are sorted by `name@version` in the C locale, so the same
 #' declaration renders identically wherever it is read. URLs keep declaration
-#' order, which is load-bearing: mirrors are tried in the order given. Absent
-#' and `NA` fields are omitted rather than rendered as empty, since a key that
-#' is present carries a value by construction.
+#' order, which is load-bearing: mirrors are tried in the order given. Signing
+#' keys are sorted, since which one signs is a fact about the signature rather
+#' than about the declaration. Absent and `NA` fields are omitted rather than
+#' rendered as empty, since a key that is present carries a value by
+#' construction.
+#'
+#' Rendering an absent field as nothing is what let signing keys join the
+#' manifest without a new format version. A registry declaring none renders
+#' exactly the bytes it always did, so every digest recorded before keys
+#' existed still identifies the state that produced it. Only a registry that
+#' actually carries a key renders a line for one, and none did before the field
+#' existed.
 #'
 #' @section What is left out:
 #' `created` and `policy` are not part of the declaration. `created` says when
@@ -65,6 +75,7 @@ registry_manifest <- function(registry) {
     paste("getaca-manifest", MANIFEST_FORMAT),
     manifest_line("package", registry$package),
     manifest_line("remote", registry$remote),
+    manifest_line("key", manifest_order_values(registry$keys)),
     manifest_current(registry$current),
     unlist(lapply(manifest_sorted(registry$resources), manifest_resource),
            use.names = FALSE)
@@ -179,6 +190,11 @@ manifest_size <- function(size) {
 # the collation locale, which would make a registry's identity depend on the
 # machine that read it.
 manifest_order <- function(x) order(x, method = "radix")
+
+manifest_order_values <- function(x) {
+  if (is.null(x) || !length(x)) return(NULL)
+  x[manifest_order(x)]
+}
 
 manifest_sorted <- function(resources) {
   keys <- vapply(resources, function(r) paste0(r$name, "@", r$version), character(1))

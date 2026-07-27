@@ -23,6 +23,13 @@
 #'   `c(wfo = "2026-09")`. Required for any name declaring more than one
 #'   version, and optional for the rest, since a name with one version has only
 #'   one answer.
+#' @param keys Public keys, from [registry_keygen()], that may sign this
+#'   package's remote registry. Declaring any of them makes a signature
+#'   mandatory under the `"current"` policy: an unsigned or unverifiable remote
+#'   registry is then refused rather than used. The keys trusted are the ones in
+#'   the registry the *package ships*, which reaches a user by a different route
+#'   than the remote does, and that is what a signature rests on. See
+#'   [getaca-signing].
 #'
 #' @section Identity:
 #' A registry state is identified by [registry_digest()], derived from the
@@ -69,7 +76,7 @@
 #' )
 registry <- function(package, resources, remote = NULL,
                      policy = c("bundled", "current", "pinned", "offline"),
-                     current = NULL) {
+                     current = NULL, keys = NULL) {
   policy <- match.arg(policy)
   stopifnot(is_string(package))
   if (!is.list(resources)) resources <- list(resources)
@@ -85,6 +92,7 @@ registry <- function(package, resources, remote = NULL,
       remote = remote,
       policy = policy,
       current = as_channel_heads(current),
+      keys = if (length(keys)) unique(as.character(keys)) else NULL,
       resources = resources
     ),
     class = "getaca_registry"
@@ -94,7 +102,7 @@ registry <- function(package, resources, remote = NULL,
   reg
 }
 
-REGISTRY_SCHEMA <- 1L
+REGISTRY_SCHEMA <- 2L
 
 validate_registry <- function(x) {
   p <- character()
@@ -126,7 +134,20 @@ validate_registry <- function(x) {
   if (!is.null(x$remote) && !grepl("^https://", x$remote)) {
     p <- c(p, "`remote` must be an https URL")
   }
+  p <- c(p, validate_keys(x$keys))
   p
+}
+
+# A key that cannot be parsed is refused on the author's machine rather than
+# on every user's, where it would present as an unverifiable remote registry.
+validate_keys <- function(keys) {
+  if (is.null(keys) || !length(keys)) return(character())
+  if (!is.character(keys)) {
+    return("`keys` must be public keys as returned by registry_keygen()")
+  }
+  bad <- keys[!vapply(keys, is_public_key, logical(1))]
+  if (!length(bad)) return(character())
+  sprintf("'%s' is not a public key of the form \"ed25519:<64 hex characters>\"", bad)
 }
 
 as_channel_heads <- function(current) {
@@ -187,6 +208,7 @@ print.getaca_registry <- function(x, ...) {
     cat("  created: ", format(x$created, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
   }
   if (!is.null(x$remote)) cat("  remote: ", x$remote, "\n", sep = "")
+  for (k in x$keys) cat("  signed by: ", short_key(k), "\n", sep = "")
   for (r in x$resources) {
     head <- identical(channel_head(x, r$name), r$version)
     cat("  - ", format(r), if (head) "  (current)", "\n", sep = "")

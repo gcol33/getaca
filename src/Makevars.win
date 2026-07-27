@@ -1,0 +1,2 @@
+# BCryptGenRandom, which is where a signing key's seed comes from on Windows.
+PKG_LIBS = -lbcrypt

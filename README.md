@@ -148,6 +148,32 @@ registry. The one mistake this design is exposed to, appending `2026-03` below
 `2026-09` and moving every user backwards, becomes an error at `registry()` on
 the author's machine.
 
+## Signing what you publish
+
+A remote registry can be signed, so a user's session can tell your declaration
+from whatever else the host might one day serve:
+
+```r
+public <- registry_keygen("~/.keys/taxify.key")   # once, kept out of the repo
+
+registry(package = "taxify", remote = "https://host.example/taxify.rds",
+         keys = public, resources = list(...))
+
+registry_write(reg, "publish/taxify.rds")
+registry_sign("publish/taxify.rds", key = "~/.keys/taxify.key")
+```
+
+The key travels in the registry your package ships and the declaration comes
+from your host, so the two reach a user by different routes. That is what a
+signature rests on, and it is why the public key belongs in the installed
+package rather than beside the file it vouches for.
+
+The signature covers the declaration, when it was published, and when it stops
+being accepted, so an old registry cannot be replayed in place of the current
+one. A host that cannot be reached still falls back to the bundled declaration;
+a registry that arrives and fails its signature stops instead. Declaring no
+keys leaves everything as it was.
+
 ## Declaring the backbones
 
 The declaration `taxify` ships, in full:

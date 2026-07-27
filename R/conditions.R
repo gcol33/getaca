@@ -22,7 +22,17 @@
 #'     inconsistent registry. actor: author.}
 #'   \item{`getaca_error_declaration`}{Several independent mirrors agreed with
 #'     each other and disagreed with the declared checksum. actor: author.}
+#'   \item{`getaca_error_signature`}{A registry that must be signed carried no
+#'     usable signature from a trusted key. actor: author.}
 #' }
+#'
+#' @section Reachability and authenticity:
+#' A remote registry that cannot be reached is an availability problem, and
+#' resolution falls back to the bundled declaration with a message. A remote
+#' registry that arrives and fails its signature is an integrity problem, and
+#' resolution stops. The two are deliberately not the same: falling back on a
+#' failed signature would work, in that the bundled registry is trustworthy,
+#' but it would silently discard the one event the signature exists to report.
 #'
 #' @name getaca-conditions
 #' @keywords internal
@@ -156,6 +166,26 @@ err_invalid_registry <- function(problems, package = NULL, call = NULL) {
     ),
     actor = "author",
     data = list(problems = problems, package = package),
+    call = call
+  )
+}
+
+err_signature <- function(package, problem, url = NULL, call = NULL) {
+  getaca_abort(
+    "getaca_error_signature",
+    c(
+      sprintf("The registry for '%s' could not be established as authentic.", package),
+      sprintf("  %s", problem),
+      if (!is.null(url)) sprintf("  source: %s", url),
+      "",
+      "This package declares signing keys, so a remote registry that cannot be",
+      "checked against one is refused rather than used. The bundled declaration",
+      "the package ships is unaffected and still resolves.",
+      "",
+      sprintf("Action: getaca_policy(\"bundled\") resolves through it for this session.")
+    ),
+    actor = "author",
+    data = list(package = package, problem = problem, url = url),
     call = call
   )
 }

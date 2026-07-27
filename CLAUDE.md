@@ -79,8 +79,10 @@ downstream deals only in records. `assert_immutable()` in `R/resolve.R` is what 
 remote registry or pin file that redefines a published version.
 
 **Adjudication vs transport.** `fetch_to_temp(transport = try_one)`, `remote_channel(fetch =
-fetch_registry)`, `move_file(rename = file.rename)` and `materialise(link = link_file)` all
-take the I/O as an argument. Which mirror to trust, which registry state wins, what a failed
+fetch_registry)`, `assert_signed(fetch = fetch_registry)`, `move_file(rename = file.rename)`
+and `materialise(link = link_file)` all take the I/O as an argument. `signature_problem()`
+goes further and takes no I/O at all: it is handed a parsed signature, a registry, a key set
+and a clock, so every way a signature can fail is reachable without a file or a network. Which mirror to trust, which registry state wins, what a failed
 rename means and what happens on a filesystem that refuses links are all testable without a
 network or a second volume; only `test-network.R` moves real bytes.
 
@@ -89,7 +91,8 @@ network or a second volume; only `test-network.R` moves real bytes.
 | `R/resource.R` | `resource()`, `resource_id()`, `processor()`, record validation |
 | `R/registry.R` | `registry()` + validation, read/write, `registry_for()`, `as_registry()`, `getaca_refresh()` |
 | `R/manifest.R` | canonical text form and `registry_digest()` |
-| `R/resolve.R` | policy dispatch, remote channel, pin file, immutability assertion |
+| `R/resolve.R` | policy dispatch, remote channel, pin file, immutability assertion, signature gate |
+| `R/signature.R` | Ed25519 key and signature files, `registry_sign()`, `registry_verify()`, the verification adjudication |
 | `R/fetch.R` | `getaca()`, processor application, `getaca_info()`, `getaca_catalogue()`, prefetch |
 | `R/download.R` | mirror loop, resume, HTTP failure classification, promotion |
 | `R/store.R` | the content-addressed store: admit, materialise, seal, remove, reachability |
@@ -114,6 +117,16 @@ Changing any of these is a design decision that belongs in a `dev_notes/adr-*.md
    the store only through `admit()`, after sizing and hashing in `.tmp/`.
 3. Resolution collapses to `offline` under `R CMD check`. `in_r_check()` is checked inside
    `effective_policy()`, so no argument or option can route around it.
+4. The keys that may vouch for a remote registry are the ones in the registry the *package
+   ships*, never the ones in the registry that arrived. A declaration nominating the keys
+   allowed to sign it would vouch for itself. `assert_signed()` in `R/resolve.R` reads
+   `bundled$keys` for that reason, and a rotation therefore needs a release. See
+   `dev_notes/adr-006-signed-registries.md`.
+5. Unreachable and unverifiable are different failures. A remote that cannot be reached falls
+   back to bundled with a message; a remote that arrives and fails its signature raises
+   `getaca_error_signature`. A registry arriving without its signature is the second, since
+   one host serves both, and treating it as an outage would let whoever serves it decide
+   whether the check runs.
 
 Policy precedence, in `effective_policy()`: check clamp / `GETACA_OFFLINE` → option
 `getaca.policy` → env `GETACA_POLICY` → the registry's own `policy` → `"bundled"`. All other
@@ -129,10 +142,12 @@ settings go through `getaca_setting()`, which reads `getOption("getaca.<name>")`
   holds a closure, which digests differently per machine.
 - `created`, `policy` and `description` are deliberately outside the manifest. Editing any of
   them must not change a digest already recorded in someone's provenance.
-- Two version counters move independently: `REGISTRY_SCHEMA` (`R/registry.R`) for the stored
-  form, `MANIFEST_FORMAT` (`R/manifest.R`) for the rendering. A newer schema is refused; an
-  older one is read. Changing manifest rendering invalidates every digest ever recorded, so
-  it needs the format bump and an ADR.
+- Three version counters move independently: `REGISTRY_SCHEMA` (`R/registry.R`) for the
+  stored form, `MANIFEST_FORMAT` (`R/manifest.R`) for the rendering, and `SIGNATURE_FORMAT`
+  (`R/signature.R`) for the detached signature file. A newer schema or signature format is
+  refused; an older schema is read. Changing manifest rendering invalidates every digest ever
+  recorded, so it needs the format bump and an ADR. Adding a field that renders nothing when
+  absent does not, which is how signing keys joined the manifest at format 1.
 - A resource name declaring more than one version must name a head in `current =`. A headless
   multi-version name is refused at `registry()`, on the author's machine.
 
@@ -173,6 +188,12 @@ when touching the mirror loop in `R/download.R`.
   ARMv8 path compiles only where the compiler already targets the extension. A change to any
   compression path must keep `test-digest.R` green, which holds each compiled path against the
   FIPS 180-4 vectors, against every other path, and against `tools::sha256sum()` on R >= 4.6.0.
+- Signing uses `src/ed25519.c` and `src/sha512.c` on the same terms: plain C behind `.Call`,
+  reached through the thin wrappers at the top of `R/signature.R`. The field arithmetic is
+  TweetNaCl-derived and public domain (`inst/COPYRIGHTS`); the detached entry points, the
+  canonical-scalar check and the OS random source are not. `src/Makevars.win` exists only for
+  `-lbcrypt`. `test-ed25519.R` holds all of it against RFC 8032 and FIPS 180-4 rather than
+  against itself.
 - `Depends: R (>= 4.0.0)`, set by `tools::R_user_dir()`. Nothing in `R/` needs more.
 - Base R, no pipes, explicit `package::function()` for anything outside base.
 - Comments explain domain reasoning only. Design decisions and history belong in

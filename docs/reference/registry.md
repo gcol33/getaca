@@ -12,7 +12,8 @@ registry(
   resources,
   remote = NULL,
   policy = c("bundled", "current", "pinned", "offline"),
-  current = NULL
+  current = NULL,
+  keys = NULL
 )
 ```
 
@@ -49,6 +50,18 @@ registry(
   request for each resource name resolves to, as `c(wfo = "2026-09")`.
   Required for any name declaring more than one version, and optional
   for the rest, since a name with one version has only one answer.
+
+- keys:
+
+  Public keys, from
+  [`registry_keygen()`](https://gillescolling.com/getaca/reference/registry_keygen.md),
+  that may sign this package's remote registry. Declaring any of them
+  makes a signature mandatory under the `"current"` policy: an unsigned
+  or unverifiable remote registry is then refused rather than used. The
+  keys trusted are the ones in the registry the *package ships*, which
+  reaches a user by a different route than the remote does, and that is
+  what a signature rests on. See
+  [getaca-signing](https://gillescolling.com/getaca/reference/getaca-signing.md).
 
 ## Value
 

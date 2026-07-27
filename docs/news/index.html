@@ -106,6 +106,15 @@
 <li>Remote channels may repair mirrors and publish new versions; redefining a published version is rejected as an invalid registry. Published means the bundled declaration together with whatever this machine has already fetched and verified, so a version that only ever existed remotely is held to its bytes as firmly as one that shipped with the package.</li>
 </ul></div>
 <div class="section level3">
+<h3 id="signing-0-0-0-9000">Signing<a class="anchor" aria-label="anchor" href="#signing-0-0-0-9000"></a></h3>
+<ul><li>
+<code>registry(keys = )</code> declares the Ed25519 public keys allowed to sign a package’s remote registry, and <code><a href="../reference/registry_keygen.html">registry_keygen()</a></code>, <code><a href="../reference/registry_sign.html">registry_sign()</a></code> and <code><a href="../reference/registry_verify.html">registry_verify()</a></code> are the author-side workflow. Declaring a key makes a signature mandatory under the <code>current</code> policy; declaring none leaves resolution exactly as it was, and no signature is ever fetched.</li>
+<li>The keys trusted are the ones in the registry the package <em>ships</em>, which reaches a user over the R install channel while the remote registry comes from the author’s own host. A signature is worth something because those are two different routes.</li>
+<li>The signature covers <code><a href="../reference/registry_manifest.html">registry_manifest()</a></code>, plus the publication time and an expiry. Binding the time is what stops an old genuine declaration being replayed indefinitely; a state older than the installed one is refused as a rollback.</li>
+<li>A remote that cannot be reached still falls back to the bundled registry with a message. A remote that arrives and fails verification raises <code>getaca_error_signature</code> instead, including when the registry arrives and its signature does not.</li>
+<li>Ed25519 and SHA-512 are implemented in C, in <code>src/ed25519.c</code> and <code>src/sha512.c</code>, checked against RFC 8032 and FIPS 180-4. No new dependency: <code>Imports</code> remains <code>curl</code> plus three base packages.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="retrieval-0-0-0-9000">Retrieval<a class="anchor" aria-label="anchor" href="#retrieval-0-0-0-9000"></a></h3>
 <ul><li>
 <code><a href="../reference/getaca.html">getaca()</a></code>: the single retrieval verb. Returns a local path.</li>

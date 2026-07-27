@@ -257,10 +257,25 @@
 <p>A name offering several versions and naming no head is refused as an invalid registry. The one mistake this design is exposed to, appending <code>2026-03</code> below <code>2026-09</code> and moving every user backwards, becomes an error at <code><a href="reference/registry.html">registry()</a></code> on the author’s machine.</p>
 </div>
 <div class="section level2">
+<h2 id="signing-what-you-publish">Signing what you publish<a class="anchor" aria-label="anchor" href="#signing-what-you-publish"></a>
+</h2>
+<p>A remote registry can be signed, so a user’s session can tell your declaration from whatever else the host might one day serve:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">public</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/registry_keygen.html">registry_keygen</a></span><span class="op">(</span><span class="st">"~/.keys/taxify.key"</span><span class="op">)</span>   <span class="co"># once, kept out of the repo</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/registry.html">registry</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span>, remote <span class="op">=</span> <span class="st">"https://host.example/taxify.rds"</span>,</span>
+<span>         keys <span class="op">=</span> <span class="va">public</span>, resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">...</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg</span>, <span class="st">"publish/taxify.rds"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/registry_sign.html">registry_sign</a></span><span class="op">(</span><span class="st">"publish/taxify.rds"</span>, key <span class="op">=</span> <span class="st">"~/.keys/taxify.key"</span><span class="op">)</span></span></code></pre></div>
+<p>The key travels in the registry your package ships and the declaration comes from your host, so the two reach a user by different routes. That is what a signature rests on, and it is why the public key belongs in the installed package rather than beside the file it vouches for.</p>
+<p>The signature covers the declaration, when it was published, and when it stops being accepted, so an old registry cannot be replayed in place of the current one. A host that cannot be reached still falls back to the bundled declaration; a registry that arrives and fails its signature stops instead. Declaring no keys leaves everything as it was.</p>
+</div>
+<div class="section level2">
 <h2 id="declaring-the-backbones">Declaring the backbones<a class="anchor" aria-label="anchor" href="#declaring-the-backbones"></a>
 </h2>
 <p>The declaration <code>taxify</code> ships, in full:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># data-raw/registry.R, run at build time</span></span>
 <span><span class="fu"><a href="reference/registry_write.html">registry_write</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="reference/registry.html">registry</a></span><span class="op">(</span></span>
@@ -281,7 +296,7 @@
 <span>  <span class="st">"inst/getaca/registry.rds"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Installing the package copies a few kilobytes. The first real call retrieves, verifies and caches:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span></code></pre></div>
 <p>What each part of the declaration buys:</p>
 <ul>
@@ -341,7 +356,7 @@
 <div class="section level2">
 <h2 id="provenance-and-what-is-cached">Provenance, and what is cached<a class="anchor" aria-label="anchor" href="#provenance-and-what-is-cached"></a>
 </h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;getaca cache entry&gt; taxify/wfo@2026-06</span></span>
 <span><span class="co">#&gt;   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.vtr</span></span>
@@ -359,7 +374,7 @@
 <span><span class="co">#&gt;   checked     2026-07-26 15:31:02 (size and mtime)</span></span></code></pre></div>
 <p>That is a reproducibility appendix, and a bug report that says which mirror served the bytes and which registry state chose them. The registry digest is derived from the declaration itself, so it identifies that state exactly.</p>
 <p><code><a href="reference/getaca_catalogue.html">getaca_catalogue()</a></code> widens it to a data frame covering both halves, every resource the installed packages declare and every copy the cache holds:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"package"</span>, <span class="st">"name"</span>, <span class="st">"version"</span>, <span class="st">"current"</span>, <span class="st">"declared"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   package name version current declared cached</span></span>
 <span><span class="co">#&gt; 1  taxify  wfo 2026-06    TRUE     TRUE   TRUE</span></span>
@@ -371,7 +386,7 @@
 <h2 id="processors">Processors<a class="anchor" aria-label="anchor" href="#processors"></a>
 </h2>
 <p>A processor turns one verified path into another: unpacking an archive, or preparing a package-specific layout. It carries an id, so the processed result gets its own cache slot and its own provenance.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-06"</span>,</span>
 <span>         urls <span class="op">=</span> <span class="st">"https://example.org/wfo-2026-06.zip"</span>,</span>
 <span>         sha256 <span class="op">=</span> <span class="st">"9f2c..."</span>,</span>
@@ -386,7 +401,7 @@
 </h2>
 <p>CRAN permits <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> on condition that contents are “actively managed (including removing outdated material)”. <code>getaca</code> reads that as a retention policy, and collects after every successful retrieval.</p>
 <p>Removal runs cheapest and safest first: broken material, abandoned transfers, superseded versions past their retention window, least-recently-used entries once over the size ceiling, and finally bytes that no declaration references any more. Superseded and not-recently-used age on separate clocks, so an expensive resource is never dropped merely for being old. Pinned entries, the version the bundled registry names, and anything under an active lock are never touched.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>      <span class="co"># what would go, and why</span></span>
 <span><span class="fu"><a href="reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>   <span class="co"># exempt this one permanently</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.max_bytes <span class="op">=</span> <span class="fl">50</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span><span class="op">)</span>  <span class="co"># raise the ceiling</span></span></code></pre></div>
@@ -491,7 +506,7 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/getaca"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -528,12 +543,12 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb13"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co">@software{getaca,</span></span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">  title = {getaca: Reproducible External Data Dependencies for R Packages},</span></span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">  url = {https://github.com/gcol33/getaca}</span></span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co">@software{getaca,</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">  title = {getaca: Reproducible External Data Dependencies for R Packages},</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">  url = {https://github.com/gcol33/getaca}</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

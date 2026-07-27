@@ -1,0 +1,17 @@
+The getaca package as a whole is distributed under the MIT licence recorded in
+the LICENSE file, with the following exception.
+
+src/ed25519.c
+-------------
+
+The Curve25519 field arithmetic, the extended-coordinate point addition, the
+Montgomery ladder and the scalar reduction modulo the group order are derived
+from TweetNaCl version 20140427, by Daniel J. Bernstein, Bernard van Gastel,
+Wesley Janssen, Tanja Lange, Peter Schwabe and Sjaak Smetsers.
+
+TweetNaCl is released into the public domain by its authors. See
+https://tweetnacl.cr.yp.to/.
+
+The derived work adds detached signature entry points, a canonicality check on
+the scalar half of a signature, streaming message input, and an operating
+system random source, and is distributed under the licence of the package.

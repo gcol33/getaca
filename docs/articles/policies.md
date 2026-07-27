@@ -199,6 +199,110 @@ Users on `current` follow the head on their next session. Users on
 version keep that version under every policy, which is the escape hatch
 an analysis needs.
 
+### Signing a remote channel
+
+The rules above bound what a remote registry can do. They say nothing
+about who wrote it, and a registry sits on a host that can change hands.
+Signing answers that, and it works because of where the key lives: the
+public key travels inside the registry your package *ships*, which a
+user installs from CRAN, while the remote registry comes from your own
+host. Someone who takes the host does not thereby have the key.
+
+Make a key once, and keep the secret half outside the package source
+tree:
+
+``` r
+
+secret <- file.path(tempdir(), "taxify-signing.key")
+public <- registry_keygen(secret)
+substr(public, 1, 24)
+#> [1] "ed25519:2421fd45b025b975"
+```
+
+Declare the public half in the registry the package ships:
+
+``` r
+
+signed <- registry(
+  package = "taxify",
+  remote = "https://host.invalid/taxify.rds",
+  keys = public,
+  resources = list(
+    resource("wfo", "2026-06", urls = "https://host.invalid/wfo-2026-06.zip",
+             sha256 = strrep("9f", 32), license = "CC-BY-4.0")
+  )
+)
+```
+
+Then write and sign whatever you publish. Sign after writing: writing is
+what stamps the publication time, and the signature binds it.
+
+``` r
+
+path <- file.path(tempdir(), "taxify.rds")
+registry_write(signed, path)
+registry_sign(path, key = secret)
+
+cat(readLines(paste0(path, ".sig"))[1:4], sep = "\n")
+#> getaca-signature 1
+#> digest sha256:f64d60ab008f988150c9914cff7d5e5ea76c414fce0cfb6a3eb448068244d19c
+#> created 2026-07-27T09:47:27Z
+#> expires 2026-10-25T09:47:27Z
+```
+
+Upload the `.sig` beside the registry; getaca fetches it from the
+registry’s own URL with `.sig` appended.
+[`registry_verify()`](https://gillescolling.com/getaca/reference/registry_verify.md)
+runs the same check a user’s session will, which is worth doing before
+publishing:
+
+``` r
+
+registry_verify(path)
+```
+
+Editing the registry after signing breaks the link, which is the whole
+point:
+
+``` r
+
+moved <- signed
+moved$resources[[1]]$urls <- "https://elsewhere.invalid/wfo-2026-06.zip"
+saveRDS(moved, path, version = 3)
+registry_verify(path)
+#> Error:
+#> ! The registry for 'taxify' could not be established as authentic.
+#>   the signature covers sha256:f64d60ab008f but this registry is sha256:49fde3b5b556
+#> 
+#> This package declares signing keys, so a remote registry that cannot be
+#> checked against one is refused rather than used. The bundled declaration
+#> the package ships is unaffected and still resolves.
+#> 
+#> Action: getaca_policy("bundled") resolves through it for this session.
+#> 
+#> Fix: the declaring package needs a correction. Report it to its maintainer.
+```
+
+Three consequences worth knowing before you declare a key:
+
+- **It is a commitment.** Once your shipped registry names a key, an
+  unsigned or unverifiable remote is refused rather than used. Users are
+  not stranded, since the bundled declaration still resolves, but the
+  remote channel stops working until the signature does.
+- **A signature expires.**
+  [`registry_sign()`](https://gillescolling.com/getaca/reference/registry_sign.md)
+  dates it 90 days out by default. Re-signing an unchanged registry
+  extends it, and is the routine maintenance this feature asks of you.
+  `expires = NA` opts out and leaves nothing bounding how long a stale
+  declaration can be served in your name.
+- **Rotating a key needs a release.** The keys getaca trusts are the
+  ones in the installed package, so publish the new key beside the old
+  one, keep signing with the old, release, and retire the old key once
+  that release is out.
+
+A package that declares no keys behaves exactly as it always did, and
+never fetches a signature at all.
+
 ## `pinned`
 
 A pin file records, for each named package, the registry state in force

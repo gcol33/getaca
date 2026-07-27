@@ -8,6 +8,7 @@
 #include <R_ext/Visibility.h>
 
 #include <stdio.h>
+#include <string.h>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -15,6 +16,8 @@
 #endif
 
 #include "sha256.h"
+#include "sha512.h"
+#include "ed25519.h"
 
 /* Large enough that the read stops being the bottleneck on a fast disk, and
    small enough to be an unremarkable allocation in any session. */
@@ -140,11 +143,112 @@ static SEXP sha256_backends(void)
   return out;
 }
 
+/*
+ * Exposed so the compiled digest can be held against the FIPS 180-4 vectors
+ * directly, rather than only through the signatures that consume it.
+ */
+static SEXP sha512_raw(SEXP bytes)
+{
+  unsigned char digest[SHA512_DIGEST_LENGTH];
+  char hex[2 * SHA512_DIGEST_LENGTH + 1];
+  int i;
+
+  if (TYPEOF(bytes) != RAWSXP) {
+    Rf_error("getaca: a digest of bytes takes a raw vector");
+  }
+  sha512_hash(digest, RAW(bytes), (size_t) XLENGTH(bytes));
+
+  for (i = 0; i < SHA512_DIGEST_LENGTH; i++) {
+    static const char digits[] = "0123456789abcdef";
+    hex[2 * i]     = digits[digest[i] >> 4];
+    hex[2 * i + 1] = digits[digest[i] & 0x0f];
+  }
+  hex[2 * SHA512_DIGEST_LENGTH] = '\0';
+  return Rf_mkString(hex);
+}
+
+static SEXP ed25519_sign_call(SEXP message, SEXP secret)
+{
+  SEXP out;
+
+  if (TYPEOF(message) != RAWSXP || TYPEOF(secret) != RAWSXP) {
+    Rf_error("getaca: signing takes raw vectors");
+  }
+  if (XLENGTH(secret) != ED25519_SECRET_LENGTH) {
+    Rf_error("getaca: a signing key is %d bytes", ED25519_SECRET_LENGTH);
+  }
+
+  out = PROTECT(Rf_allocVector(RAWSXP, ED25519_SIGNATURE_LENGTH));
+  ed25519_sign(RAW(out), RAW(message), (size_t) XLENGTH(message), RAW(secret));
+  UNPROTECT(1);
+  return out;
+}
+
+static SEXP ed25519_verify_call(SEXP sig, SEXP message, SEXP public)
+{
+  if (TYPEOF(sig) != RAWSXP || TYPEOF(message) != RAWSXP ||
+      TYPEOF(public) != RAWSXP) {
+    Rf_error("getaca: verification takes raw vectors");
+  }
+  /* A key or signature of the wrong length is a malformed signature file
+     rather than an error: the caller is asking whether these bytes verify. */
+  if (XLENGTH(sig) != ED25519_SIGNATURE_LENGTH ||
+      XLENGTH(public) != ED25519_PUBLIC_LENGTH) {
+    return Rf_ScalarLogical(FALSE);
+  }
+
+  return Rf_ScalarLogical(
+    ed25519_verify(RAW(sig), RAW(message), (size_t) XLENGTH(message),
+                   RAW(public)));
+}
+
+/*
+ * `seed` supplies the 32 bytes a key derives from. R_NilValue takes them from
+ * the operating system, which is the only shape a real key generation uses;
+ * an explicit seed is what lets the tests drive the RFC 8032 vectors.
+ */
+static SEXP ed25519_keypair_call(SEXP seed)
+{
+  unsigned char bytes[ED25519_SEED_LENGTH];
+  SEXP pk, sk, out, names;
+
+  if (seed == R_NilValue) {
+    if (!ed25519_random(bytes, sizeof(bytes))) {
+      Rf_error("getaca: the operating system supplied no random bytes for a key");
+    }
+  } else {
+    if (TYPEOF(seed) != RAWSXP || XLENGTH(seed) != ED25519_SEED_LENGTH) {
+      Rf_error("getaca: a seed is %d raw bytes", ED25519_SEED_LENGTH);
+    }
+    memcpy(bytes, RAW(seed), sizeof(bytes));
+  }
+
+  pk = PROTECT(Rf_allocVector(RAWSXP, ED25519_PUBLIC_LENGTH));
+  sk = PROTECT(Rf_allocVector(RAWSXP, ED25519_SECRET_LENGTH));
+  ed25519_keypair(RAW(pk), RAW(sk), bytes);
+  memset(bytes, 0, sizeof(bytes));
+
+  out = PROTECT(Rf_allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(out, 0, pk);
+  SET_VECTOR_ELT(out, 1, sk);
+  names = PROTECT(Rf_allocVector(STRSXP, 2));
+  SET_STRING_ELT(names, 0, Rf_mkChar("public"));
+  SET_STRING_ELT(names, 1, Rf_mkChar("secret"));
+  Rf_setAttrib(out, R_NamesSymbol, names);
+
+  UNPROTECT(4);
+  return out;
+}
+
 static const R_CallMethodDef call_methods[] = {
-  {"sha256_file",     (DL_FUNC) &sha256_file,     1},
-  {"sha256_raw",      (DL_FUNC) &sha256_raw,      2},
-  {"sha256_backend",  (DL_FUNC) &sha256_backend,  0},
-  {"sha256_backends", (DL_FUNC) &sha256_backends, 0},
+  {"sha256_file",      (DL_FUNC) &sha256_file,         1},
+  {"sha256_raw",       (DL_FUNC) &sha256_raw,          2},
+  {"sha256_backend",   (DL_FUNC) &sha256_backend,      0},
+  {"sha256_backends",  (DL_FUNC) &sha256_backends,     0},
+  {"sha512_raw",       (DL_FUNC) &sha512_raw,          1},
+  {"ed25519_sign",     (DL_FUNC) &ed25519_sign_call,   2},
+  {"ed25519_verify",   (DL_FUNC) &ed25519_verify_call, 3},
+  {"ed25519_keypair",  (DL_FUNC) &ed25519_keypair_call, 1},
   {NULL, NULL, 0}
 };
 

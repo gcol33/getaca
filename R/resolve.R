@@ -119,9 +119,40 @@ remote_channel <- function(reg, fetch = fetch_registry) {
       package = reg$package
     )
   }
+  # Who is speaking, before what they said. A forged registry that also
+  # redefines a published version should be reported as forged.
+  assert_signed(reg, fetched, fetch)
   assert_immutable(reg, fetched)
   remote_cache[[key]] <- fetched
   fetched
+}
+
+# The trusted keys are the bundled registry's, never the fetched one's: a
+# declaration that nominated the keys allowed to vouch for it would vouch for
+# itself. A package declaring none is unsigned, and nothing here applies.
+#
+# Reaching the registry but not its signature is not treated as the network
+# being down. The two sit on one host, so a signature that alone fails to
+# arrive is the shape a downgrade takes, and accepting the registry without it
+# would make the check optional for whoever serves it.
+assert_signed <- function(bundled, fetched, fetch = fetch_registry) {
+  if (!length(bundled$keys)) return(invisible(TRUE))
+  url <- signature_path(bundled$remote)
+
+  tmp <- tempfile(fileext = ".sig")
+  on.exit(unlink(tmp), add = TRUE)
+  sig <- NULL
+  if (isTRUE(fetch(url, tmp))) {
+    sig <- tryCatch(signature_read(tmp), error = function(e) NULL)
+  }
+  if (is.null(sig)) {
+    err_signature(bundled$package, "no signature could be fetched and read", url = url)
+  }
+
+  problem <- signature_problem(sig, fetched, bundled$keys,
+                               floor = bundled$created)
+  if (!is.null(problem)) err_signature(bundled$package, problem, url = url)
+  invisible(TRUE)
 }
 
 # A remote channel may repair mirrors and add versions. It may never redefine

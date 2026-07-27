@@ -35,6 +35,7 @@ in the stored form need not change how existing fields are rendered.
 \if{html}{\out{<div class="sourceCode">}}\preformatted{getaca-manifest 1
 package taxify
 remote https://taxify.example.org/registry.rds
+key ed25519:9f8a...
 current wfo 2026-09
 resource wfo 2026-06
   sha256 3f9ac2...
@@ -48,9 +49,18 @@ resource wfo 2026-06
 
 Resources are sorted by \code{name@version} in the C locale, so the same
 declaration renders identically wherever it is read. URLs keep declaration
-order, which is load-bearing: mirrors are tried in the order given. Absent
-and \code{NA} fields are omitted rather than rendered as empty, since a key that
-is present carries a value by construction.
+order, which is load-bearing: mirrors are tried in the order given. Signing
+keys are sorted, since which one signs is a fact about the signature rather
+than about the declaration. Absent and \code{NA} fields are omitted rather than
+rendered as empty, since a key that is present carries a value by
+construction.
+
+Rendering an absent field as nothing is what let signing keys join the
+manifest without a new format version. A registry declaring none renders
+exactly the bytes it always did, so every digest recorded before keys
+existed still identifies the state that produced it. Only a registry that
+actually carries a key renders a line for one, and none did before the field
+existed.
 }
 
 \section{What is left out}{

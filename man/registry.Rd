@@ -9,7 +9,8 @@ registry(
   resources,
   remote = NULL,
   policy = c("bundled", "current", "pinned", "offline"),
-  current = NULL
+  current = NULL,
+  keys = NULL
 )
 }
 \arguments{
@@ -32,6 +33,14 @@ bare request for each resource name resolves to, as
 \code{c(wfo = "2026-09")}. Required for any name declaring more than one
 version, and optional for the rest, since a name with one version has only
 one answer.}
+
+\item{keys}{Public keys, from \code{\link[=registry_keygen]{registry_keygen()}}, that may sign this
+package's remote registry. Declaring any of them makes a signature
+mandatory under the \code{"current"} policy: an unsigned or unverifiable remote
+registry is then refused rather than used. The keys trusted are the ones in
+the registry the \emph{package ships}, which reaches a user by a different route
+than the remote does, and that is what a signature rests on. See
+\link{getaca-signing}.}
 }
 \value{
 An object of class \code{getaca_registry}.

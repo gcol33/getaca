@@ -115,20 +115,29 @@ in the stored form need not change how existing fields are rendered.</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>getaca<span class="sc">-</span>manifest <span class="dv">1</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>package taxify</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>remote https<span class="sc">:</span><span class="er">//</span>taxify.example.org<span class="sc">/</span>registry.rds</span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>current wfo <span class="dv">2026-09</span></span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>resource wfo <span class="dv">2026-06</span></span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  sha256 <span class="dv">3</span>f9ac2...</span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  size <span class="dv">1048576</span></span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>  license CC<span class="sc">-</span>BY<span class="fl">-4.0</span></span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  url https<span class="sc">:</span><span class="er">//</span>zenodo.org<span class="sc">/</span>record<span class="sc">/</span><span class="dv">123</span><span class="sc">/</span>wfo<span class="dv">-2026</span><span class="fl">-06.</span>parquet</span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  url https<span class="sc">:</span><span class="er">//</span>mirror.example.org<span class="sc">/</span>wfo<span class="dv">-2026</span><span class="fl">-06.</span>parquet</span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>  upstream release <span class="dv">2026-06</span></span>
-<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>  processor unzip<span class="sc">-</span>v2</span></code></pre><p></p></div>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>key ed25519<span class="sc">:</span><span class="dv">9</span>f8a...</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>current wfo <span class="dv">2026-09</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>resource wfo <span class="dv">2026-06</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  sha256 <span class="dv">3</span>f9ac2...</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>  size <span class="dv">1048576</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  license CC<span class="sc">-</span>BY<span class="fl">-4.0</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  url https<span class="sc">:</span><span class="er">//</span>zenodo.org<span class="sc">/</span>record<span class="sc">/</span><span class="dv">123</span><span class="sc">/</span>wfo<span class="dv">-2026</span><span class="fl">-06.</span>parquet</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>  url https<span class="sc">:</span><span class="er">//</span>mirror.example.org<span class="sc">/</span>wfo<span class="dv">-2026</span><span class="fl">-06.</span>parquet</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>  upstream release <span class="dv">2026-06</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  processor unzip<span class="sc">-</span>v2</span></code></pre><p></p></div>
 <p>Resources are sorted by <code>name@version</code> in the C locale, so the same
 declaration renders identically wherever it is read. URLs keep declaration
-order, which is load-bearing: mirrors are tried in the order given. Absent
-and <code>NA</code> fields are omitted rather than rendered as empty, since a key that
-is present carries a value by construction.</p>
+order, which is load-bearing: mirrors are tried in the order given. Signing
+keys are sorted, since which one signs is a fact about the signature rather
+than about the declaration. Absent and <code>NA</code> fields are omitted rather than
+rendered as empty, since a key that is present carries a value by
+construction.</p>
+<p>Rendering an absent field as nothing is what let signing keys join the
+manifest without a new format version. A registry declaring none renders
+exactly the bytes it always did, so every digest recorded before keys
+existed still identifies the state that produced it. Only a registry that
+actually carries a key renders a line for one, and none did before the field
+existed.</p>
     </div>
     <div class="section level2">
     <h2 id="what-is-left-out">What is left out<a class="anchor" aria-label="anchor" href="#what-is-left-out"></a></h2>
