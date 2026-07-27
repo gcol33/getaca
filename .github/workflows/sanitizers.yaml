@@ -71,27 +71,95 @@ jobs:
           R CMD build --no-build-vignettes --no-manual .
           mv getaca_*.tar.gz check/
 
+      # The container installs the dependencies and runs the check with the
+      # arguments it wants, and writes its results into the mount. Its exit
+      # status is not the verdict, because no two of these agree on what one
+      # means:
+      #
+      #   clang-asan, clang-ubsan  r-check runs, under `set -e`,
+      #     `testfiles=$(ls tests | grep ".Rout.fail$")`, and grep exits 1 when
+      #     every test passed, ending the script. A clean check reports failure.
+      #   gcc-asan  a different r-check with no diagnostic grep at all, so it
+      #     reports whatever R CMD check returned. UBSAN prints and continues
+      #     rather than aborting, so a finding that fails no test passes here.
+      #   valgrind  the same grep, and a pattern that also matches the stack
+      #     frames of leak records R produces by itself.
+      #   rchk  prints its findings and always exits 0.
+      #
+      # So the verdict is read from the check directory, the same way for all
+      # five. Upstream, in r-hub/containers.
       - name: Check under ${{ matrix.container }}
         shell: bash
         run: |
           docker run --rm -v "${PWD}/check:/check" \
             "ghcr.io/r-hub/containers/${{ matrix.container }}:latest" \
-            r-check | tee container.log
+            r-check 2>&1 | tee container.log
+          echo "r-check exit: ${PIPESTATUS[0]} (advisory, see the next step)"
+        continue-on-error: true
 
-      # The four runtime containers fail the run themselves. rchk only prints:
-      # its exit status says the analysis completed, not that it found nothing,
-      # so the messages that name a real defect have to be looked for.
-      - name: Fail on an rchk finding
-        if: matrix.container == 'rchk'
+      - name: Read the verdict
         shell: bash
         run: |
-          findings='unprotected|protection stack imbalance|negative depth'
-          if grep -Eq "$findings" container.log; then
-            echo "::error::rchk reported a protection defect in src/"
-            grep -E "$findings" container.log
+          rcheck=check/getaca.Rcheck
+          log="$rcheck/00check.log"
+          if [ ! -f "$log" ]; then
+            echo "::error::the container produced no 00check.log, so the check did not run"
             exit 1
           fi
-          echo "rchk found nothing to report."
+          grep -E "^Status:" "$log" || true
+
+          # Only what the check wrote as text. A recursive grep would also read
+          # the installed shared object.
+          mapfile -t readable < <(find "$rcheck" -type f \
+            \( -name '*.Rout' -o -name '*.Rout.fail' -o -name '00check.log' \))
+          readable+=(container.log)
+
+          verdict=0
+          if grep -qE "^Status:.*ERROR" "$log"; then
+            echo "::error::R CMD check reported an ERROR"
+            verdict=1
+          fi
+
+          case "${{ matrix.container }}" in
+            valgrind)
+              # One summary per instrumented process, and anything but zero is
+              # real. Leak records are not counted: R leaks at exit by design
+              # and says nothing about src/. No summary at all means nothing was
+              # instrumented, which has to read as a failure rather than as
+              # silence.
+              summaries=$(grep -hoE "ERROR SUMMARY: [0-9]+ errors" \
+                            "${readable[@]}" | sort -u)
+              if [ -z "$summaries" ]; then
+                echo "::error::valgrind produced no ERROR SUMMARY, so it never ran"
+                verdict=1
+              elif printf '%s\n' "$summaries" | grep -qvE ": 0 errors"; then
+                echo "::error::valgrind reported errors"
+                printf '%s\n' "$summaries"
+                grep -hE "Invalid (read|write)|uninitialised|Mismatched free" \
+                  "${readable[@]}" | sort -u | head -40
+                verdict=1
+              fi
+              ;;
+            rchk)
+              findings='unprotected|protection stack imbalance|negative depth'
+              if grep -hqE "$findings" "${readable[@]}"; then
+                echo "::error::rchk reported a protection defect in src/"
+                grep -hE "$findings" "${readable[@]}" | sort -u
+                verdict=1
+              fi
+              ;;
+            *)
+              diagnostics='runtime error:|SUMMARY: [A-Za-z]+Sanitizer:'
+              if grep -hqE "$diagnostics" "${readable[@]}"; then
+                echo "::error::the sanitizer reported a diagnostic"
+                grep -hE "$diagnostics" "${readable[@]}" | sort -u | head -40
+                verdict=1
+              fi
+              ;;
+          esac
+
+          if [ "$verdict" -eq 0 ]; then echo "Clean."; fi
+          exit $verdict
 
       - name: Upload the check directory
         if: failure()
