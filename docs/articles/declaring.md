@@ -192,7 +192,7 @@ when a build has to be byte-reproducible.
 ``` r
 
 registry_read(path)$created
-#> [1] "2026-07-27 18:04:33 CEST"
+#> [1] "2026-07-28 00:38:59 CEST"
 ```
 
 ## Naming the channel head
@@ -269,7 +269,7 @@ own schedule:
 remote_reg <- registry(
   package = "taxify",
   policy  = "current",
-  remote  = "https://gcol33.github.io/taxify/getaca-registry.rds",
+  remote  = "https://taxify.invalid/getaca-registry.rds",
   resources = list(
     resource("wfo", "2026-06",
              urls   = "https://primary.invalid/wfo-2026-06.zip",
@@ -457,7 +457,7 @@ reach
 
 as_registry("data-raw/resources.yml", package = "taxify",
             policy = "current",
-            remote = "https://gcol33.github.io/taxify/getaca-registry.rds")
+            remote = "https://taxify.invalid/getaca-registry.rds")
 ```
 
 JSON works the same way through `jsonlite`. Both are `Suggests`, and

@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -285,7 +285,7 @@ Pass a fixed <code>created</code> when a build has to be
 byte-reproducible.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_write.html">registry_read</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span><span class="op">$</span><span class="va">created</span></span>
-<span><span class="co">#&gt; [1] "2026-07-27 18:04:33 CEST"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "2026-07-28 00:38:59 CEST"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="naming-the-channel-head">Naming the channel head<a class="anchor" aria-label="anchor" href="#naming-the-channel-head"></a>
@@ -350,7 +350,7 @@ own schedule:</p>
 <code class="sourceCode R"><span><span class="va">remote_reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
 <span>  policy  <span class="op">=</span> <span class="st">"current"</span>,</span>
-<span>  remote  <span class="op">=</span> <span class="st">"https://gcol33.github.io/taxify/getaca-registry.rds"</span>,</span>
+<span>  remote  <span class="op">=</span> <span class="st">"https://taxify.invalid/getaca-registry.rds"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-06"</span>,</span>
 <span>             urls   <span class="op">=</span> <span class="st">"https://primary.invalid/wfo-2026-06.zip"</span>,</span>
@@ -508,7 +508,7 @@ beside it. Arguments passed to <code><a href="../reference/as_registry.html">as_
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_registry.html">as_registry</a></span><span class="op">(</span><span class="st">"data-raw/resources.yml"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
 <span>            policy <span class="op">=</span> <span class="st">"current"</span>,</span>
-<span>            remote <span class="op">=</span> <span class="st">"https://gcol33.github.io/taxify/getaca-registry.rds"</span><span class="op">)</span></span></code></pre></div>
+<span>            remote <span class="op">=</span> <span class="st">"https://taxify.invalid/getaca-registry.rds"</span><span class="op">)</span></span></code></pre></div>
 <p>JSON works the same way through <code>jsonlite</code>. Both are
 <code>Suggests</code>, and asking for one you have not installed
 produces an install instruction rather than a missing-object error.</p>

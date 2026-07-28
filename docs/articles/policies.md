@@ -80,13 +80,13 @@ before resolving:
 remote_reg <- registry(
   package = "taxify",
   policy  = "current",
-  remote  = "https://gcol33.github.io/taxify/getaca-registry.rds",
+  remote  = "https://taxify.invalid/getaca-registry.rds",
   resources = list(rec)
 )
 remote_reg
 #> <getaca registry> taxify  (policy "current")
-#>   digest: sha256:30ef2dc40e78
-#>   remote: https://gcol33.github.io/taxify/getaca-registry.rds
+#>   digest: sha256:760085b87983
+#>   remote: https://taxify.invalid/getaca-registry.rds
 #>   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 ```
 
@@ -216,7 +216,7 @@ tree:
 secret <- file.path(tempdir(), "taxify-signing.key")
 public <- registry_keygen(secret)
 substr(public, 1, 24)
-#> [1] "ed25519:9d8ed48fdf772f87"
+#> [1] "ed25519:973a98eedf833d05"
 ```
 
 Declare the public half in the registry the package ships:
@@ -245,9 +245,9 @@ registry_sign(path, key = secret)
 
 cat(readLines(paste0(path, ".sig"))[1:4], sep = "\n")
 #> getaca-signature 1
-#> digest sha256:6fa552783d3b0c914dbbb300ce510531cf48ff7dd5278996976743f68020fab7
-#> created 2026-07-27T16:04:41Z
-#> expires 2026-10-25T16:04:41Z
+#> digest sha256:58bd2702f60cced758852334453da142f82a2dd1cccb33013a03a595f72b1158
+#> created 2026-07-27T22:39:07Z
+#> expires 2026-10-25T22:39:07Z
 ```
 
 Upload the `.sig` beside the registry; getaca fetches it from the
@@ -272,7 +272,7 @@ saveRDS(moved, path, version = 3)
 registry_verify(path)
 #> Error:
 #> ! The registry for 'taxify' could not be established as authentic.
-#>   the signature covers sha256:6fa552783d3b but this registry is sha256:f928dce99f25
+#>   the signature covers sha256:58bd2702f60c but this registry is sha256:8732f97691d6
 #> 
 #> This package declares signing keys, so a remote registry that cannot be
 #> checked against one is refused rather than used. The bundled declaration

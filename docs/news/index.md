@@ -1,9 +1,8 @@
 # Changelog
 
-## getaca 0.0.0.9000
+## getaca 0.1.0
 
-First development version. The v1 boundary is set; nothing here has been
-released.
+First release.
 
 ### Dependencies
 
