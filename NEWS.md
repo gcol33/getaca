@@ -1,3 +1,31 @@
+# getaca 0.1.3
+
+## Archives unpack themselves
+* `unpack()` is a stock `processor()` for the transformation nearly every
+  declaration of an archive was writing by hand. Attach it with
+  `processor = unpack()` and `getaca()` returns the unpacked directory;
+  `processed = FALSE` still returns the archive it was built from.
+* `format = "auto"` reads the format from the cached file's name and covers
+  `.zip`, the tarballs under any compression (`.tar`, `.tar.gz`, `.tgz`,
+  `.tar.bz2`, `.tbz2`, `.tar.xz`, `.txz`) and a single compressed file (`.gz`,
+  `.bz2`, `.xz`). A compressed file is written under its own name with the
+  extension dropped, so `backbone-2026-06.csv.gz` unpacks to
+  `backbone-2026-06.csv`. Name the format for a file whose name does not carry
+  one: `unpack("gzip")`.
+* `unpack(members = "tables")` takes one subtree of a large archive. A member
+  names a file, or a directory and everything under it. A member matching
+  nothing in the archive is an error: getaca hashes the archive and never reads
+  what came out of it, so an empty processed slot would pass every later check.
+* The id encodes the settings, because the id is what the cache slot and the
+  registry manifest are keyed on. `unpack()` is `"unpack"`, `unpack("zip")` is
+  `"unpack-zip"`, and naming `members` appends a digest of them, so two records
+  asking for different subsets of one archive cannot resolve to one slot.
+* Zero new dependencies. `utils::unzip()`, `utils::untar()` and the
+  `gzfile()`/`bzfile()`/`xzfile()` connections are all base R, so `Imports` is
+  still `curl` plus three base packages.
+* See `dev_notes/adr-009-stock-processors.md`, which also records what was left
+  out of the equivalent Python API and why.
+
 # getaca 0.1.2
 
 ## Transfers report themselves
