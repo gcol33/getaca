@@ -182,8 +182,8 @@ package redistributes the data, which needs terms that permit
 redistribution. Plenty of scientific datasets permit download and
 discourage or forbid redistribution, and for those a companion package
 is not available whatever its other merits.</p>
-<p>Granularity is the second. A package needing one of fifteen
-backbones, at a gigabyte each, would install fifteen through a companion
+<p>Granularity is the second. A package needing one of fifteen reference
+files, at a gigabyte each, would install fifteen through a companion
 package. Under <code>getaca</code> a user takes what they use.</p>
 <p>A companion package can itself use <code>getaca</code>, which is
 occasionally the right structure when the companion owns expensive build
@@ -300,16 +300,16 @@ pipeline, tracking which steps need to re-run when inputs change. That
 is a different question from where a file comes from and whether it is
 the right file.</p>
 <p>They compose. A <code>targets</code> pipeline can have a target whose
-command is <code>getaca("wfo", package = "taxify")</code>, which gives
-the pipeline a path, and the path a provenance record:</p>
+command is <code>getaca("backbone", package = "yourpkg")</code>, which
+gives the pipeline a path, and the path a provenance record:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/targets/" class="external-link">targets</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  <span class="fu">tar_target</span><span class="op">(</span><span class="va">backbone_path</span>, <span class="fu">getaca</span><span class="fu">::</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">tar_target</span><span class="op">(</span><span class="va">backbone_path</span>, <span class="fu">getaca</span><span class="fu">::</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>,</span>
 <span>             format <span class="op">=</span> <span class="st">"file"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">tar_target</span><span class="op">(</span><span class="va">backbone</span>, <span class="fu">read_backbone</span><span class="op">(</span><span class="va">backbone_path</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  <span class="fu">tar_target</span><span class="op">(</span><span class="va">matched</span>, <span class="fu">match_names</span><span class="op">(</span><span class="va">species</span>, <span class="va">backbone</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">tar_target</span><span class="op">(</span><span class="va">summary</span>, <span class="fu">summarise_backbone</span><span class="op">(</span><span class="va">backbone</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><code>format = "file"</code> makes <code>targets</code> watch the
 returned path, so the pipeline invalidates downstream targets when the
@@ -327,7 +327,7 @@ determine a data version once the package is on the <code>current</code>
 policy, and a data version says nothing about the code that read it.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">renv</span><span class="fu">::</span><span class="fu">snapshot</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/getaca_pin.html">getaca_pin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"taxify"</span>, <span class="st">"otherpkg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/getaca_pin.html">getaca_pin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="st">"otherpkg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Commit both files. Restoring is <code>renv::restore()</code> followed
 by <code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> on a connected machine, after which
 the analysis runs offline. See <code><a href="../articles/policies.html">vignette("policies")</a></code> for

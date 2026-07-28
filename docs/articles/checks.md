@@ -68,9 +68,9 @@ doors onto the same download.
 ``` r
 
 test_that("the backbone parses", {
-  getaca_skip_if_unavailable("wfo", package = "taxify")
+  getaca_skip_if_unavailable("backbone", package = "yourpkg")
 
-  path <- getaca("wfo", package = "taxify")
+  path <- getaca("backbone", package = "yourpkg")
   expect_s3_class(read_backbone(path), "backbone")
 })
 ```
@@ -78,8 +78,8 @@ test_that("the backbone parses", {
 The skip message names the missing resource, the package that declared
 it, and the call that would fetch it:
 
-    external resource 'wfo' (declared by taxify) is not cached;
-    prefetch with getaca_prefetch("wfo", package = "taxify")
+    external resource 'backbone' (declared by yourpkg) is not cached;
+    prefetch with getaca_prefetch("backbone", package = "yourpkg")
 
 That matters more than it looks. A skipped test on someone else’s CI is
 a question, and a skip reason that answers it is the difference between
@@ -96,7 +96,7 @@ depend on a test framework in order to help tests.
 ``` r
 
 #' @examples
-#' path <- getaca_optional("wfo", package = "taxify")
+#' path <- getaca_optional("backbone", package = "yourpkg")
 #' if (!is.null(path)) {
 #'   summarise_backbone(path)
 #' }
@@ -110,11 +110,11 @@ machine takes:
 
 ``` r
 
-path <- getaca_optional("wfo", registry = reg)
-#> getaca: 'wfo' is not available here, so this output is abbreviated.
-#> taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
+path <- getaca_optional("backbone", registry = reg)
+#> getaca: 'backbone' is not available here, so this output is abbreviated.
+#> yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
 #> 
-#> Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),
+#> Action: on a connected machine run getaca_prefetch("backbone", package = "yourpkg"),
 #> or point GETACA_CACHE at a cache that already holds it.
 #> 
 #> Fix: this is expected during checks. Use getaca_skip_if_unavailable()
@@ -132,7 +132,7 @@ handles absence; `\donttest{}` handles expense. They stack:
 
 #' @examples
 #' \donttest{
-#' path <- getaca_optional("wfo", package = "taxify")
+#' path <- getaca_optional("backbone", package = "yourpkg")
 #' if (!is.null(path)) summarise_backbone(path)
 #' }
 ```
@@ -148,25 +148,25 @@ users read. Three shapes work, in descending order of preference.
 same output, and never depends on a download. This is the right answer
 whenever the point being made does not need the full resource.
 
-Most of the time it does not. A vignette showing how names are cleaned,
-how a result is shaped, or what an argument changes needs twenty rows,
-not six million. Cut the extract once, commit it, and generate it from a
-`data-raw/` script so it can be regenerated when the upstream schema
-moves:
+Most of the time it does not. A vignette showing how an input is
+matched, how a result is shaped, or what an argument changes needs
+twenty rows, not six million. Cut the extract once, commit it, and
+generate it from a `data-raw/` script so it can be regenerated when the
+upstream schema moves:
 
 ``` r
 
 # data-raw/make-fixture.R
-full <- read_backbone(getaca::getaca("wfo", package = "taxify"))
-small <- head(full[full$genus %in% c("Quercus", "Pinus"), ], 200)
-saveRDS(small, "inst/extdata/wfo-extract.rds", version = 3)
+full  <- read_backbone(getaca::getaca("backbone", package = "yourpkg"))
+small <- head(full[full$group %in% c("a", "b"), ], 200)
+saveRDS(small, "inst/extdata/backbone-extract.rds", version = 3)
 ```
 
 ``` r
 
 # in the vignette
-backbone <- readRDS(system.file("extdata", "wfo-extract.rds",
-                                package = "taxify"))
+backbone <- readRDS(system.file("extdata", "backbone-extract.rds",
+                                package = "yourpkg"))
 ```
 
 The extract carries the same schema as the real thing, so every code
@@ -178,7 +178,7 @@ vignette says what it is using.
 
 
     ``` r
-    summarise_backbone(getaca::getaca("wfo", package = "taxify"))
+    summarise_backbone(getaca::getaca("backbone", package = "yourpkg"))
     ```
 
 The chunk is skipped where the resource is absent, and the vignette
@@ -193,7 +193,7 @@ committed artefact. The `R.rsp` static vignette engine formalises this.
 
 ``` r
 
-getaca_available("wfo", registry = reg)
+getaca_available("backbone", registry = reg)
 #> [1] FALSE
 ```
 
@@ -221,9 +221,9 @@ want in a setup step:
 
 ``` r
 
-getaca_prefetch("wfo", package = "taxify")   # one resource
-getaca_prefetch(package = "taxify")          # everything taxify declares
-getaca_prefetch(c("wfo", "col"), package = "taxify")
+getaca_prefetch("backbone", package = "yourpkg")   # one resource
+getaca_prefetch(package = "yourpkg")               # everything yourpkg declares
+getaca_prefetch(c("backbone", "grid"), package = "yourpkg")
 ```
 
 Where the cache lives is set by `GETACA_CACHE`, which is the single knob
@@ -250,7 +250,7 @@ step and a prefetch step.
     key: getaca-${{ runner.os }}-${{ hashFiles('inst/getaca/registry.rds') }}
 
 - name: Prefetch declared resources
-  run: Rscript -e 'getaca::getaca_prefetch(package = "taxify")'
+  run: Rscript -e 'getaca::getaca_prefetch(package = "yourpkg")'
   env:
     GETACA_CACHE: ~/getaca-cache
 
@@ -292,7 +292,7 @@ jobs:
         with:
           path: ~/getaca-cache
           key: getaca-full-${{ hashFiles('inst/getaca/registry.rds') }}
-      - run: Rscript -e 'getaca::getaca_prefetch(package = "taxify")'
+      - run: Rscript -e 'getaca::getaca_prefetch(package = "yourpkg")'
         env: {GETACA_CACHE: ~/getaca-cache}
       - uses: r-lib/actions/check-r-package@v2
         env: {GETACA_CACHE: ~/getaca-cache, NOT_CRAN: true}
@@ -316,7 +316,7 @@ test_that("the backbone test skips cleanly on a bare machine", {
   withr::local_envvar(c(GETACA_OFFLINE = "true"))
   withr::local_options(list(getaca.cache = withr::local_tempdir()))
 
-  expect_false(getaca_available("wfo", package = "taxify"))
+  expect_false(getaca_available("backbone", package = "yourpkg"))
 })
 ```
 
@@ -334,8 +334,8 @@ installed package:
 ``` r
 
 test_that("the shipped registry resolves the version we think it does", {
-  reg <- registry_for("taxify")
-  expect_equal(resolve_resource("wfo", registry = reg)$id$version, "2026-06")
+  reg <- registry_for("yourpkg")
+  expect_equal(resolve_resource("backbone", registry = reg)$id$version, "2026-06")
 })
 ```
 
@@ -407,11 +407,11 @@ and none of them is a network call:
 
 ``` r
 
-err <- tryCatch(getaca("wfo", registry = reg), getaca_error = function(e) e)
+err <- tryCatch(getaca("backbone", registry = reg), getaca_error = function(e) e)
 cat(conditionMessage(err))
-#> taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
+#> yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
 #> 
-#> Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),
+#> Action: on a connected machine run getaca_prefetch("backbone", package = "yourpkg"),
 #> or point GETACA_CACHE at a cache that already holds it.
 #> 
 #> Fix: this is expected during checks. Use getaca_skip_if_unavailable()
@@ -439,10 +439,9 @@ case for free, and a package that wants to distinguish them can.
 A package that downloads data on first use should say so where a user
 reads before installing. The `Description` field is the place:
 
-    Description: Matches species names against taxonomic backbones. Reference
-        data are downloaded on first use and cached under
-        tools::R_user_dir(), and can be fetched ahead of time with
-        install_backbone().
+    Description: Analyses data against a large reference backbone. The backbone
+        is downloaded on first use and cached under tools::R_user_dir(), and
+        can be fetched ahead of time with install_backbone().
 
 Two things this earns. A reviewer sees the behaviour declared rather
 than discovering it, and a user on a metered connection is not surprised

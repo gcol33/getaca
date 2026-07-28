@@ -192,15 +192,15 @@ doors onto the same download.</p>
 </h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the backbone parses"</span>, <span class="op">{</span></span>
-<span>  <span class="fu"><a href="../reference/getaca-checks.html">getaca_skip_if_unavailable</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/getaca-checks.html">getaca_skip_if_unavailable</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span></span>
-<span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
+<span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span>  <span class="fu">expect_s3_class</span><span class="op">(</span><span class="fu">read_backbone</span><span class="op">(</span><span class="va">path</span><span class="op">)</span>, <span class="st">"backbone"</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>The skip message names the missing resource, the package that
 declared it, and the call that would fetch it:</p>
-<pre><code>external resource 'wfo' (declared by taxify) is not cached;
-prefetch with getaca_prefetch("wfo", package = "taxify")</code></pre>
+<pre><code>external resource 'backbone' (declared by yourpkg) is not cached;
+prefetch with getaca_prefetch("backbone", package = "yourpkg")</code></pre>
 <p>That matters more than it looks. A skipped test on someone else’s CI
 is a question, and a skip reason that answers it is the difference
 between a bug report and a <code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> call.</p>
@@ -214,7 +214,7 @@ tests.</p>
 </h3>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' @examples</span></span>
-<span><span class="co">#' path &lt;- getaca_optional("wfo", package = "taxify")</span></span>
+<span><span class="co">#' path &lt;- getaca_optional("backbone", package = "yourpkg")</span></span>
 <span><span class="co">#' if (!is.null(path)) {</span></span>
 <span><span class="co">#'   summarise_backbone(path)</span></span>
 <span><span class="co">#' }</span></span></code></pre></div>
@@ -224,11 +224,11 @@ so an example runs to completion on a machine that has nothing. This
 vignette is built with the network switched off, which is the same path
 a check machine takes:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getaca-checks.html">getaca_optional</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
-<span><span class="co">#&gt; getaca: 'wfo' is not available here, so this output is abbreviated.</span></span>
-<span><span class="co">#&gt; taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
+<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getaca-checks.html">getaca_optional</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="co">#&gt; getaca: 'backbone' is not available here, so this output is abbreviated.</span></span>
+<span><span class="co">#&gt; yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),</span></span>
+<span><span class="co">#&gt; Action: on a connected machine run getaca_prefetch("backbone", package = "yourpkg"),</span></span>
 <span><span class="co">#&gt; or point GETACA_CACHE at a cache that already holds it.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fix: this is expected during checks. Use getaca_skip_if_unavailable()</span></span>
@@ -242,7 +242,7 @@ wrapper. <code><a href="../reference/getaca-checks.html">getaca_optional()</a></
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' @examples</span></span>
 <span><span class="co">#' \donttest{</span></span>
-<span><span class="co">#' path &lt;- getaca_optional("wfo", package = "taxify")</span></span>
+<span><span class="co">#' path &lt;- getaca_optional("backbone", package = "yourpkg")</span></span>
 <span><span class="co">#' if (!is.null(path)) summarise_backbone(path)</span></span>
 <span><span class="co">#' }</span></span></code></pre></div>
 </div>
@@ -258,20 +258,20 @@ the API on a 100 KB extract in <code>inst/extdata</code> runs
 everywhere, always produces the same output, and never depends on a
 download. This is the right answer whenever the point being made does
 not need the full resource.</p>
-<p>Most of the time it does not. A vignette showing how names are
-cleaned, how a result is shaped, or what an argument changes needs
+<p>Most of the time it does not. A vignette showing how an input is
+matched, how a result is shaped, or what an argument changes needs
 twenty rows, not six million. Cut the extract once, commit it, and
 generate it from a <code>data-raw/</code> script so it can be
 regenerated when the upstream schema moves:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># data-raw/make-fixture.R</span></span>
-<span><span class="va">full</span> <span class="op">&lt;-</span> <span class="fu">read_backbone</span><span class="op">(</span><span class="fu">getaca</span><span class="fu">::</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">small</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">full</span><span class="op">[</span><span class="va">full</span><span class="op">$</span><span class="va">genus</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Quercus"</span>, <span class="st">"Pinus"</span><span class="op">)</span>, <span class="op">]</span>, <span class="fl">200</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">small</span>, <span class="st">"inst/extdata/wfo-extract.rds"</span>, version <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">full</span>  <span class="op">&lt;-</span> <span class="fu">read_backbone</span><span class="op">(</span><span class="fu">getaca</span><span class="fu">::</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">small</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">full</span><span class="op">[</span><span class="va">full</span><span class="op">$</span><span class="va">group</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span><span class="op">)</span>, <span class="op">]</span>, <span class="fl">200</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">small</span>, <span class="st">"inst/extdata/backbone-extract.rds"</span>, version <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># in the vignette</span></span>
-<span><span class="va">backbone</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"wfo-extract.rds"</span>,</span>
-<span>                                package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">backbone</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"backbone-extract.rds"</span>,</span>
+<span>                                package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The extract carries the same schema as the real thing, so every code
 path the vignette demonstrates is a path that runs against the full
 resource too. What it does not carry is coverage, which is why the
@@ -280,7 +280,7 @@ vignette says what it is using.</p>
 is the point:</p>
 <pre><code>
 ``` r
-summarise_backbone(getaca::getaca("wfo", package = "taxify"))
+summarise_backbone(getaca::getaca("backbone", package = "yourpkg"))
 ```</code></pre>
 <p>The chunk is skipped where the resource is absent, and the vignette
 still builds. Pair it with a short line of prose saying what would have
@@ -295,7 +295,7 @@ static vignette engine formalises this.</p>
 <h3 id="anywhere-a-logical-reads-better">Anywhere a logical reads better<a class="anchor" aria-label="anchor" href="#anywhere-a-logical-reads-better"></a>
 </h3>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca-checks.html">getaca_available</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca-checks.html">getaca_available</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 <p><code><a href="../reference/getaca-checks.html">getaca_available()</a></code> performs the cheap integrity check as
 well as the existence test, so it returns <code>FALSE</code> for a
@@ -316,9 +316,9 @@ produces <code>FALSE</code> rather than an error:</p>
 <p><code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> downloads and verifies without
 returning anything, which is what you want in a setup step:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>   <span class="co"># one resource</span></span>
-<span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>          <span class="co"># everything taxify declares</span></span>
-<span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"col"</span><span class="op">)</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>   <span class="co"># one resource</span></span>
+<span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>               <span class="co"># everything yourpkg declares</span></span>
+<span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"grid"</span><span class="op">)</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
 <p>Where the cache lives is set by <code>GETACA_CACHE</code>, which is
 the single knob a CI job needs:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
@@ -338,7 +338,7 @@ additions: a cache step and a prefetch step.</p>
 <span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="at">    </span><span class="fu">key</span><span class="kw">:</span><span class="at"> getaca-${{ runner.os }}-${{ hashFiles('inst/getaca/registry.rds') }}</span></span>
 <span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a></span>
 <span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Prefetch declared resources</span></span>
-<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="at">  </span><span class="fu">run</span><span class="kw">:</span><span class="at"> Rscript -e 'getaca::getaca_prefetch(package = "taxify")'</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="at">  </span><span class="fu">run</span><span class="kw">:</span><span class="at"> Rscript -e 'getaca::getaca_prefetch(package = "yourpkg")'</span></span>
 <span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="at">  </span><span class="fu">env</span><span class="kw">:</span></span>
 <span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="at">    </span><span class="fu">GETACA_CACHE</span><span class="kw">:</span><span class="at"> ~/getaca-cache</span></span>
 <span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a></span>
@@ -374,7 +374,7 @@ unreasonable, split it:</p>
 <span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="at">        </span><span class="fu">with</span><span class="kw">:</span></span>
 <span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="at">          </span><span class="fu">path</span><span class="kw">:</span><span class="at"> ~/getaca-cache</span></span>
 <span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="at">          </span><span class="fu">key</span><span class="kw">:</span><span class="at"> getaca-full-${{ hashFiles('inst/getaca/registry.rds') }}</span></span>
-<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">run</span><span class="kw">:</span><span class="at"> Rscript -e 'getaca::getaca_prefetch(package = "taxify")'</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">run</span><span class="kw">:</span><span class="at"> Rscript -e 'getaca::getaca_prefetch(package = "yourpkg")'</span></span>
 <span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="at">        </span><span class="fu">env</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">GETACA_CACHE</span><span class="kw">:</span><span class="at"> ~/getaca-cache</span><span class="kw">}</span></span>
 <span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> r-lib/actions/check-r-package@v2</span></span>
 <span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="at">        </span><span class="fu">env</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">GETACA_CACHE</span><span class="kw">:</span><span class="at"> ~/getaca-cache</span><span class="kw">,</span><span class="at"> </span><span class="fu">NOT_CRAN</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="kw">}</span></span></code></pre></div>
@@ -395,7 +395,7 @@ worth asserting directly.</p>
 <span>  <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_envvar.html" class="external-link">local_envvar</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>GETACA_OFFLINE <span class="op">=</span> <span class="st">"true"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_options.html" class="external-link">local_options</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>getaca.cache <span class="op">=</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span>  <span class="fu">expect_false</span><span class="op">(</span><span class="fu"><a href="../reference/getaca-checks.html">getaca_available</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">expect_false</span><span class="op">(</span><span class="fu"><a href="../reference/getaca-checks.html">getaca_available</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>And that the code path a guarded call protects still behaves when the
 resource is present, which is what the weekly CI job is for.</p>
@@ -407,8 +407,8 @@ the whole fix.</p>
 installed package:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the shipped registry resolves the version we think it does"</span>, <span class="op">{</span></span>
-<span>  <span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_for.html">registry_for</a></span><span class="op">(</span><span class="st">"taxify"</span><span class="op">)</span></span>
-<span>  <span class="fu">expect_equal</span><span class="op">(</span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">version</span>, <span class="st">"2026-06"</span><span class="op">)</span></span>
+<span>  <span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_for.html">registry_for</a></span><span class="op">(</span><span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span>  <span class="fu">expect_equal</span><span class="op">(</span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">version</span>, <span class="st">"2026-06"</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>That test runs on CRAN, catches a registry regenerated with the head
 pointing at the wrong record, and costs nothing.</p>
@@ -467,11 +467,11 @@ tests the default <code>R CMD check</code> does not.
 <p>Every path through <code>getaca</code> under the clamp ends in one of
 three places, and none of them is a network call:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span>, getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span>, getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
+<span><span class="co">#&gt; yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),</span></span>
+<span><span class="co">#&gt; Action: on a connected machine run getaca_prefetch("backbone", package = "yourpkg"),</span></span>
 <span><span class="co">#&gt; or point GETACA_CACHE at a cache that already holds it.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fix: this is expected during checks. Use getaca_skip_if_unavailable()</span></span>
@@ -495,10 +495,9 @@ package that wants to distinguish them can.</p>
 <p>A package that downloads data on first use should say so where a user
 reads before installing. The <code>Description</code> field is the
 place:</p>
-<pre><code>Description: Matches species names against taxonomic backbones. Reference
-    data are downloaded on first use and cached under
-    tools::R_user_dir(), and can be fetched ahead of time with
-    install_backbone().</code></pre>
+<pre><code>Description: Analyses data against a large reference backbone. The backbone
+    is downloaded on first use and cached under tools::R_user_dir(), and
+    can be fetched ahead of time with install_backbone().</code></pre>
 <p>Two things this earns. A reviewer sees the behaviour declared rather
 than discovering it, and a user on a metered connection is not surprised
 by a gigabyte. Naming the prefetch function also gives the answer to the

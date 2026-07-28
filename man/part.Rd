@@ -36,7 +36,7 @@ list, because what a version means is fixed by the resource's own \code{sha256}
 and checked against it after composition.
 }
 \examples{
-part("https://example.org/wfo-base.bin", sha256 = strrep("c", 64),
+part("https://example.org/backbone-base.bin", sha256 = strrep("c", 64),
      size = 1048576)
 }
 \seealso{

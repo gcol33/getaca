@@ -111,14 +111,14 @@ settings layers combine.</p>
 <p>A <strong>resource record</strong> names exact bytes and never
 changes:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-06"</span>,</span>
-<span>                urls <span class="op">=</span> <span class="st">"https://host.invalid/wfo-2026-06.zip"</span>,</span>
+<code class="sourceCode R"><span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
+<span>                urls <span class="op">=</span> <span class="st">"https://host.invalid/backbone-2026-06.zip"</span>,</span>
 <span>                sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"9f"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]"</span></span></code></pre></div>
-<p>A <strong>channel</strong> maps the logical name <code>"wfo"</code>
-onto one record, and channels move. Three places a channel can be read
-from, so three ways the same name can resolve:</p>
+<span><span class="co">#&gt; [1] "backbone@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]"</span></span></code></pre></div>
+<p>A <strong>channel</strong> maps the logical name
+<code>"backbone"</code> onto one record, and channels move. Three places
+a channel can be read from, so three ways the same name can resolve:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -167,17 +167,17 @@ code dependency. The registry that shipped inside the installed package
 is the whole answer; nothing is fetched to decide what a name means.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
-<span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"bundled"</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"bundled"</span><span class="op">)</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; taxify/wfo@2026-06</span></span>
+<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-06</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">source</span></span>
 <span><span class="co">#&gt; [1] "bundled"</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">digest</span></span>
-<span><span class="co">#&gt; [1] "sha256:4fe8f0972e025b5d327334fa655a498ee825d164f4cd971d83150de85c15cc87"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "sha256:86b53103a628e4cd6a76c7ee0ab8a4b7826afebe368b68cb5303e46d02c66dd9"</span></span></code></pre></div>
 <p><code>source</code> and <code>digest</code> are recorded in the cache
 entry, so a provenance report can state which declaration chose the
 bytes and which policy read it. The digest comes from the channel that
@@ -197,16 +197,16 @@ static registry file somewhere they control, and <code>getaca</code>
 consults it before resolving:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">remote_reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
-<span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  policy  <span class="op">=</span> <span class="st">"current"</span>,</span>
-<span>  remote  <span class="op">=</span> <span class="st">"https://taxify.invalid/getaca-registry.rds"</span>,</span>
+<span>  remote  <span class="op">=</span> <span class="st">"https://yourpkg.invalid/getaca-registry.rds"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">remote_reg</span></span>
-<span><span class="co">#&gt; &lt;getaca registry&gt; taxify  (policy "current")</span></span>
-<span><span class="co">#&gt;   digest: sha256:760085b87983</span></span>
-<span><span class="co">#&gt;   remote: https://taxify.invalid/getaca-registry.rds</span></span>
-<span><span class="co">#&gt;   - wfo@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]</span></span></code></pre></div>
+<span><span class="co">#&gt; &lt;getaca registry&gt; yourpkg  (policy "current")</span></span>
+<span><span class="co">#&gt;   digest: sha256:f63eb3f4be9c</span></span>
+<span><span class="co">#&gt;   remote: https://yourpkg.invalid/getaca-registry.rds</span></span>
+<span><span class="co">#&gt;   - backbone@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]</span></span></code></pre></div>
 <p>The remote is a file, not a service. Publishing it is a
 <code><a href="../reference/registry_write.html">registry_write()</a></code> into a directory that GitHub Pages,
 r-universe or an institutional web server already serves.</p>
@@ -214,8 +214,8 @@ r-universe or an institutional web server already serves.</p>
 which is what CRAN policy requires of a package that uses Internet
 resources:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">remote_reg</span>, policy <span class="op">=</span> <span class="st">"current"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; getaca: could not reach the remote registry for 'taxify'; using the bundled</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">remote_reg</span>, policy <span class="op">=</span> <span class="st">"current"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; getaca: could not reach the remote registry for 'yourpkg'; using the bundled</span></span>
 <span><span class="co">#&gt; registry.</span></span></code></pre></div>
 <p>An unreadable remote behaves the same way. A file that arrives but
 does not parse as a registry, or parses but fails validation, produces a
@@ -253,18 +253,19 @@ a network:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rewritten</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"rewritten.rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>taxify <span class="op">=</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"taxify"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-06"</span>, urls <span class="op">=</span> <span class="st">"https://host.invalid/wfo-2026-06.zip"</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>yourpkg <span class="op">=</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://host.invalid/backbone-2026-06.zip"</span>,</span>
 <span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"ab"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  <span class="va">rewritten</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.pin_file <span class="op">=</span> <span class="va">rewritten</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'taxify'.</span></span>
-<span><span class="co">#&gt;   - the pin file redefines published version wfo@2026-06</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'yourpkg'.</span></span>
+<span><span class="co">#&gt;   - the pin file redefines published version backbone@2026-06</span></span>
 <span><span class="co">#&gt;   - A version identifies exact bytes. Publish a new version instead.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
@@ -280,20 +281,22 @@ version label, which is a record users can see and choose.</p>
 is one registry:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ahead</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
-<span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
-<span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>wfo <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
+<span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-06"</span>, urls <span class="op">=</span> <span class="st">"https://host.invalid/wfo-2026-06.zip"</span>,</span>
+<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://host.invalid/backbone-2026-06.zip"</span>,</span>
 <span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"9f"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-09"</span>, urls <span class="op">=</span> <span class="st">"https://host.invalid/wfo-2026-09.zip"</span>,</span>
+<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-09"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://host.invalid/backbone-2026-09.zip"</span>,</span>
 <span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"ab"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">ahead</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; taxify/wfo@2026-09</span></span>
-<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">ahead</span>, version <span class="op">=</span> <span class="st">"2026-06"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; taxify/wfo@2026-06</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">ahead</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
+<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-09</span></span>
+<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">ahead</span>, version <span class="op">=</span> <span class="st">"2026-06"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
+<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-06</span></span></code></pre></div>
 <p>Users on <code>current</code> follow the head on their next session.
 Users on <code>bundled</code> stay where their installed package put
 them. Users who named a version keep that version under every policy,
@@ -312,33 +315,34 @@ key.</p>
 <p>Make a key once, and keep the secret half outside the package source
 tree:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">secret</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"taxify-signing.key"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">secret</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"yourpkg-signing.key"</span><span class="op">)</span></span>
 <span><span class="va">public</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_keygen.html">registry_keygen</a></span><span class="op">(</span><span class="va">secret</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">public</span>, <span class="fl">1</span>, <span class="fl">24</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "ed25519:346fa630412c05c8"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "ed25519:b1fe1478ba88e136"</span></span></code></pre></div>
 <p>Declare the public half in the registry the package ships:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">signed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
-<span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
-<span>  remote <span class="op">=</span> <span class="st">"https://host.invalid/taxify.rds"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
+<span>  remote <span class="op">=</span> <span class="st">"https://host.invalid/yourpkg.rds"</span>,</span>
 <span>  keys <span class="op">=</span> <span class="va">public</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-06"</span>, urls <span class="op">=</span> <span class="st">"https://host.invalid/wfo-2026-06.zip"</span>,</span>
+<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://host.invalid/backbone-2026-06.zip"</span>,</span>
 <span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"9f"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Then write and sign whatever you publish. Sign after writing: writing
 is what stamps the publication time, and the signature binds it.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"taxify.rds"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"yourpkg.rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">signed</span>, <span class="va">path</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_sign.html">registry_sign</a></span><span class="op">(</span><span class="va">path</span>, key <span class="op">=</span> <span class="va">secret</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">".sig"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; getaca-signature 1</span></span>
-<span><span class="co">#&gt; digest sha256:b7a64028e1bc410fb7fe764072b028acfb19db57feca56f0b2329e2c44ddf32f</span></span>
-<span><span class="co">#&gt; created 2026-07-28T20:00:35Z</span></span>
-<span><span class="co">#&gt; expires 2026-10-26T20:00:35Z</span></span></code></pre></div>
+<span><span class="co">#&gt; digest sha256:d1cb608cec15acaf10654dec1d71fcf0572d95c9924f0e1ea653528fd5a51f6e</span></span>
+<span><span class="co">#&gt; created 2026-07-28T20:43:18Z</span></span>
+<span><span class="co">#&gt; expires 2026-10-26T20:43:18Z</span></span></code></pre></div>
 <p>Upload the <code>.sig</code> beside the registry; getaca fetches it
 from the registry’s own URL with <code>.sig</code> appended.
 <code><a href="../reference/registry_verify.html">registry_verify()</a></code> runs the same check a user’s session
@@ -349,12 +353,12 @@ will, which is worth doing before publishing:</p>
 whole point:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">moved</span> <span class="op">&lt;-</span> <span class="va">signed</span></span>
-<span><span class="va">moved</span><span class="op">$</span><span class="va">resources</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">urls</span> <span class="op">&lt;-</span> <span class="st">"https://elsewhere.invalid/wfo-2026-06.zip"</span></span>
+<span><span class="va">moved</span><span class="op">$</span><span class="va">resources</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">urls</span> <span class="op">&lt;-</span> <span class="st">"https://elsewhere.invalid/backbone-2026-06.zip"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">moved</span>, <span class="va">path</span>, version <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_verify.html">registry_verify</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> The registry for 'taxify' could not be established as authentic.</span></span>
-<span><span class="co">#&gt;   the signature covers sha256:b7a64028e1bc but this registry is sha256:bf180ed18523</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> The registry for 'yourpkg' could not be established as authentic.</span></span>
+<span><span class="co">#&gt;   the signature covers sha256:d1cb608cec15 but this registry is sha256:96e9fdb7a5ab</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; This package declares signing keys, so a remote registry that cannot be</span></span>
 <span><span class="co">#&gt; checked against one is refused rather than used. The bundled declaration</span></span>
@@ -398,28 +402,29 @@ what it was written against even after the package is reinstalled and
 the remote registry has moved on.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pins</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"getaca.pins.rds"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>taxify <span class="op">=</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"taxify"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="va">pins</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>yourpkg <span class="op">=</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="va">pins</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.pin_file <span class="op">=</span> <span class="va">pins</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">moved_on</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
-<span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
-<span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>wfo <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
+<span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    <span class="va">rec</span>,</span>
-<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-09"</span>, urls <span class="op">=</span> <span class="st">"https://host.invalid/wfo-2026-09.zip"</span>,</span>
+<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-09"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://host.invalid/backbone-2026-09.zip"</span>,</span>
 <span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"ab"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">moved_on</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; taxify/wfo@2026-09</span></span>
-<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">moved_on</span>, policy <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; taxify/wfo@2026-06</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">moved_on</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
+<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-09</span></span>
+<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">moved_on</span>, policy <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
+<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-06</span></span></code></pre></div>
 <p>The installed registry has moved to <code>2026-09</code>; the pin
 holds the analysis at <code>2026-06</code>.</p>
 <p>In practice the pin file is written rather than hand-built:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_pin.html">getaca_pin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"taxify"</span>, <span class="st">"otherpkg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_pin.html">getaca_pin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="st">"otherpkg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>That writes <code>getaca.pins.rds</code> in the working directory by
 default, which puts it beside <code>renv.lock</code> in a project. Under
 <code>current</code>, <code><a href="../reference/getaca_pin.html">getaca_pin()</a></code> records the remote state
@@ -458,15 +463,15 @@ the analysis runs offline.</p>
 <p>Never reaches for the network. Cached copies and bundled declarations
 only.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"offline"</span><span class="op">)</span>,</span>
+<code class="sourceCode R"><span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"offline"</span><span class="op">)</span>,</span>
 <span>                getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "getaca_error_offline"</span></span></code></pre></div>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
+<span><span class="co">#&gt; yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),</span></span>
+<span><span class="co">#&gt; Action: on a connected machine run getaca_prefetch("backbone", package = "yourpkg"),</span></span>
 <span><span class="co">#&gt; or point GETACA_CACHE at a cache that already holds it.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fix: this is expected during checks. Use getaca_skip_if_unavailable()</span></span>
@@ -505,9 +510,9 @@ variables</p></li>
 how a package’s own CI runs tests against real resources while a CRAN
 machine never does.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_policy.html">getaca_policy</a></span><span class="op">(</span><span class="st">"current"</span><span class="op">)</span>                                   <span class="co"># this session</span></span>
-<span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>, policy <span class="op">=</span> <span class="st">"bundled"</span><span class="op">)</span>      <span class="co"># this call</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>GETACA_POLICY <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span>                       <span class="co"># this process</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_policy.html">getaca_policy</a></span><span class="op">(</span><span class="st">"current"</span><span class="op">)</span>                                     <span class="co"># this session</span></span>
+<span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, policy <span class="op">=</span> <span class="st">"bundled"</span><span class="op">)</span>  <span class="co"># this call</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>GETACA_POLICY <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span>                         <span class="co"># this process</span></span></code></pre></div>
 <p>Setting the policy per call is the form worth reaching for in package
 code. A function that must not vary its answer can pass
 <code>policy = "bundled"</code> explicitly and stop caring what the
@@ -519,16 +524,16 @@ user’s session is set to.</p>
 <p>The registry’s <code>policy</code> field is your recommendation, and
 users can override it. Three questions decide it.</p>
 <p><strong>Do the data release independently of your package?</strong>
-If a new backbone appears twice a year and your CRAN releases are
-annual, <code>current</code> is what keeps users on data you consider
-correct without a release cycle in between. If the data are static,
+If a new release appears twice a year and your CRAN releases are annual,
+<code>current</code> is what keeps users on data you consider correct
+without a release cycle in between. If the data are static,
 <code>bundled</code> costs nothing and removes a moving part.</p>
 <p><strong>Can you host a registry file reliably enough?</strong>
 Reliably here is a low bar, since an outage falls back to bundled with a
 message. GitHub Pages is sufficient. If you have nowhere to put a file
 you control, <code>bundled</code> is the honest choice.</p>
 <p><strong>Would a user be surprised?</strong> A package whose results
-shift because a backbone moved needs that to be visible.
+shift because the data moved needs that to be visible.
 <code>current</code> is right when the declaring package surfaces the
 resolved version in its own output, and questionable when it does
 not.</p>
@@ -543,11 +548,11 @@ direction, and the direction is the reason to pick it.</p>
 <p>Whichever policy resolved a resource is kept in its cache entry,
 alongside the digest of the registry state that supplied the record:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;getaca cache entry&gt; taxify/wfo@2026-06</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;getaca cache entry&gt; yourpkg/backbone@2026-06</span></span>
 <span><span class="co">#&gt;   ...</span></span>
 <span><span class="co">#&gt;   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)</span></span>
-<span><span class="co">#&gt;   source url  https://host.invalid/wfo-2026-06.zip</span></span></code></pre></div>
+<span><span class="co">#&gt;   source url  https://host.invalid/backbone-2026-06.zip</span></span></code></pre></div>
 <p><code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> reports the same two fields as
 <code>source</code> and <code>registry_digest</code> columns across
 every cached resource, so “which of these came from a remote channel” is

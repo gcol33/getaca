@@ -141,7 +141,7 @@
   `curl` plus three base packages.
 - The events carry what the registry knows and a transfer library
   cannot: the resource identity, which renders as
-  `taxify/wfo@2026-09 (part 2 of 3)` for a series, the size the
+  `yourpkg/backbone@2026-09 (part 2 of 3)` for a series, the size the
   declaration states rather than whatever content length the mirror
   sent, which mirror is being tried, and how much was already on disk
   when an interrupted transfer resumed. The share a bar shows is

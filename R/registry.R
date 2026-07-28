@@ -20,7 +20,7 @@
 #'   `"bundled"`, `"current"`, `"pinned"`, `"offline"`. See [getaca_policy()].
 #' @param current Named character vector giving the channel head: the version a
 #'   bare request for each resource name resolves to, as
-#'   `c(wfo = "2026-09")`. Required for any name declaring more than one
+#'   `c(backbone = "2026-09")`. Required for any name declaring more than one
 #'   version, and optional for the rest, since a name with one version has only
 #'   one answer.
 #' @param keys Public keys, from [registry_keygen()], that may sign this
@@ -58,7 +58,7 @@
 #'
 #' @examples
 #' registry(
-#'   package = "mypackage",
+#'   package = "yourpkg",
 #'   resources = list(
 #'     resource("reference-data", "2.1",
 #'              urls = "https://example.org/ref-2.1.zip",
@@ -68,7 +68,7 @@
 #'
 #' # Two versions on offer, one of them the channel head:
 #' registry(
-#'   package = "mypackage",
+#'   package = "yourpkg",
 #'   current = c("reference-data" = "2.1"),
 #'   resources = list(
 #'     resource("reference-data", "2.0",

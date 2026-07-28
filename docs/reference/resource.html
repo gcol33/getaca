@@ -186,9 +186,9 @@ arrives. See <code><a href="part.html">part()</a></code>.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">resource</span><span class="op">(</span></span>
-<span>  name <span class="op">=</span> <span class="st">"wfo"</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"backbone"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"2026.1"</span>,</span>
-<span>  urls <span class="op">=</span> <span class="st">"https://example.org/wfo-2026.1.parquet"</span>,</span>
+<span>  urls <span class="op">=</span> <span class="st">"https://example.org/backbone-2026.1.parquet"</span>,</span>
 <span>  sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="fl">64</span><span class="op">)</span>,</span>
 <span>  size <span class="op">=</span> <span class="fl">1048576</span>,</span>
 <span>  license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span></span>
@@ -196,13 +196,13 @@ arrives. See <code><a href="part.html">part()</a></code>.</p>
 <span></span>
 <span><span class="co"># The same artefact, published as a base and the delta issued against it:</span></span>
 <span><span class="fu">resource</span><span class="op">(</span></span>
-<span>  name <span class="op">=</span> <span class="st">"wfo"</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"backbone"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"2026.2"</span>,</span>
 <span>  sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"b"</span>, <span class="fl">64</span><span class="op">)</span>,</span>
-<span>  file <span class="op">=</span> <span class="st">"wfo.parquet"</span>,</span>
+<span>  file <span class="op">=</span> <span class="st">"backbone.parquet"</span>,</span>
 <span>  parts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="part.html">part</a></span><span class="op">(</span><span class="st">"https://example.org/wfo-base.bin"</span>, sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"c"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="part.html">part</a></span><span class="op">(</span><span class="st">"https://example.org/wfo-2026.2.bin"</span>, sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"d"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="part.html">part</a></span><span class="op">(</span><span class="st">"https://example.org/backbone-base.bin"</span>, sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"c"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="part.html">part</a></span><span class="op">(</span><span class="st">"https://example.org/backbone-2026.2.bin"</span>, sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"d"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>

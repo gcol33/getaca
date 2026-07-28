@@ -48,9 +48,9 @@ A location is a plain URL, or an identifier for a data archive that holds
 several files. Which one it is, and which archive, is read off the string, so
 one call covers both:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{registry_draft("10.5281/zenodo.17844561", package = "mypackage")
-registry_draft(c(wfo = "https://example.org/wfo.parquet"),
-               package = "mypackage", version = "2026.1")
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{registry_draft("10.5281/zenodo.17844561", package = "yourpkg")
+registry_draft(c(backbone = "https://example.org/backbone.parquet"),
+               package = "yourpkg", version = "2026.1")
 }\if{html}{\out{</div>}}
 
 Every file is downloaded once and hashed locally. Checksums an archive
@@ -90,7 +90,7 @@ returned registry, and write it with \code{\link[=registry_write]{registry_write
 
 \examples{
 \dontrun{
-reg <- registry_draft("10.5281/zenodo.17844561", package = "mypackage")
+reg <- registry_draft("10.5281/zenodo.17844561", package = "yourpkg")
 registry_write(reg, "inst/getaca/registry.rds")
 }
 }

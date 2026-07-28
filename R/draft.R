@@ -9,9 +9,9 @@
 #' one call covers both:
 #'
 #' ```r
-#' registry_draft("10.5281/zenodo.17844561", package = "mypackage")
-#' registry_draft(c(wfo = "https://example.org/wfo.parquet"),
-#'                package = "mypackage", version = "2026.1")
+#' registry_draft("10.5281/zenodo.17844561", package = "yourpkg")
+#' registry_draft(c(backbone = "https://example.org/backbone.parquet"),
+#'                package = "yourpkg", version = "2026.1")
 #' ```
 #'
 #' Every file is downloaded once and hashed locally. Checksums an archive
@@ -65,7 +65,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' reg <- registry_draft("10.5281/zenodo.17844561", package = "mypackage")
+#' reg <- registry_draft("10.5281/zenodo.17844561", package = "yourpkg")
 #' registry_write(reg, "inst/getaca/registry.rds")
 #' }
 registry_draft <- function(x, package, version = NULL, source = "auto",

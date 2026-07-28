@@ -28,7 +28,7 @@ nothing else.
 
 ``` r
 
-err <- tryCatch(getaca("wfo", registry = reg), getaca_error = function(e) e)
+err <- tryCatch(getaca("backbone", registry = reg), getaca_error = function(e) e)
 class(err)
 #> [1] "getaca_error_offline"     "getaca_error_unavailable"
 #> [3] "getaca_error"             "error"                   
@@ -44,9 +44,9 @@ err$actor
 ``` r
 
 cat(conditionMessage(err))
-#> taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
+#> yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
 #> 
-#> Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),
+#> Action: on a connected machine run getaca_prefetch("backbone", package = "yourpkg"),
 #> or point GETACA_CACHE at a cache that already holds it.
 #> 
 #> Fix: this is expected during checks. Use getaca_skip_if_unavailable()
@@ -78,10 +78,10 @@ a path that 404s.
 
 ``` r
 
-getaca("wfo", package = "taxify")
-#> Error: Cannot reach any source for taxify/wfo@2026-06.
-#>   https://primary.invalid/wfo-2026-06.zip: HTTP 503
-#>   https://mirror.invalid/wfo-2026-06.zip: Could not resolve host
+getaca("backbone", package = "yourpkg")
+#> Error: Cannot reach any source for yourpkg/backbone@2026-06.
+#>   https://primary.invalid/backbone-2026-06.zip: HTTP 503
+#>   https://mirror.invalid/backbone-2026-06.zip: Could not resolve host
 #>
 #> Actions: connect to a network; or run getaca_prefetch() on a connected
 #> machine and copy the cache directory; or set the resource optional here
@@ -96,10 +96,10 @@ enough to build a domain-specific message:
 ``` r
 
 tryCatch(
-  getaca("wfo", package = "taxify"),
+  getaca("backbone", package = "yourpkg"),
   getaca_error_unavailable = function(e) {
     stop(sprintf(
-      "Could not download the WFO backbone from %d source(s).\nTried:\n%s",
+      "Could not download the backbone from %d source(s).\nTried:\n%s",
       length(e$urls), paste0("  ", e$urls, " (", e$reasons, ")", collapse = "\n")
     ), call. = FALSE)
   }
@@ -117,9 +117,9 @@ attempted.
 ``` r
 
 cat(conditionMessage(err))
-#> taxify/wfo@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
+#> yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).
 #> 
-#> Action: on a connected machine run getaca_prefetch("wfo", package = "taxify"),
+#> Action: on a connected machine run getaca_prefetch("backbone", package = "yourpkg"),
 #> or point GETACA_CACHE at a cache that already holds it.
 #> 
 #> Fix: this is expected during checks. Use getaca_skip_if_unavailable()
@@ -143,10 +143,10 @@ network at all.
 ``` r
 
 tryCatch(
-  getaca("wfo", package = "taxify"),
+  getaca("backbone", package = "yourpkg"),
   getaca_error_offline = function(e) {
     message("Running without network access. Prefetch first:\n",
-            "  getaca_prefetch(\"wfo\", package = \"taxify\")")
+            "  getaca_prefetch(\"backbone\", package = \"yourpkg\")")
     NULL
   },
   getaca_error_unavailable = function(e) {
@@ -167,8 +167,8 @@ restarting.
 
 ``` r
 
-getaca("wfo", package = "taxify")
-#> Error: Transfer of taxify/wfo@2026-06 ended early.
+getaca("backbone", package = "yourpkg")
+#> Error: Transfer of yourpkg/backbone@2026-06 ended early.
 #>   expected 797000000 bytes, received 412300000 bytes
 #>
 #> Action: retry. Any previously cached copy was left untouched.
@@ -250,11 +250,11 @@ version.
 
 ``` r
 
-getaca("wfo", package = "taxify")
-#> Error: The remote file no longer matches taxify/wfo@2026-06.
+getaca("backbone", package = "yourpkg")
+#> Error: The remote file no longer matches yourpkg/backbone@2026-06.
 #>   declared SHA-256: 9f9f9f...
 #>   observed SHA-256: 3c1a77...
-#>   source: https://primary.invalid/wfo-2026-06.zip
+#>   source: https://primary.invalid/backbone-2026-06.zip
 #>
 #> The publisher appears to have replaced the contents without issuing a
 #> new version. getaca will not accept the substitution, and any copy
@@ -285,8 +285,8 @@ disagrees with the registry, the registry is the likely error.
 
 ``` r
 
-getaca("wfo", package = "taxify")
-#> Error: The declared checksum for taxify/wfo@2026-06 looks wrong.
+getaca("backbone", package = "yourpkg")
+#> Error: The declared checksum for yourpkg/backbone@2026-06 looks wrong.
 #>   2 independent sources agreed on SHA-256 3c1a77...
 #>   the registry declares 9f9f9f...
 #>
@@ -314,8 +314,8 @@ other than the artefact the record names.
 
 ``` r
 
-getaca("wfo", package = "taxify")
-#> Error: The parts declared for taxify/wfo@2026-09 do not produce the declared bytes.
+getaca("backbone", package = "yourpkg")
+#> Error: The parts declared for yourpkg/backbone@2026-09 do not produce the declared bytes.
 #>   3 parts, each matching its own checksum, combined by 'concat'
 #>   declared SHA-256: b1b1b1...
 #>   composed SHA-256: 2c40f9...
@@ -335,7 +335,7 @@ which part of the series it was:
 
 ``` r
 
-#> Error: Cannot reach any source for taxify/wfo@2026-09 (part 2 of 3).
+#> Error: Cannot reach any source for yourpkg/backbone@2026-09 (part 2 of 3).
 ```
 
 As an author, reach for this after re-splitting a file, reordering a
@@ -352,13 +352,13 @@ re-hash.
 
 ``` r
 
-getaca("wfo", package = "taxify")
-#> Error: The cached copy of taxify/wfo@2026-06 is damaged.
-#>   path: ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.zip
+getaca("backbone", package = "yourpkg")
+#> Error: The cached copy of yourpkg/backbone@2026-06 is damaged.
+#>   path: ~/.cache/R/getaca/yourpkg/backbone/2026-06/raw/backbone-2026-06.zip
 #>   declared SHA-256: 9f9f9f...
 #>   observed SHA-256: 71b0c2...
 #>
-#> Action: getaca_clean("wfo", package = "taxify"), then retry.
+#> Action: getaca_clean("backbone", package = "yourpkg"), then retry.
 #>
 #> Fix: see the actions listed above.
 ```
@@ -372,11 +372,11 @@ repair is one line and the user knows it happened.
 ``` r
 
 tryCatch(
-  getaca("wfo", package = "taxify"),
+  getaca("backbone", package = "yourpkg"),
   getaca_error_cache_corrupt = function(e) {
-    warning("Cached WFO backbone was damaged; refetching.", call. = FALSE)
-    getaca_clean("wfo", package = "taxify")
-    getaca("wfo", package = "taxify")
+    warning("The cached backbone was damaged; refetching.", call. = FALSE)
+    getaca_clean("backbone", package = "yourpkg")
+    getaca("backbone", package = "yourpkg")
   }
 )
 ```
@@ -396,15 +396,17 @@ user’s:
 
 ``` r
 
-registry("taxify", list(
-  resource("wfo", "2026-09", urls = "https://host.invalid/a",
+registry("yourpkg", list(
+  resource("backbone", "2026-09",
+           urls = "https://host.invalid/a",
            sha256 = strrep("ab", 32)),
-  resource("wfo", "2026-03", urls = "https://host.invalid/b",
+  resource("backbone", "2026-03",
+           urls = "https://host.invalid/b",
            sha256 = strrep("cd", 32))
 ))
 #> Error:
-#> ! Invalid getaca registry for package 'taxify'.
-#>   - resource 'wfo' declares 2 versions (2026-09, 2026-03) but the registry names no current one; add current = c("wfo" = "2026-03")
+#> ! Invalid getaca registry for package 'yourpkg'.
+#>   - resource 'backbone' declares 2 versions (2026-09, 2026-03) but the registry names no current one; add current = c("backbone" = "2026-03")
 #> 
 #> Fix: the declaring package needs a correction. Report it to its maintainer.
 ```
@@ -413,11 +415,12 @@ Every problem found is listed, rather than the first one:
 
 ``` r
 
-resource("wfo", "2026-06", urls = "ftp://host.invalid/a", sha256 = "abc")
+resource("backbone", "2026-06",
+         urls = "ftp://host.invalid/a", sha256 = "abc")
 #> Error:
 #> ! Invalid getaca registry.
-#>   - resource 'wfo': all URLs must use https
-#>   - resource 'wfo': `sha256` must be 64 lowercase hex characters
+#>   - resource 'backbone': all URLs must use https
+#>   - resource 'backbone': `sha256` must be 64 lowercase hex characters
 #> 
 #> Fix: the declaring package needs a correction. Report it to its maintainer.
 ```
@@ -431,8 +434,8 @@ version.
 
 resolve_resource("no-such-resource", registry = reg)
 #> Error:
-#> ! Invalid getaca registry for package 'taxify'.
-#>   - package 'taxify' declares no resource named 'no-such-resource' (has: wfo)
+#> ! Invalid getaca registry for package 'yourpkg'.
+#>   - package 'yourpkg' declares no resource named 'no-such-resource' (has: backbone)
 #> 
 #> Fix: the declaring package needs a correction. Report it to its maintainer.
 ```
@@ -442,7 +445,7 @@ typo without opening the registry.
 
 ``` r
 
-resolve_resource("wfo", package = "stats")
+resolve_resource("backbone", package = "stats")
 #> Error:
 #> ! Invalid getaca registry for package 'stats'.
 #>   - package 'stats' ships no getaca registry at inst/getaca/registry.rds
@@ -462,15 +465,15 @@ and the default messages already say who can.
 
 ``` r
 
-install_backbone <- function(name = "wfo") {
+install_backbone <- function(name = "backbone") {
   tryCatch(
-    open_backbone(getaca(name, package = "taxify")),
+    open_backbone(getaca(name, package = "yourpkg")),
 
     getaca_error_offline = function(e) {
       stop("The ", name, " backbone is not installed and this session cannot ",
            "download it.\n",
            "On a connected machine run:\n",
-           "  taxify::install_backbone(\"", name, "\")\n",
+           "  yourpkg::install_backbone(\"", name, "\")\n",
            "or point GETACA_CACHE at a directory that already holds it.",
            call. = FALSE)
     },
@@ -478,14 +481,14 @@ install_backbone <- function(name = "wfo") {
     getaca_error_unavailable = function(e) {
       stop("The ", name, " backbone could not be downloaded from any of its ",
            length(e$urls), " sources.\n",
-           "This is usually temporary. Try again, or use a different backbone:\n",
-           "  taxify(names, backbone = \"col\")", call. = FALSE)
+           "This is usually temporary. Try again, or use a smaller reference:\n",
+           "  yourpkg::analyse(x, backbone = \"grid\")", call. = FALSE)
     },
 
     getaca_error_cache_corrupt = function(e) {
       stop("The cached ", name, " backbone is damaged.\n",
            "Repair it with:\n",
-           "  getaca::getaca_clean(\"", name, "\", package = \"taxify\")",
+           "  getaca::getaca_clean(\"", name, "\", package = \"yourpkg\")",
            call. = FALSE)
     }
   )
@@ -508,7 +511,7 @@ no network:
 ``` r
 
 offline_error <- tryCatch(
-  getaca("wfo", registry = reg, policy = "offline"),
+  getaca("backbone", registry = reg, policy = "offline"),
   getaca_error = function(e) e
 )
 class(offline_error)[1]
@@ -517,11 +520,11 @@ class(offline_error)[1]
 
 ``` r
 
-test_that("a missing backbone gets a taxify-flavoured message", {
+test_that("a missing backbone gets a yourpkg-flavoured message", {
   withr::local_envvar(c(GETACA_OFFLINE = "true"))
   withr::local_options(list(getaca.cache = withr::local_tempdir()))
 
-  expect_error(install_backbone("wfo"), "On a connected machine run")
+  expect_error(install_backbone("backbone"), "On a connected machine run")
 })
 ```
 

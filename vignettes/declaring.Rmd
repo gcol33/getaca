@@ -28,9 +28,9 @@ resource is actually needed.
 
 Two things that must not be conflated.
 
-A **resource record** is immutable. `taxify / wfo / 2026-06` names exact bytes,
-permanently. If the publisher reissues that file with different contents, that
-is an upstream mutation and `getaca` refuses it.
+A **resource record** is immutable. `yourpkg / backbone / 2026-06` names exact
+bytes, permanently. If the publisher reissues that file with different contents,
+that is an upstream mutation and `getaca` refuses it.
 
 A **channel** maps a logical name onto a record, and channels move. Where the
 channel is read from is the resolution policy.
@@ -51,21 +51,21 @@ different days is not a dependency. See
 
 ```{r}
 rec <- resource(
-  name        = "wfo",
+  name        = "backbone",
   version     = "2026-06",
-  urls        = c("https://zenodo.invalid/records/1234567/files/wfo-2026-06.zip",
-                  "https://mirror.invalid/wfo-2026-06.zip"),
+  urls        = c("https://zenodo.invalid/records/1234567/files/backbone-2026-06.zip",
+                  "https://mirror.invalid/backbone-2026-06.zip"),
   sha256      = strrep("9f", 32),
   size        = 797e6,
   license     = "CC-BY-4.0",
-  description = "World Flora Online taxonomic backbone, June 2026 release"
+  description = "Reference backbone, June 2026 release"
 )
 rec
 ```
 
 **`name`** becomes a directory name, so it is restricted to
 `[A-Za-z0-9._-]`. It is scoped by your package, so a short name is fine and
-`"wfo"` will never collide with another package's `"wfo"`.
+`"backbone"` will never collide with another package's `"backbone"`.
 
 **`version`** is a label under the same character restriction. `getaca` never
 orders version strings, which is what lets you use whatever your upstream
@@ -99,12 +99,14 @@ which a record composed from parts has to state for itself.
 Malformed records are refused where they are written, with the problem named:
 
 ```{r, error = TRUE}
-resource("wfo", "2026-06", urls = "http://insecure.invalid/wfo.zip",
+resource("backbone", "2026-06",
+         urls = "http://insecure.invalid/backbone.zip",
          sha256 = strrep("9f", 32))
 ```
 
 ```{r, error = TRUE}
-resource("wfo", "2026-06", urls = "https://ok.invalid/wfo.zip",
+resource("backbone", "2026-06",
+         urls = "https://ok.invalid/backbone.zip",
          sha256 = "not-a-digest")
 ```
 
@@ -116,8 +118,8 @@ file once, hashes it locally and returns a registry:
 
 ```{r, eval = FALSE}
 reg <- registry_draft(
-  c(wfo = "https://zenodo.org/records/1234567/files/wfo-2026-06.zip"),
-  package = "taxify",
+  c(backbone = "https://zenodo.org/records/1234567/files/backbone-2026-06.zip"),
+  package = "yourpkg",
   version = "2026-06"
 )
 ```
@@ -126,9 +128,9 @@ A location is a plain URL, or an identifier for an archive holding several
 files. Which one it is, and which archive, is read off the string:
 
 ```{r, eval = FALSE}
-registry_draft("10.5281/zenodo.4924875", package = "taxify")
-registry_draft("10.6084/m9.figshare.14763051.v1", package = "taxify")
-registry_draft("10.11588/data/TKCFEF", package = "taxify")
+registry_draft("10.5281/zenodo.4924875", package = "yourpkg")
+registry_draft("10.6084/m9.figshare.14763051.v1", package = "yourpkg")
+registry_draft("10.11588/data/TKCFEF", package = "yourpkg")
 ```
 
 Zenodo and figshare register their own DOI prefixes, so those are recognised
@@ -152,9 +154,9 @@ call where a location is one file:
 
 ```{r, eval = FALSE}
 reg <- registry_draft(
-  list(wfo = c("https://zenodo.org/records/1234567/files/wfo-2026-06.zip",
-               "https://mirror.invalid/wfo-2026-06.zip")),
-  package = "taxify",
+  list(backbone = c("https://zenodo.org/records/1234567/files/backbone-2026-06.zip",
+               "https://mirror.invalid/backbone-2026-06.zip")),
+  package = "yourpkg",
   version = "2026-06"
 )
 registry_write(reg, "inst/getaca/registry.rds")
@@ -172,7 +174,7 @@ already there.
 
 ```{r}
 reg <- registry(
-  package   = "taxify",
+  package   = "yourpkg",
   resources = list(rec)
 )
 reg
@@ -232,12 +234,14 @@ offers several has to say which one a bare request returns:
 
 ```{r}
 reg2 <- registry(
-  package = "taxify",
-  current = c(wfo = "2026-09"),
+  package = "yourpkg",
+  current = c(backbone = "2026-09"),
   resources = list(
-    resource("wfo", "2026-06", urls = "https://host.invalid/wfo-2026-06.zip",
+    resource("backbone", "2026-06",
+             urls = "https://host.invalid/backbone-2026-06.zip",
              sha256 = strrep("9f", 32), license = "CC-BY-4.0"),
-    resource("wfo", "2026-09", urls = "https://host.invalid/wfo-2026-09.zip",
+    resource("backbone", "2026-09",
+             urls = "https://host.invalid/backbone-2026-09.zip",
              sha256 = strrep("ab", 32), license = "CC-BY-4.0")
   )
 )
@@ -258,11 +262,13 @@ noticing:
 
 ```{r, error = TRUE}
 registry(
-  package = "taxify",
+  package = "yourpkg",
   resources = list(
-    resource("wfo", "2026-09", urls = "https://host.invalid/a",
+    resource("backbone", "2026-09",
+             urls = "https://host.invalid/a",
              sha256 = strrep("ab", 32)),
-    resource("wfo", "2026-03", urls = "https://host.invalid/b",
+    resource("backbone", "2026-03",
+             urls = "https://host.invalid/b",
              sha256 = strrep("cd", 32))
   )
 )
@@ -281,12 +287,12 @@ schedule:
 
 ```{r}
 remote_reg <- registry(
-  package = "taxify",
+  package = "yourpkg",
   policy  = "current",
-  remote  = "https://taxify.invalid/getaca-registry.rds",
+  remote  = "https://yourpkg.invalid/getaca-registry.rds",
   resources = list(
-    resource("wfo", "2026-06",
-             urls   = "https://primary.invalid/wfo-2026-06.zip",
+    resource("backbone", "2026-06",
+             urls   = "https://primary.invalid/backbone-2026-06.zip",
              sha256 = strrep("9f", 32),
              license = "CC-BY-4.0")
   )
@@ -328,20 +334,20 @@ both identities so provenance keeps them:
 
 ```{r}
 resource(
-  name    = "wfo-db",
+  name    = "backbone-db",
   version = "source-2026-06_build-3",
-  urls    = "https://example.invalid/wfo-db-3.duckdb",
+  urls    = "https://example.invalid/backbone-db-3.duckdb",
   sha256  = strrep("ab", 32),
   license = "CC-BY-4.0",
   upstream = list(
-    wfo_release    = "2026-06",
-    taxifydb_build = "3"
+    source_release    = "2026-06",
+    build = "3"
   )
 )
 ```
 
 `upstream` is a free-form named list. Every entry is printed by
-`getaca_info()` and kept in the cache index, so a user asking "which WFO
+`getaca_info()` and kept in the cache index, so a user asking "which upstream
 release is this, and which build turned it into a database" gets both answers
 from one call. Two things move independently here: upstream can publish
 `2026-09`, and you can fix a build bug against `2026-06`. Version labels like
@@ -363,18 +369,18 @@ as usual:
 
 ```{r}
 series <- resource(
-  name    = "wfo",
+  name    = "backbone",
   version = "2026-09",
   sha256  = strrep("b1", 32),
   size    = 812e6,
-  file    = "wfo.parquet",
+  file    = "backbone.parquet",
   license = "CC-BY-4.0",
   parts   = list(
-    part("https://zenodo.invalid/records/456/files/wfo-base.bin",
+    part("https://zenodo.invalid/records/456/files/backbone-base.bin",
          sha256 = strrep("91", 32), size = 797e6),
-    part("https://zenodo.invalid/records/456/files/wfo-2026-06.bin",
+    part("https://zenodo.invalid/records/456/files/backbone-2026-06.bin",
          sha256 = strrep("4e", 32), size = 9.1e6),
-    part("https://zenodo.invalid/records/456/files/wfo-2026-09.bin",
+    part("https://zenodo.invalid/records/456/files/backbone-2026-09.bin",
          sha256 = strrep("77", 32), size = 5.4e6)
   )
 )
@@ -403,8 +409,8 @@ route. Your users are held to the artefact either way, and a series that does
 not produce it is reported against the declaration:
 
 ```{r, eval = FALSE}
-getaca("wfo", package = "taxify")
-#> Error: The parts declared for taxify/wfo@2026-09 do not produce the declared bytes.
+getaca("backbone", package = "yourpkg")
+#> Error: The parts declared for yourpkg/backbone@2026-09 do not produce the declared bytes.
 #>   3 parts, each matching its own checksum, combined by 'concat'
 #>   declared SHA-256: b1b1b1...
 #>   composed SHA-256: 2c40f9...
@@ -461,15 +467,15 @@ version on it:
 
 ```{r, eval = FALSE}
 resource(
-  name    = "wfo",
+  name    = "backbone",
   version = "2026-12",
   sha256  = strrep("c2", 32),
-  file    = "wfo.parquet",
+  file    = "backbone.parquet",
   parts   = list(
     # The artefact of 2026-09, at its published checksum.
-    part("https://zenodo.invalid/records/456/files/wfo-2026-09.parquet",
+    part("https://zenodo.invalid/records/456/files/backbone-2026-09.parquet",
          sha256 = strrep("b1", 32)),
-    part("https://zenodo.invalid/records/789/files/wfo-2026-12.bin",
+    part("https://zenodo.invalid/records/789/files/backbone-2026-12.bin",
          sha256 = strrep("d3", 32))
   ),
   combiner = apply_deltas
@@ -493,9 +499,9 @@ Most declarations of an archive want the same transformation, so it is shipped.
 
 ```{r}
 archive <- resource(
-  name      = "wfo",
+  name      = "backbone",
   version   = "2026-06",
-  urls      = "https://host.invalid/wfo-2026-06.zip",
+  urls      = "https://host.invalid/backbone-2026-06.zip",
   sha256    = strrep("9f", 32),
   license   = "CC-BY-4.0",
   processor = unpack()
@@ -532,7 +538,7 @@ Anything else is a function of two arguments:
 
 ```{r}
 index <- processor("index-v1", function(input, output_dir) {
-  out <- file.path(output_dir, "wfo.tsv")
+  out <- file.path(output_dir, "backbone.tsv")
   write.table(read.csv(input), out, sep = "\t", row.names = FALSE)
   out
 })
@@ -563,25 +569,25 @@ The stored form is an R object, so no parser is ever a hard dependency. YAML
 and JSON are accepted at authoring time and gated at call time:
 
 ```{r, eval = FALSE}
-reg <- as_registry("data-raw/resources.yml", package = "taxify")
+reg <- as_registry("data-raw/resources.yml", package = "yourpkg")
 registry_write(reg, "inst/getaca/registry.rds")
 ```
 
 ```yaml
-wfo:
+backbone:
   version: "2026-06"
   urls:
-    - https://primary.invalid/wfo-2026-06.zip
+    - https://primary.invalid/backbone-2026-06.zip
 
-    - https://mirror.invalid/wfo-2026-06.zip
+    - https://mirror.invalid/backbone-2026-06.zip
   sha256: "9f9f..."
   size: 797000000
   license: CC-BY-4.0
-  description: World Flora Online backbone, June 2026
+  description: Reference backbone, June 2026
 
-col:
+grid:
   version: "2026-06"
-  url: https://primary.invalid/col-2026-06.zip
+  url: https://primary.invalid/grid-2026-06.zip
   sha256: "ab12..."
   license: CC-BY-4.0
 ```
@@ -595,9 +601,9 @@ the list is a list and `current` sits beside it. Arguments passed to
 `as_registry()` reach `registry()`:
 
 ```{r, eval = FALSE}
-as_registry("data-raw/resources.yml", package = "taxify",
+as_registry("data-raw/resources.yml", package = "yourpkg",
             policy = "current",
-            remote = "https://taxify.invalid/getaca-registry.rds")
+            remote = "https://yourpkg.invalid/getaca-registry.rds")
 ```
 
 JSON works the same way through `jsonlite`. Both are `Suggests`, and asking
@@ -610,14 +616,14 @@ Every failure is classed, and carries an `actor` field naming who can act.
 Catch the ones your users will meet and say something domain-specific:
 
 ```{r, eval = FALSE}
-install_backbone <- function(name = "wfo") {
+install_backbone <- function(name = "backbone") {
   path <- tryCatch(
-    getaca(name, package = "taxify"),
+    getaca(name, package = "yourpkg"),
     getaca_error_unavailable = function(e) {
-      stop("The WFO backbone is not installed and cannot be downloaded ",
+      stop("The backbone is not installed and cannot be downloaded ",
            "because no network connection is available.\n",
            "Connect to the internet and run:\n",
-           "  taxify::install_backbone(\"wfo\")", call. = FALSE)
+           "  yourpkg::install_backbone(\"backbone\")", call. = FALSE)
     }
   )
   open_backbone(path)
@@ -655,8 +661,8 @@ rather than fetched from:
 
 ```{r, eval = FALSE}
 resource(
-  "wfo", "2026-06",
-  urls = "https://zenodo.org/records/1234567/files/wfo-2026-06.zip",
+  "backbone", "2026-06",
+  urls = "https://zenodo.org/records/1234567/files/backbone-2026-06.zip",
   doi = "10.5281/zenodo.1234567",
   sha256 = "...", license = "CC-BY-4.0"
 )
@@ -727,14 +733,14 @@ without a network:
 
 ```{r, eval = FALSE}
 test_that("the shipped registry is valid and names a head", {
-  reg <- registry_for("taxify")
+  reg <- registry_for("yourpkg")
   expect_s3_class(reg, "getaca_registry")
-  expect_equal(resolve_resource("wfo", registry = reg)$id$version, "2026-06")
+  expect_equal(resolve_resource("backbone", registry = reg)$id$version, "2026-06")
 })
 
 test_that("the backbone parses when it is available", {
-  getaca_skip_if_unavailable("wfo", package = "taxify")
-  expect_s3_class(read_backbone(getaca("wfo", package = "taxify")), "backbone")
+  getaca_skip_if_unavailable("backbone", package = "yourpkg")
+  expect_s3_class(read_backbone(getaca("backbone", package = "yourpkg")), "backbone")
 })
 ```
 

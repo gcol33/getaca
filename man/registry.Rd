@@ -31,7 +31,7 @@ refers to.}
 
 \item{current}{Named character vector giving the channel head: the version a
 bare request for each resource name resolves to, as
-\code{c(wfo = "2026-09")}. Required for any name declaring more than one
+\code{c(backbone = "2026-09")}. Required for any name declaring more than one
 version, and optional for the rest, since a name with one version has only
 one answer.}
 
@@ -85,7 +85,7 @@ appended in the wrong place from silently moving every user backwards.
 
 \examples{
 registry(
-  package = "mypackage",
+  package = "yourpkg",
   resources = list(
     resource("reference-data", "2.1",
              urls = "https://example.org/ref-2.1.zip",
@@ -95,7 +95,7 @@ registry(
 
 # Two versions on offer, one of them the channel head:
 registry(
-  package = "mypackage",
+  package = "yourpkg",
   current = c("reference-data" = "2.1"),
   resources = list(
     resource("reference-data", "2.0",

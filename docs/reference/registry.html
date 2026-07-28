@@ -118,7 +118,7 @@ refers to.</p></dd>
 <dt id="arg-current">current<a class="anchor" aria-label="anchor" href="#arg-current"></a></dt>
 <dd><p>Named character vector giving the channel head: the version a
 bare request for each resource name resolves to, as
-<code>c(wfo = "2026-09")</code>. Required for any name declaring more than one
+<code>c(backbone = "2026-09")</code>. Required for any name declaring more than one
 version, and optional for the rest, since a name with one version has only
 one answer.</p></dd>
 
@@ -178,7 +178,7 @@ appended in the wrong place from silently moving every user backwards.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">registry</span><span class="op">(</span></span>
-<span>  package <span class="op">=</span> <span class="st">"mypackage"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="resource.html">resource</a></span><span class="op">(</span><span class="st">"reference-data"</span>, <span class="st">"2.1"</span>,</span>
 <span>             urls <span class="op">=</span> <span class="st">"https://example.org/ref-2.1.zip"</span>,</span>
@@ -188,7 +188,7 @@ appended in the wrong place from silently moving every user backwards.</p>
 <span></span>
 <span><span class="co"># Two versions on offer, one of them the channel head:</span></span>
 <span><span class="fu">registry</span><span class="op">(</span></span>
-<span>  package <span class="op">=</span> <span class="st">"mypackage"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"reference-data"</span> <span class="op">=</span> <span class="st">"2.1"</span><span class="op">)</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="resource.html">resource</a></span><span class="op">(</span><span class="st">"reference-data"</span>, <span class="st">"2.0"</span>,</span>

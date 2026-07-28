@@ -81,9 +81,9 @@ arrives. See \code{\link[=part]{part()}}.
 
 \examples{
 resource(
-  name = "wfo",
+  name = "backbone",
   version = "2026.1",
-  urls = "https://example.org/wfo-2026.1.parquet",
+  urls = "https://example.org/backbone-2026.1.parquet",
   sha256 = strrep("a", 64),
   size = 1048576,
   license = "CC-BY-4.0"
@@ -91,13 +91,13 @@ resource(
 
 # The same artefact, published as a base and the delta issued against it:
 resource(
-  name = "wfo",
+  name = "backbone",
   version = "2026.2",
   sha256 = strrep("b", 64),
-  file = "wfo.parquet",
+  file = "backbone.parquet",
   parts = list(
-    part("https://example.org/wfo-base.bin", sha256 = strrep("c", 64)),
-    part("https://example.org/wfo-2026.2.bin", sha256 = strrep("d", 64))
+    part("https://example.org/backbone-base.bin", sha256 = strrep("c", 64)),
+    part("https://example.org/backbone-2026.2.bin", sha256 = strrep("d", 64))
   )
 )
 }

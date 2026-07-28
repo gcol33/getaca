@@ -136,9 +136,9 @@ of transferring them a second time.</p></dd>
     <p>A location is a plain URL, or an identifier for a data archive that holds
 several files. Which one it is, and which archive, is read off the string, so
 one call covers both:</p>
-<p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="st">"10.5281/zenodo.17844561"</span>, package <span class="op">=</span> <span class="st">"mypackage"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>wfo <span class="op">=</span> <span class="st">"https://example.org/wfo.parquet"</span><span class="op">)</span>,</span>
-<span>               package <span class="op">=</span> <span class="st">"mypackage"</span>, version <span class="op">=</span> <span class="st">"2026.1"</span><span class="op">)</span></span></code></pre><p></p></div>
+<p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="st">"10.5281/zenodo.17844561"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"https://example.org/backbone.parquet"</span><span class="op">)</span>,</span>
+<span>               package <span class="op">=</span> <span class="st">"yourpkg"</span>, version <span class="op">=</span> <span class="st">"2026.1"</span><span class="op">)</span></span></code></pre><p></p></div>
 <p>Every file is downloaded once and hashed locally. Checksums an archive
 reports are not used: they are md5 at all three archives supported here, and
 they arrive from the host that serves the bytes, so they say nothing the
@@ -188,7 +188,7 @@ returned registry, and write it with <code><a href="registry_write.html">registr
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span>
-<span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu">registry_draft</span><span class="op">(</span><span class="st">"10.5281/zenodo.17844561"</span>, package <span class="op">=</span> <span class="st">"mypackage"</span><span class="op">)</span></span>
+<span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu">registry_draft</span><span class="op">(</span><span class="st">"10.5281/zenodo.17844561"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg</span>, <span class="st">"inst/getaca/registry.rds"</span><span class="op">)</span></span>
 <span><span class="op">}</span> <span class="co"># }</span></span></code></pre></div>
     </div>

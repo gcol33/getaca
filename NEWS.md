@@ -101,10 +101,10 @@
   session, or as a row in a log. No dependency: `Imports` is still `curl` plus
   three base packages.
 * The events carry what the registry knows and a transfer library cannot: the
-  resource identity, which renders as `taxify/wfo@2026-09 (part 2 of 3)` for a
-  series, the size the declaration states rather than whatever content length
-  the mirror sent, which mirror is being tried, and how much was already on
-  disk when an interrupted transfer resumed. The share a bar shows is therefore
+  resource identity, which renders as `yourpkg/backbone@2026-09 (part 2 of 3)`
+  for a series, the size the declaration states rather than whatever content
+  length the mirror sent, which mirror is being tried, and how much was already
+  on disk when an interrupted transfer resumed. The share a bar shows is therefore
   right before the first byte arrives and stays right for a host that sends no
   content length at all.
 * A reporter that raises is caught, warned about once and switched off.

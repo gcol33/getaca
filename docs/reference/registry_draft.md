@@ -69,9 +69,9 @@ A location is a plain URL, or an identifier for a data archive that
 holds several files. Which one it is, and which archive, is read off the
 string, so one call covers both:
 
-    registry_draft("10.5281/zenodo.17844561", package = "mypackage")
-    registry_draft(c(wfo = "https://example.org/wfo.parquet"),
-                   package = "mypackage", version = "2026.1")
+    registry_draft("10.5281/zenodo.17844561", package = "yourpkg")
+    registry_draft(c(backbone = "https://example.org/backbone.parquet"),
+                   package = "yourpkg", version = "2026.1")
 
 Every file is downloaded once and hashed locally. Checksums an archive
 reports are not used: they are md5 at all three archives supported here,
@@ -124,7 +124,7 @@ to sign it.
 
 ``` r
 if (FALSE) { # \dontrun{
-reg <- registry_draft("10.5281/zenodo.17844561", package = "mypackage")
+reg <- registry_draft("10.5281/zenodo.17844561", package = "yourpkg")
 registry_write(reg, "inst/getaca/registry.rds")
 } # }
 ```

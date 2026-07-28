@@ -47,10 +47,10 @@ retrieval does.
 Everything a package declares is scoped by declaring package, then
 resource name, then version. That falls out of identity being the triple
 `package / name / version`, and it buys two things. Two packages
-declaring a resource called `"wfo"` never share a slot, so one package’s
-registry update cannot affect another’s cached data. And a version can
-never be overwritten by another version, so holding two releases side by
-side is the normal state rather than a special case.
+declaring a resource called `"backbone"` never share a slot, so one
+package’s registry update cannot affect another’s cached data. And a
+version can never be overwritten by another version, so holding two
+releases side by side is the normal state rather than a special case.
 
 The bytes underneath are shared. A file lives once, at `blobs/sha256/`,
 under its own checksum, and the version slot holds a name for it: a
@@ -113,8 +113,8 @@ case the scheduled re-hash exists to catch.
 
 ``` r
 
-getaca("wfo", package = "taxify")                 # cheap check
-getaca("wfo", package = "taxify", verify = TRUE)  # full re-hash first
+getaca("backbone", package = "yourpkg")                 # cheap check
+getaca("backbone", package = "yourpkg", verify = TRUE)  # full re-hash first
 options(getaca.verify_days = 30)                  # re-hash more often
 ```
 
@@ -150,15 +150,15 @@ exactly that.
 
 ``` r
 
-getaca_info("wfo", package = "taxify")
-#> <getaca cache entry> taxify/wfo@2026-06
-#>   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.zip
+getaca_info("backbone", package = "yourpkg")
+#> <getaca cache entry> yourpkg/backbone@2026-06
+#>   path        ~/.cache/R/getaca/yourpkg/backbone/2026-06/raw/backbone-2026-06.zip
 #>   sha256      9f9f9f...
 #>   size        797,000,000 bytes
 #>   license     CC-BY-4.0
-#>   built from  wfo_release: 2026-06
+#>   built from  source_release: 2026-06
 #>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
-#>   source url  https://host.invalid/wfo-2026-06.zip
+#>   source url  https://host.invalid/backbone-2026-06.zip
 #>   getaca      0.0.0.9000
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
@@ -182,7 +182,7 @@ a report covering a machine that holds some of the set:
 
 ``` r
 
-is.null(getaca_info("wfo", registry = reg))
+is.null(getaca_info("backbone", registry = reg))
 #> [1] TRUE
 ```
 
@@ -194,8 +194,8 @@ have never been downloaded:
 
 getaca_catalogue(registry = reg)[, c("package", "name", "version",
                                      "current", "declared", "cached")]
-#>   package name version current declared cached
-#> 1  taxify  wfo 2026-06    TRUE     TRUE  FALSE
+#>   package     name version current declared cached
+#> 1 yourpkg backbone 2026-06    TRUE     TRUE  FALSE
 ```
 
 With no arguments it covers every installed package that ships a
@@ -341,15 +341,15 @@ getaca_progress("line")   # one line to start and one to finish, for a log
 getaca_progress("none")   # nothing
 ```
 
-    taxify/wfo@2026-09  [============>      ]  63%  512 MB / 812 MB  41 MB/s  ETA 00:07
+    yourpkg/backbone@2026-09  [============>      ]  63%  512 MB / 812 MB  41 MB/s  ETA 00:07
 
 The share is measured against the size the registry declares, which is
 known before the first byte arrives and stays right when a mirror sends
 no content length. A resource composed from parts reports each piece
 under its own label, so a series reads as one download in stages:
 
-    taxify/wfo@2026-09 (part 1 of 3)  [===================] 100%  797 MB in 00:19
-    taxify/wfo@2026-09 (part 2 of 3)  [========>          ]  44%  4.0 MB / 9.1 MB  ...
+    yourpkg/backbone@2026-09 (part 1 of 3)  [===================] 100%  797 MB in 00:19
+    yourpkg/backbone@2026-09 (part 2 of 3)  [========>          ]  44%  4.0 MB / 9.1 MB  ...
 
 `quiet = TRUE` on a single call reports nothing whatever the session is
 set to, so one silent retrieval never needs the setting changed and put
@@ -357,7 +357,7 @@ back:
 
 ``` r
 
-getaca("wfo", package = "taxify", quiet = TRUE)
+getaca("backbone", package = "yourpkg", quiet = TRUE)
 ```
 
 A package that wants a download to look like its own writes a
@@ -452,22 +452,22 @@ is the report to read before running it for real.
 ``` r
 
 getaca_clean(dry_run = TRUE)
-#>   package        resource                         reason      bytes
-#> 1  taxify taxify/wfo@2026-03 superseded version past retent... 7.97e+08
-#> 2    <NA>               <NA>              abandoned transfer 1.20e+07
+#>   package                 resource                     reason    bytes
+#> 1 yourpkg yourpkg/backbone@2026-03 superseded version past... 7.97e+08
+#> 2    <NA>                     <NA>         abandoned transfer 1.20e+07
 
-getaca_clean()                               # run every sweep
-getaca_clean(what = "temp")                  # just the abandoned transfers
-getaca_clean(package = "taxify")             # one package
-getaca_clean("wfo", package = "taxify")      # one resource name
+getaca_clean()                                 # run every sweep
+getaca_clean(what = "temp")                    # just the abandoned transfers
+getaca_clean(package = "yourpkg")              # one package
+getaca_clean("backbone", package = "yourpkg")  # one resource name
 ```
 
 Keeping something the sweeps would otherwise take:
 
 ``` r
 
-getaca_keep("wfo", package = "taxify")                  # pin it
-getaca_keep("wfo", package = "taxify", pinned = FALSE)  # release the pin
+getaca_keep("backbone", package = "yourpkg")                  # pin it
+getaca_keep("backbone", package = "yourpkg", pinned = FALSE)  # release the pin
 ```
 
 A pinned entry is exempt from the superseded and LRU sweeps permanently.
@@ -515,7 +515,7 @@ cache built on one machine works on another:
 
 # on a connected machine
 Sys.setenv(GETACA_CACHE = "/tmp/seed")
-getaca_prefetch(package = "taxify")
+getaca_prefetch(package = "yourpkg")
 
 # then, on the machine that has no network
 Sys.setenv(GETACA_CACHE = "/opt/getaca")

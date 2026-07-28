@@ -33,7 +33,7 @@ options(getaca.cache = file.path(tempdir(), "getaca-quickstart"))
 Sys.setenv(GETACA_OFFLINE = "true", NOT_CRAN = "true")
 ```
 
-A package that needs a four-gigabyte taxonomic backbone cannot ship it, cannot
+A package that needs a four-gigabyte reference dataset cannot ship it, cannot
 download it during `R CMD check`, and cannot afford to fetch a different
 version on Tuesday than it fetched on Monday. `getaca` is the layer that makes
 those three constraints compatible.
@@ -53,17 +53,17 @@ A resource record names exact bytes: one checksum, one version label, and the
 places those bytes live.
 
 ```{r}
-wfo <- resource(
-  name    = "wfo",
+backbone <- resource(
+  name    = "backbone",
   version = "2026-06",
-  urls    = c("https://primary.invalid/wfo-2026-06.zip",
-              "https://mirror.invalid/wfo-2026-06.zip"),
+  urls    = c("https://primary.invalid/backbone-2026-06.zip",
+              "https://mirror.invalid/backbone-2026-06.zip"),
   sha256  = strrep("9f", 32),
   size    = 4.1e9,
   license = "CC-BY-4.0"
 )
 
-wfo
+backbone
 ```
 
 Each field earns its place. The `sha256` is what makes the record a record
@@ -79,16 +79,16 @@ the data came under.
 Records live in a registry, which is scoped to the declaring package:
 
 ```{r}
-reg <- registry(package = "taxify", resources = list(wfo))
+reg <- registry(package = "yourpkg", resources = list(backbone))
 reg
 ```
 
 Scoping matters more than it looks. Identity here is the triple
 `package / name / version`, so two packages may both declare something called
-`"wfo"` and never collide, in the cache or anywhere else.
+`"backbone"` and never collide, in the cache or anywhere else.
 
 ```{r}
-format(resource_id("taxify", "wfo", "2026-06"))
+format(resource_id("yourpkg", "backbone", "2026-06"))
 ```
 
 Ship the registry where `getaca` looks for it, and there is nothing else to
@@ -109,7 +109,7 @@ artefacts, YAML authoring and the pre-ship checklist.
 ## Getting it
 
 ```{r, eval = FALSE}
-path <- getaca("wfo", package = "taxify")
+path <- getaca("backbone", package = "yourpkg")
 ```
 
 That path points to a complete file, verified against the declared checksum,
@@ -138,28 +138,30 @@ covers the locking protocol and what happens to a lock whose holder died.
 
 ## Which version a bare name resolves to
 
-`getaca("wfo")` asks for a name, and the registry says which record that name
-means. When a package offers several versions, it states the answer:
+`getaca("backbone")` asks for a name, and the registry says which record that
+name means. When a package offers several versions, it states the answer:
 
 ```{r}
 multi <- registry(
-  package = "taxify",
-  current = c(wfo = "2026-09"),
+  package = "yourpkg",
+  current = c(backbone = "2026-09"),
   resources = list(
-    resource("wfo", "2026-06", urls = "https://primary.invalid/wfo-2026-06.zip",
+    resource("backbone", "2026-06",
+             urls = "https://primary.invalid/backbone-2026-06.zip",
              sha256 = strrep("9f", 32), license = "CC-BY-4.0"),
-    resource("wfo", "2026-09", urls = "https://primary.invalid/wfo-2026-09.zip",
+    resource("backbone", "2026-09",
+             urls = "https://primary.invalid/backbone-2026-09.zip",
              sha256 = strrep("ab", 32), license = "CC-BY-4.0")
   )
 )
 
-resolve_resource("wfo", registry = multi)$id
+resolve_resource("backbone", registry = multi)$id
 ```
 
 The older record stays resolvable by asking for it:
 
 ```{r}
-resolve_resource("wfo", registry = multi, version = "2026-06")$id
+resolve_resource("backbone", registry = multi, version = "2026-06")$id
 ```
 
 Version strings here are labels rather than semantic versions.
@@ -169,11 +171,13 @@ versions of a name and states no head is refused:
 
 ```{r, error = TRUE}
 registry(
-  package = "taxify",
+  package = "yourpkg",
   resources = list(
-    resource("wfo", "2026-09", urls = "https://primary.invalid/a",
+    resource("backbone", "2026-09",
+             urls = "https://primary.invalid/a",
              sha256 = strrep("ab", 32)),
-    resource("wfo", "2026-03", urls = "https://primary.invalid/b",
+    resource("backbone", "2026-03",
+             urls = "https://primary.invalid/b",
              sha256 = strrep("cd", 32))
   )
 )
@@ -192,8 +196,8 @@ In tests, skip cleanly and say what is missing:
 
 ```{r, eval = FALSE}
 test_that("the backbone parses", {
-  getaca_skip_if_unavailable("wfo", package = "taxify")
-  expect_s3_class(read_backbone(getaca("wfo", package = "taxify")), "backbone")
+  getaca_skip_if_unavailable("backbone", package = "yourpkg")
+  expect_s3_class(read_backbone(getaca("backbone", package = "yourpkg")), "backbone")
 })
 ```
 
@@ -202,14 +206,14 @@ vignette is running with the network switched off, so the call below takes
 exactly the path a CRAN check machine would take:
 
 ```{r}
-path <- getaca_optional("wfo", registry = reg)
+path <- getaca_optional("backbone", registry = reg)
 is.null(path)
 ```
 
 And where a plain logical reads better:
 
 ```{r}
-getaca_available("wfo", registry = reg)
+getaca_available("backbone", registry = reg)
 ```
 
 `getaca_available()` never touches the network. It asks whether a cached copy
@@ -220,8 +224,8 @@ To prepare a machine that will later be offline, or a CI job that should find
 everything already present:
 
 ```{r, eval = FALSE}
-getaca_prefetch("wfo", package = "taxify")
-getaca_prefetch(package = "taxify")   # everything the package declares
+getaca_prefetch("backbone", package = "yourpkg")
+getaca_prefetch(package = "yourpkg")   # everything the package declares
 ```
 
 Setting `GETACA_CACHE` points any session at a cache that has already been
@@ -234,7 +238,7 @@ Every failure is classed, and carries an `actor` field naming who can act on
 it. Here is the one a check run produces, in full:
 
 ```{r}
-err <- tryCatch(getaca("wfo", registry = reg), getaca_error = function(e) e)
+err <- tryCatch(getaca("backbone", registry = reg), getaca_error = function(e) e)
 class(err)
 ```
 
@@ -252,12 +256,12 @@ the two. A declaring package usually catches the ones its users will meet and
 answers in its own vocabulary:
 
 ```{r, eval = FALSE}
-install_backbone <- function(name = "wfo") {
+install_backbone <- function(name = "backbone") {
   path <- tryCatch(
-    getaca(name, package = "taxify"),
+    getaca(name, package = "yourpkg"),
     getaca_error_unavailable = function(e) {
-      stop("The WFO backbone is not installed and no network is available.\n",
-           "Connect, then run: taxify::install_backbone(\"wfo\")", call. = FALSE)
+      stop("The backbone is not installed and no network is available.\n",
+           "Connect, then run: yourpkg::install_backbone(\"backbone\")", call. = FALSE)
     }
   )
   open_backbone(path)
@@ -272,14 +276,14 @@ disagree with the registry.
 ## Knowing where a file came from
 
 ```{r, eval = FALSE}
-getaca_info("wfo", package = "taxify")
-#> <getaca cache entry> taxify/wfo@2026-06
-#>   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.zip
+getaca_info("backbone", package = "yourpkg")
+#> <getaca cache entry> yourpkg/backbone@2026-06
+#>   path        ~/.cache/R/getaca/yourpkg/backbone/2026-06/raw/backbone-2026-06.zip
 #>   sha256      9f9f9f...
 #>   size        4,100,000,000 bytes
 #>   license     CC-BY-4.0
 #>   resolved by bundled registry sha256:1c4d7a90f2be (published 2026-07-20)
-#>   source url  https://primary.invalid/wfo-2026-06.zip
+#>   source url  https://primary.invalid/backbone-2026-06.zip
 #>   getaca      0.0.0.9000
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
@@ -287,7 +291,7 @@ getaca_info("wfo", package = "taxify")
 ```
 
 The registry digest names the exact declaration that chose these bytes, so
-"which version of taxify's declaration was this" has an answer years later,
+"which version of yourpkg's declaration was this" has an answer years later,
 without anyone having kept a revision number in step by hand.
 
 Four timestamps, kept apart on purpose. "Verified" means the bytes were
@@ -301,7 +305,7 @@ An uncached resource gives `NULL` from `getaca_info()`, which keeps the call
 usable in a report covering a machine that holds some of the set:
 
 ```{r}
-is.null(getaca_info("wfo", registry = reg))
+is.null(getaca_info("backbone", registry = reg))
 ```
 
 `getaca_catalogue()` widens that to a data frame covering both halves: every
@@ -368,8 +372,8 @@ getaca_policy()
 ```
 
 ```{r, eval = FALSE}
-getaca_policy("current")                        # for this session
-getaca("wfo", package = "taxify", policy = "bundled")   # for this call
+getaca_policy("current")                                     # for this session
+getaca("backbone", package = "yourpkg", policy = "bundled")  # for this call
 ```
 
 `bundled` is the default because a dependency that resolves differently on
@@ -380,7 +384,7 @@ resolving what it was written against. `offline` never reaches for the
 network at all.
 
 ```{r, eval = FALSE}
-getaca_pin(c("taxify", "otherpkg"))   # writes getaca.pins.rds in the project
+getaca_pin(c("yourpkg", "otherpkg"))   # writes getaca.pins.rds in the project
 ```
 
 `vignette("policies")` covers what a remote channel is allowed to change, why

@@ -46,9 +46,9 @@ redistribution. Plenty of scientific datasets permit download and
 discourage or forbid redistribution, and for those a companion package
 is not available whatever its other merits.
 
-Granularity is the second. A package needing one of fifteen backbones,
-at a gigabyte each, would install fifteen through a companion package.
-Under `getaca` a user takes what they use.
+Granularity is the second. A package needing one of fifteen reference
+files, at a gigabyte each, would install fifteen through a companion
+package. Under `getaca` a user takes what they use.
 
 A companion package can itself use `getaca`, which is occasionally the
 right structure when the companion owns expensive build logic. It is
@@ -172,18 +172,18 @@ steps need to re-run when inputs change. That is a different question
 from where a file comes from and whether it is the right file.
 
 They compose. A `targets` pipeline can have a target whose command is
-`getaca("wfo", package = "taxify")`, which gives the pipeline a path,
-and the path a provenance record:
+`getaca("backbone", package = "yourpkg")`, which gives the pipeline a
+path, and the path a provenance record:
 
 ``` r
 
 library(targets)
 
 list(
-  tar_target(backbone_path, getaca::getaca("wfo", package = "taxify"),
+  tar_target(backbone_path, getaca::getaca("backbone", package = "yourpkg"),
              format = "file"),
   tar_target(backbone, read_backbone(backbone_path)),
-  tar_target(matched, match_names(species, backbone))
+  tar_target(summary, summarise_backbone(backbone))
 )
 ```
 
@@ -203,7 +203,7 @@ about the code that read it.
 ``` r
 
 renv::snapshot()
-getaca_pin(c("taxify", "otherpkg"))
+getaca_pin(c("yourpkg", "otherpkg"))
 ```
 
 Commit both files. Restoring is `renv::restore()` followed by

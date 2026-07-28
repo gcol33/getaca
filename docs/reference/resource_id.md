@@ -31,5 +31,5 @@ An object of class `getaca_id`.
 ## Examples
 
 ``` r
-resource_id("taxify", "wfo", "2026.1")
+resource_id("yourpkg", "backbone", "2026.1")
 ```

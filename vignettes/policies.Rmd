@@ -29,13 +29,13 @@ combine.
 A **resource record** names exact bytes and never changes:
 
 ```{r}
-rec <- resource("wfo", "2026-06",
-                urls = "https://host.invalid/wfo-2026-06.zip",
+rec <- resource("backbone", "2026-06",
+                urls = "https://host.invalid/backbone-2026-06.zip",
                 sha256 = strrep("9f", 32), license = "CC-BY-4.0")
 format(rec)
 ```
 
-A **channel** maps the logical name `"wfo"` onto one record, and channels
+A **channel** maps the logical name `"backbone"` onto one record, and channels
 move. Three places a channel can be read from, so three ways the same name can
 resolve:
 
@@ -58,11 +58,11 @@ whole answer; nothing is fetched to decide what a name means.
 
 ```{r}
 reg <- registry(
-  package = "taxify",
+  package = "yourpkg",
   resources = list(rec)
 )
 
-res <- resolve_resource("wfo", registry = reg, policy = "bundled")
+res <- resolve_resource("backbone", registry = reg, policy = "bundled")
 res$id
 res$source
 res$digest
@@ -85,9 +85,9 @@ resolving:
 
 ```{r}
 remote_reg <- registry(
-  package = "taxify",
+  package = "yourpkg",
   policy  = "current",
-  remote  = "https://taxify.invalid/getaca-registry.rds",
+  remote  = "https://yourpkg.invalid/getaca-registry.rds",
   resources = list(rec)
 )
 remote_reg
@@ -101,8 +101,8 @@ An unreachable remote produces a message and the bundled registry, which is
 what CRAN policy requires of a package that uses Internet resources:
 
 ```{r, eval = FALSE}
-resolve_resource("wfo", registry = remote_reg, policy = "current")
-#> getaca: could not reach the remote registry for 'taxify'; using the bundled
+resolve_resource("backbone", registry = remote_reg, policy = "current")
+#> getaca: could not reach the remote registry for 'yourpkg'; using the bundled
 #> registry.
 ```
 
@@ -140,8 +140,9 @@ which is the branch that can be shown here without a network:
 ```{r}
 rewritten <- file.path(tempdir(), "rewritten.rds")
 saveRDS(
-  list(taxify = registry("taxify", list(
-    resource("wfo", "2026-06", urls = "https://host.invalid/wfo-2026-06.zip",
+  list(yourpkg = registry("yourpkg", list(
+    resource("backbone", "2026-06",
+             urls = "https://host.invalid/backbone-2026-06.zip",
              sha256 = strrep("ab", 32), license = "CC-BY-4.0")
   ))),
   rewritten
@@ -150,7 +151,7 @@ options(getaca.pin_file = rewritten)
 ```
 
 ```{r, error = TRUE}
-resolve_resource("wfo", registry = reg, policy = "pinned")
+resolve_resource("backbone", registry = reg, policy = "pinned")
 ```
 
 ```{r, include = FALSE}
@@ -168,18 +169,20 @@ Publishing `2026-09` and moving the channel head onto it is one registry:
 
 ```{r}
 ahead <- registry(
-  package = "taxify",
-  current = c(wfo = "2026-09"),
+  package = "yourpkg",
+  current = c(backbone = "2026-09"),
   resources = list(
-    resource("wfo", "2026-06", urls = "https://host.invalid/wfo-2026-06.zip",
+    resource("backbone", "2026-06",
+             urls = "https://host.invalid/backbone-2026-06.zip",
              sha256 = strrep("9f", 32), license = "CC-BY-4.0"),
-    resource("wfo", "2026-09", urls = "https://host.invalid/wfo-2026-09.zip",
+    resource("backbone", "2026-09",
+             urls = "https://host.invalid/backbone-2026-09.zip",
              sha256 = strrep("ab", 32), license = "CC-BY-4.0")
   )
 )
 
-resolve_resource("wfo", registry = ahead)$id
-resolve_resource("wfo", registry = ahead, version = "2026-06")$id
+resolve_resource("backbone", registry = ahead)$id
+resolve_resource("backbone", registry = ahead, version = "2026-06")$id
 ```
 
 Users on `current` follow the head on their next session. Users on `bundled`
@@ -198,7 +201,7 @@ does not thereby have the key.
 Make a key once, and keep the secret half outside the package source tree:
 
 ```{r}
-secret <- file.path(tempdir(), "taxify-signing.key")
+secret <- file.path(tempdir(), "yourpkg-signing.key")
 public <- registry_keygen(secret)
 substr(public, 1, 24)
 ```
@@ -207,11 +210,12 @@ Declare the public half in the registry the package ships:
 
 ```{r}
 signed <- registry(
-  package = "taxify",
-  remote = "https://host.invalid/taxify.rds",
+  package = "yourpkg",
+  remote = "https://host.invalid/yourpkg.rds",
   keys = public,
   resources = list(
-    resource("wfo", "2026-06", urls = "https://host.invalid/wfo-2026-06.zip",
+    resource("backbone", "2026-06",
+             urls = "https://host.invalid/backbone-2026-06.zip",
              sha256 = strrep("9f", 32), license = "CC-BY-4.0")
   )
 )
@@ -221,7 +225,7 @@ Then write and sign whatever you publish. Sign after writing: writing is what
 stamps the publication time, and the signature binds it.
 
 ```{r}
-path <- file.path(tempdir(), "taxify.rds")
+path <- file.path(tempdir(), "yourpkg.rds")
 registry_write(signed, path)
 registry_sign(path, key = secret)
 
@@ -240,7 +244,7 @@ Editing the registry after signing breaks the link, which is the whole point:
 
 ```{r, error = TRUE}
 moved <- signed
-moved$resources[[1]]$urls <- "https://elsewhere.invalid/wfo-2026-06.zip"
+moved$resources[[1]]$urls <- "https://elsewhere.invalid/backbone-2026-06.zip"
 saveRDS(moved, path, version = 3)
 registry_verify(path)
 ```
@@ -272,23 +276,24 @@ the package is reinstalled and the remote registry has moved on.
 
 ```{r}
 pins <- file.path(tempdir(), "getaca.pins.rds")
-saveRDS(list(taxify = registry("taxify", list(rec))), pins)
+saveRDS(list(yourpkg = registry("yourpkg", list(rec))), pins)
 options(getaca.pin_file = pins)
 ```
 
 ```{r}
 moved_on <- registry(
-  package = "taxify",
-  current = c(wfo = "2026-09"),
+  package = "yourpkg",
+  current = c(backbone = "2026-09"),
   resources = list(
     rec,
-    resource("wfo", "2026-09", urls = "https://host.invalid/wfo-2026-09.zip",
+    resource("backbone", "2026-09",
+             urls = "https://host.invalid/backbone-2026-09.zip",
              sha256 = strrep("ab", 32), license = "CC-BY-4.0")
   )
 )
 
-resolve_resource("wfo", registry = moved_on)$id
-resolve_resource("wfo", registry = moved_on, policy = "pinned")$id
+resolve_resource("backbone", registry = moved_on)$id
+resolve_resource("backbone", registry = moved_on, policy = "pinned")$id
 ```
 
 The installed registry has moved to `2026-09`; the pin holds the analysis at
@@ -297,7 +302,7 @@ The installed registry has moved to `2026-09`; the pin holds the analysis at
 In practice the pin file is written rather than hand-built:
 
 ```{r, eval = FALSE}
-getaca_pin(c("taxify", "otherpkg"))
+getaca_pin(c("yourpkg", "otherpkg"))
 ```
 
 That writes `getaca.pins.rds` in the working directory by default, which puts
@@ -340,7 +345,7 @@ offline.
 Never reaches for the network. Cached copies and bundled declarations only.
 
 ```{r}
-err <- tryCatch(getaca("wfo", registry = reg, policy = "offline"),
+err <- tryCatch(getaca("backbone", registry = reg, policy = "offline"),
                 getaca_error = function(e) e)
 class(err)[1]
 ```
@@ -381,9 +386,9 @@ The check clamp is released by `NOT_CRAN=true`, which is how a package's own
 CI runs tests against real resources while a CRAN machine never does.
 
 ```{r, eval = FALSE}
-getaca_policy("current")                                   # this session
-getaca("wfo", package = "taxify", policy = "bundled")      # this call
-Sys.setenv(GETACA_POLICY = "pinned")                       # this process
+getaca_policy("current")                                     # this session
+getaca("backbone", package = "yourpkg", policy = "bundled")  # this call
+Sys.setenv(GETACA_POLICY = "pinned")                         # this process
 ```
 
 Setting the policy per call is the form worth reaching for in package code.
@@ -395,7 +400,7 @@ explicitly and stop caring what the user's session is set to.
 The registry's `policy` field is your recommendation, and users can override
 it. Three questions decide it.
 
-**Do the data release independently of your package?** If a new backbone
+**Do the data release independently of your package?** If a new release
 appears twice a year and your CRAN releases are annual, `current` is what
 keeps users on data you consider correct without a release cycle in between.
 If the data are static, `bundled` costs nothing and removes a moving part.
@@ -405,8 +410,8 @@ since an outage falls back to bundled with a message. GitHub Pages is
 sufficient. If you have nowhere to put a file you control, `bundled` is the
 honest choice.
 
-**Would a user be surprised?** A package whose results shift because a
-backbone moved needs that to be visible. `current` is right when the
+**Would a user be surprised?** A package whose results shift because the data
+moved needs that to be visible. `current` is right when the
 declaring package surfaces the resolved version in its own output, and
 questionable when it does not.
 
@@ -421,11 +426,11 @@ Whichever policy resolved a resource is kept in its cache entry, alongside the
 digest of the registry state that supplied the record:
 
 ```{r, eval = FALSE}
-getaca_info("wfo", package = "taxify")
-#> <getaca cache entry> taxify/wfo@2026-06
+getaca_info("backbone", package = "yourpkg")
+#> <getaca cache entry> yourpkg/backbone@2026-06
 #>   ...
 #>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
-#>   source url  https://host.invalid/wfo-2026-06.zip
+#>   source url  https://host.invalid/backbone-2026-06.zip
 ```
 
 `getaca_catalogue()` reports the same two fields as `source` and

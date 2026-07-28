@@ -33,28 +33,28 @@ The first line names the format version, which moves independently of
 in the stored form need not change how existing fields are rendered.
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{getaca-manifest 1
-package taxify
-remote https://taxify.example.org/registry.rds
+package yourpkg
+remote https://yourpkg.example.org/registry.rds
 key ed25519:9f8a...
 auth data.example.org bearer EXAMPLE_TOKEN
   register https://data.example.org/register
-current wfo 2026-09
-resource wfo 2026-06
+current backbone 2026-09
+resource backbone 2026-06
   sha256 3f9ac2...
   size 1048576
   license CC-BY-4.0
   doi 10.5281/zenodo.123
-  url https://zenodo.org/record/123/wfo-2026-06.parquet
-  url https://mirror.example.org/wfo-2026-06.parquet
+  url https://zenodo.org/record/123/backbone-2026-06.parquet
+  url https://mirror.example.org/backbone-2026-06.parquet
   upstream release 2026-06
   processor unzip-v2
-resource wfo 2026-09
+resource backbone 2026-09
   sha256 b104e7...
-  file wfo.parquet
+  file backbone.parquet
   part 91cc0d... 1048576
-    url https://zenodo.org/record/456/wfo-base.bin
+    url https://zenodo.org/record/456/backbone-base.bin
   part 4e77a1... 20481
-    url https://zenodo.org/record/456/wfo-2026-09.bin
+    url https://zenodo.org/record/456/backbone-2026-09.bin
   combiner concat
 }\if{html}{\out{</div>}}
 

@@ -22,5 +22,5 @@ name alone. Callers rarely build these by hand; the registry supplies the
 package and the resolution policy supplies the version.
 }
 \examples{
-resource_id("taxify", "wfo", "2026.1")
+resource_id("yourpkg", "backbone", "2026.1")
 }

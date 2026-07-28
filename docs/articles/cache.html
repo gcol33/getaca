@@ -139,8 +139,8 @@ retrieval does.</p>
 <p>Everything a package declares is scoped by declaring package, then
 resource name, then version. That falls out of identity being the triple
 <code>package / name / version</code>, and it buys two things. Two
-packages declaring a resource called <code>"wfo"</code> never share a
-slot, so one package’s registry update cannot affect another’s cached
+packages declaring a resource called <code>"backbone"</code> never share
+a slot, so one package’s registry update cannot affect another’s cached
 data. And a version can never be overwritten by another version, so
 holding two releases side by side is the normal state rather than a
 special case.</p>
@@ -228,8 +228,8 @@ file, and most accidental edits, for the cost of a
 substitution passes it, which is the case the scheduled re-hash exists
 to catch.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>                 <span class="co"># cheap check</span></span>
-<span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>, verify <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>  <span class="co"># full re-hash first</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>                 <span class="co"># cheap check</span></span>
+<span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, verify <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>  <span class="co"># full re-hash first</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.verify_days <span class="op">=</span> <span class="fl">30</span><span class="op">)</span>                  <span class="co"># re-hash more often</span></span></code></pre></div>
 <p>A cached copy that fails either check raises
 <code>getaca_error_cache_corrupt</code> rather than being silently
@@ -260,15 +260,15 @@ reports exactly that.</p>
 <h2 id="provenance">Provenance<a class="anchor" aria-label="anchor" href="#provenance"></a>
 </h2>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;getaca cache entry&gt; taxify/wfo@2026-06</span></span>
-<span><span class="co">#&gt;   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.zip</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;getaca cache entry&gt; yourpkg/backbone@2026-06</span></span>
+<span><span class="co">#&gt;   path        ~/.cache/R/getaca/yourpkg/backbone/2026-06/raw/backbone-2026-06.zip</span></span>
 <span><span class="co">#&gt;   sha256      9f9f9f...</span></span>
 <span><span class="co">#&gt;   size        797,000,000 bytes</span></span>
 <span><span class="co">#&gt;   license     CC-BY-4.0</span></span>
-<span><span class="co">#&gt;   built from  wfo_release: 2026-06</span></span>
+<span><span class="co">#&gt;   built from  source_release: 2026-06</span></span>
 <span><span class="co">#&gt;   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)</span></span>
-<span><span class="co">#&gt;   source url  https://host.invalid/wfo-2026-06.zip</span></span>
+<span><span class="co">#&gt;   source url  https://host.invalid/backbone-2026-06.zip</span></span>
 <span><span class="co">#&gt;   getaca      0.0.0.9000</span></span>
 <span><span class="co">#&gt;   fetched     2026-07-26 11:02:13</span></span>
 <span><span class="co">#&gt;   verified    2026-07-26 11:09:44 (full re-hash)</span></span>
@@ -284,15 +284,15 @@ its series leaves empty:</p>
 <p>An uncached resource gives <code>NULL</code>, which is what makes the
 call safe in a report covering a machine that holds some of the set:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p><code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> is the same information across
 everything, plus the declarations that have never been downloaded:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span>registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"package"</span>, <span class="st">"name"</span>, <span class="st">"version"</span>,</span>
 <span>                                     <span class="st">"current"</span>, <span class="st">"declared"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;   package name version current declared cached</span></span>
-<span><span class="co">#&gt; 1  taxify  wfo 2026-06    TRUE     TRUE  FALSE</span></span></code></pre></div>
+<span><span class="co">#&gt;   package     name version current declared cached</span></span>
+<span><span class="co">#&gt; 1 yourpkg backbone 2026-06    TRUE     TRUE  FALSE</span></span></code></pre></div>
 <p>With no arguments it covers every installed package that ships a
 registry together with every package holding cached resources, which is
 the report worth pasting into an issue:</p>
@@ -417,19 +417,19 @@ a setting rather than whatever the transfer library prints.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"bar"</span><span class="op">)</span>    <span class="co"># redraws one line, the default when interactive</span></span>
 <span><span class="fu"><a href="../reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"line"</span><span class="op">)</span>   <span class="co"># one line to start and one to finish, for a log</span></span>
 <span><span class="fu"><a href="../reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"none"</span><span class="op">)</span>   <span class="co"># nothing</span></span></code></pre></div>
-<pre><code>taxify/wfo@2026-09  [============&gt;      ]  63%  512 MB / 812 MB  41 MB/s  ETA 00:07</code></pre>
+<pre><code>yourpkg/backbone@2026-09  [============&gt;      ]  63%  512 MB / 812 MB  41 MB/s  ETA 00:07</code></pre>
 <p>The share is measured against the size the registry declares, which
 is known before the first byte arrives and stays right when a mirror
 sends no content length. A resource composed from parts reports each
 piece under its own label, so a series reads as one download in
 stages:</p>
-<pre><code>taxify/wfo@2026-09 (part 1 of 3)  [===================] 100%  797 MB in 00:19
-taxify/wfo@2026-09 (part 2 of 3)  [========&gt;          ]  44%  4.0 MB / 9.1 MB  ...</code></pre>
+<pre><code>yourpkg/backbone@2026-09 (part 1 of 3)  [===================] 100%  797 MB in 00:19
+yourpkg/backbone@2026-09 (part 2 of 3)  [========&gt;          ]  44%  4.0 MB / 9.1 MB  ...</code></pre>
 <p><code>quiet = TRUE</code> on a single call reports nothing whatever
 the session is set to, so one silent retrieval never needs the setting
 changed and put back:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>A package that wants a download to look like its own writes a
 <code><a href="../reference/reporter.html">reporter()</a></code>, which is a function of one argument:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
@@ -540,18 +540,18 @@ the package, the resource, the reason and the bytes it would reclaim,
 which is the report to read before running it for real.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   package        resource                         reason      bytes</span></span>
-<span><span class="co">#&gt; 1  taxify taxify/wfo@2026-03 superseded version past retent... 7.97e+08</span></span>
-<span><span class="co">#&gt; 2    &lt;NA&gt;               &lt;NA&gt;              abandoned transfer 1.20e+07</span></span>
+<span><span class="co">#&gt;   package                 resource                     reason    bytes</span></span>
+<span><span class="co">#&gt; 1 yourpkg yourpkg/backbone@2026-03 superseded version past... 7.97e+08</span></span>
+<span><span class="co">#&gt; 2    &lt;NA&gt;                     &lt;NA&gt;         abandoned transfer 1.20e+07</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="op">)</span>                               <span class="co"># run every sweep</span></span>
-<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>what <span class="op">=</span> <span class="st">"temp"</span><span class="op">)</span>                  <span class="co"># just the abandoned transfers</span></span>
-<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>             <span class="co"># one package</span></span>
-<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>      <span class="co"># one resource name</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="op">)</span>                                 <span class="co"># run every sweep</span></span>
+<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>what <span class="op">=</span> <span class="st">"temp"</span><span class="op">)</span>                    <span class="co"># just the abandoned transfers</span></span>
+<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>              <span class="co"># one package</span></span>
+<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>  <span class="co"># one resource name</span></span></code></pre></div>
 <p>Keeping something the sweeps would otherwise take:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>                  <span class="co"># pin it</span></span>
-<span><span class="fu"><a href="../reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>, pinned <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># release the pin</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>                  <span class="co"># pin it</span></span>
+<span><span class="fu"><a href="../reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, pinned <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># release the pin</span></span></code></pre></div>
 <p>A pinned entry is exempt from the superseded and LRU sweeps
 permanently. It is still subject to the <code>broken</code> sweep,
 because an entry whose bytes are gone is not worth protecting.</p>
@@ -652,7 +652,7 @@ so a cache built on one machine works on another:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># on a connected machine</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>GETACA_CACHE <span class="op">=</span> <span class="st">"/tmp/seed"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># then, on the machine that has no network</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>GETACA_CACHE <span class="op">=</span> <span class="st">"/opt/getaca"</span><span class="op">)</span></span>
