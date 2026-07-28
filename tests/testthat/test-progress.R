@@ -242,13 +242,13 @@ test_that("the bar states the share, the rate and what is left", {
   })
   rep <- cap$reporter
 
-  rep$fn(list(type = "begin", id = resource_id("taxify", "wfo", "2026-09"),
+  rep$fn(list(type = "begin", id = resource_id("demopkg", "backbone", "2026-09"),
               url = "https://a.invalid/f", total = 1e9, offset = 0))
   rep$fn(list(type = "bytes", id = NULL, bytes = 25e7, total = 1e9))
   cap$close()
 
   line <- cap$text()
-  expect_match(line, "taxify/wfo@2026-09")
+  expect_match(line, "demopkg/backbone@2026-09")
   expect_match(line, "25%")
   expect_match(line, "250 MB / 1.0 GB")
   # 250 MB in 2 seconds, and 750 MB still to come at that rate.
@@ -337,15 +337,15 @@ test_that("the line style writes one line to start and one to finish", {
   })
   rep <- cap$reporter
 
-  rep$fn(list(type = "begin", id = resource_id("taxify", "wfo", "2026-09"),
+  rep$fn(list(type = "begin", id = resource_id("demopkg", "backbone", "2026-09"),
               url = "https://a.invalid/f", total = 8.12e8, offset = 0))
-  rep$fn(list(type = "end", id = resource_id("taxify", "wfo", "2026-09"),
+  rep$fn(list(type = "end", id = resource_id("demopkg", "backbone", "2026-09"),
               status = "ok", bytes = 8.12e8, reason = NA_character_))
   cap$close()
 
   out <- cap$lines()
   expect_length(out, 2L)
-  expect_match(out[1], "downloading taxify/wfo@2026-09 \\(812 MB\\)")
+  expect_match(out[1], "downloading demopkg/backbone@2026-09 \\(812 MB\\)")
   expect_match(out[2], "done, 812 MB in 00:12")
 })
 
@@ -395,7 +395,7 @@ test_that("the cells are what the line can spare, down to a floor", {
 test_that("the bar keeps the width it started with when it finishes", {
   # The rate and the estimate leave the line at the end, and the bar must not
   # grow into the room they free.
-  label <- "taxify/wfo@2026-09 (part 1 of 3)"
+  label <- "demopkg/backbone@2026-09 (part 1 of 3)"
   cells <- getaca:::plan_cells(label, 797e6, width = 96)
   st <- list(label = label, total = 797e6, offset = 0, bytes = 4e8,
              started = as.POSIXct("2026-01-01", tz = "UTC"))

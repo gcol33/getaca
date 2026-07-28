@@ -1,30 +1,30 @@
 shown <- function(x) paste(utils::capture.output(print(x)), collapse = "\n")
 
 test_that("a resource id formats as package/name@version", {
-  id <- resource_id("taxify", "wfo", "2026-06")
+  id <- resource_id("demopkg", "backbone", "2026-06")
 
-  expect_equal(format(id), "taxify/wfo@2026-06")
-  expect_equal(as.character(id), "taxify/wfo@2026-06")
-  expect_match(shown(id), "taxify/wfo@2026-06", fixed = TRUE)
+  expect_equal(format(id), "demopkg/backbone@2026-06")
+  expect_equal(as.character(id), "demopkg/backbone@2026-06")
+  expect_match(shown(id), "demopkg/backbone@2026-06", fixed = TRUE)
 })
 
 test_that("printing a record shows what identifies it and where it came from", {
-  rec <- resource("wfo", "2026-06",
-                  urls = c("https://primary.invalid/wfo.zip",
-                           "https://mirror.invalid/wfo.zip"),
+  rec <- resource("backbone", "2026-06",
+                  urls = c("https://primary.invalid/backbone.zip",
+                           "https://mirror.invalid/backbone.zip"),
                   sha256 = strrep("a", 64),
                   size = 1048576,
                   license = "CC-BY-4.0",
-                  upstream = list(release = "WFO 2026-06"),
+                  upstream = list(release = "source 2026-06"),
                   processor = processor("unzip", function(input, output_dir) output_dir))
 
   out <- shown(rec)
-  expect_match(out, "wfo")
+  expect_match(out, "backbone")
   expect_match(out, "2026-06")
   expect_match(out, "CC-BY-4.0")
   expect_match(out, "1,048,576")
   expect_match(out, "built from")
-  expect_match(out, "WFO 2026-06")
+  expect_match(out, "source 2026-06")
   expect_match(out, "unzip")
   expect_match(out, "mirror.invalid")
 })
@@ -105,7 +105,7 @@ test_that("printing a cache entry shows the provenance getaca kept", {
 test_that("a pinned entry built from something says both", {
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir())
-  reg <- demo_registry(f$sha256, upstream = list(release = "WFO 2026-06"))
+  reg <- demo_registry(f$sha256, upstream = list(release = "source 2026-06"))
   seeded <- seed_cache(reg, f)
   entry <- seeded$entry
   entry$pinned <- TRUE
@@ -113,24 +113,24 @@ test_that("a pinned entry built from something says both", {
 
   out <- shown(entry)
   expect_match(out, "built from")
-  expect_match(out, "WFO 2026-06")
+  expect_match(out, "source 2026-06")
   expect_match(out, "processor")
   expect_match(out, "never garbage collected")
 })
 
 test_that("printing a composed record shows the series and what combines it", {
   rec <- resource(
-    "wfo", "2026-09",
-    sha256 = strrep("b", 64), size = 1068057, file = "wfo.parquet",
+    "backbone", "2026-09",
+    sha256 = strrep("b", 64), size = 1068057, file = "backbone.parquet",
     parts = list(
-      part("https://primary.invalid/wfo-base.bin",
+      part("https://primary.invalid/backbone-base.bin",
            sha256 = strrep("9", 64), size = 1048576),
-      part("https://primary.invalid/wfo-2026-09.bin", sha256 = strrep("4", 64))
+      part("https://primary.invalid/backbone-2026-09.bin", sha256 = strrep("4", 64))
     )
   )
 
   out <- shown(rec)
-  expect_match(out, "file      wfo.parquet", fixed = TRUE)
+  expect_match(out, "file      backbone.parquet", fixed = TRUE)
   expect_match(out, "2 parts via 'concat'", fixed = TRUE)
   expect_match(out, "999999999999", fixed = TRUE)
   expect_match(out, "1,048,576", fixed = TRUE)

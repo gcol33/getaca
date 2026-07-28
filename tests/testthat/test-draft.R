@@ -266,15 +266,16 @@ test_that("a drafted registry is a registry, and has a digest", {
 
 test_that("a plain URL keeps its mirrors and needs a version", {
   local_cache()
-  urls <- c("https://a.example.org/wfo.parquet", "https://b.example.org/wfo.parquet")
+  urls <- c("https://a.example.org/backbone.parquet",
+            "https://b.example.org/backbone.parquet")
   bytes <- list("payload"); names(bytes) <- urls[1]
 
   records <- getaca:::draft_resources(
-    list(wfo = urls), package = "demopkg", version = "2026.1", quiet = TRUE,
+    list(backbone = urls), package = "demopkg", version = "2026.1", quiet = TRUE,
     api = function(url) stop("never called"), resolve = refuses_resolution,
     transport = serves_bytes(bytes)
   )
-  expect_identical(records[[1]]$name, "wfo")
+  expect_identical(records[[1]]$name, "backbone")
   expect_identical(records[[1]]$urls, urls)
   expect_identical(records[[1]]$version, "2026.1")
 
@@ -299,7 +300,7 @@ test_that("a given version overrides the one the archive carries", {
 })
 
 test_that("a resource is named after its file, without the extension", {
-  expect_identical(getaca:::draft_name("wfo-2026.parquet"), "wfo-2026")
+  expect_identical(getaca:::draft_name("backbone-2026.parquet"), "backbone-2026")
   expect_identical(getaca:::draft_name("two words.csv"), "two-words")
   expect_identical(getaca:::draft_name("a/b.csv"), "a-b")
   expect_identical(getaca:::draft_name(".hidden"), "hidden")

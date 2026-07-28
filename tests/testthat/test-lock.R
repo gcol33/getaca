@@ -68,7 +68,7 @@ test_that("the lock is on the bytes, so two declarations of one file wait", {
   # is what the second session should be waiting for.
   expect_identical(getaca:::lock_dir(sha), getaca:::lock_dir(sha))
 
-  lock <- getaca:::acquire_lock(sha, "taxify/wfo@2026-06")
+  lock <- getaca:::acquire_lock(sha, "demopkg/backbone@2026-06")
   on.exit(getaca:::release_lock(lock))
   expect_error(
     getaca:::acquire_lock(sha, "other/backbone@1.0", timeout = 0.2, poll = 0.05),

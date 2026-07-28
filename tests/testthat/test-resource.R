@@ -1,6 +1,6 @@
 test_that("resource identity is the package/name/version triple", {
-  id <- resource_id("taxify", "wfo", "2026-06")
-  expect_equal(format(id), "taxify/wfo@2026-06")
+  id <- resource_id("demopkg", "backbone", "2026-06")
+  expect_equal(format(id), "demopkg/backbone@2026-06")
   expect_s3_class(id, "getaca_id")
 })
 
@@ -44,11 +44,11 @@ test_that("names and versions must be usable as directory names", {
 
 test_that("a derived artefact records what it was built from", {
   rec <- resource(
-    "wfo-db", "source-2026-06_build-3",
+    "backbone-db", "source-2026-06_build-3",
     urls = "https://e.org/f", sha256 = strrep("a", 64),
-    upstream = list(wfo_release = "2026-06", taxifydb_build = "3")
+    upstream = list(source_release = "2026-06", build = "3")
   )
-  expect_equal(rec$upstream$wfo_release, "2026-06")
+  expect_equal(rec$upstream$source_release, "2026-06")
   expect_output(print(rec), "built from")
 })
 

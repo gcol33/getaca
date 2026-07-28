@@ -45,13 +45,13 @@ test_that("a view carries the readable name and the bytes of its blob", {
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "payload")
   getaca:::admit(staged(f), f$sha256)
-  rec <- getaca::resource("res", "1.0", urls = "https://a.invalid/wfo-2026.zip",
+  rec <- getaca::resource("res", "1.0", urls = "https://a.invalid/backbone-2026.zip",
                           sha256 = f$sha256)
   id <- getaca::resource_id("demopkg", "res", "1.0")
 
   placed <- getaca:::place(id, rec)
 
-  expect_equal(basename(placed$path), "wfo-2026.zip")
+  expect_equal(basename(placed$path), "backbone-2026.zip")
   expect_equal(getaca:::sha256_file(placed$path), f$sha256)
   expect_true(placed$link %in% c("hardlink", "symlink", "copy"))
 })

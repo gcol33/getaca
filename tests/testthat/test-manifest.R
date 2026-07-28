@@ -9,7 +9,7 @@ res <- function(name = "res", version = "1.0", sha = strrep("a", 64), ...) {
 
 test_that("the manifest names its format and renders the declaration", {
   reg <- demo(
-    res("wfo", "2026-06", license = "CC-BY-4.0", size = 1048576,
+    res("backbone", "2026-06", license = "CC-BY-4.0", size = 1048576,
         upstream = list(release = "2026-06")),
     remote = "https://registry.invalid/demopkg.rds"
   )
@@ -19,7 +19,7 @@ test_that("the manifest names its format and renders the declaration", {
   expect_equal(lines[1], "getaca-manifest 1")
   expect_true("package demopkg" %in% lines)
   expect_true("remote https://registry.invalid/demopkg.rds" %in% lines)
-  expect_true("resource wfo 2026-06" %in% lines)
+  expect_true("resource backbone 2026-06" %in% lines)
   expect_true("  size 1048576" %in% lines)
   expect_true("  license CC-BY-4.0" %in% lines)
   expect_true("  url https://example.invalid/res.csv" %in% lines)
@@ -82,9 +82,10 @@ test_that("a processor contributes its id, not its closure", {
 })
 
 test_that("what a name resolves to is part of the identity", {
-  two <- list(res("wfo", "2026-03"), res("wfo", "2026-09", sha = strrep("b", 64)))
-  a <- registry("demopkg", two, current = c(wfo = "2026-03"))
-  b <- registry("demopkg", two, current = c(wfo = "2026-09"))
+  two <- list(res("backbone", "2026-03"),
+              res("backbone", "2026-09", sha = strrep("b", 64)))
+  a <- registry("demopkg", two, current = c(backbone = "2026-03"))
+  b <- registry("demopkg", two, current = c(backbone = "2026-09"))
 
   expect_false(identical(registry_digest(a), registry_digest(b)))
 })
