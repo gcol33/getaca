@@ -6,39 +6,47 @@
 [![Codecov test coverage](https://codecov.io/gh/gcol33/getaca/graph/badge.svg)](https://app.codecov.io/gh/gcol33/getaca)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## The problem
+**One engine that retrieves, verifies, caches and garbage-collects the large data
+files your package declares it needs.**
 
-[`taxify`](https://github.com/gcol33/taxify) resolves species names against
-reference backbones. WFO is 797 MB, GBIF is 1.9 GB, COL is 2.0 GB, and each is
-republished on its own schedule. Sizes like that rule out shipping the data
-inside the package. A check run has no network. And an analysis rerun next year
-still has to see the bytes it saw today.
-
-So the package ships a declaration and no data. The declaration names exact
-bytes: one SHA-256, one version label, one or more mirrors. `getaca` resolves
-that declaration through an explicit policy, verifies what arrives, records
-where it came from, and returns an ordinary local path. There is one engine and
-many declarations, the way there is one `renv` and many lockfiles.
+Your package needs a 4 GB reference file it has no way to ship. Declare it in a few
+kilobytes, and retrieving it is one call:
 
 ```r
 library(getaca)
 
-# what a package ships, at inst/getaca/registry.rds
-registry(
-  package = "taxify",
-  resources = list(
-    resource("wfo", "2026-06",
-             urls = c("https://primary/wfo-2026-06.zip",
-                      "https://mirror/wfo-2026-06.zip"),
-             sha256 = "9f2c...",
-             size = 4.1e9,
-             license = "CC-BY-4.0")
-  )
+atlas <- resource(
+  "atlas", "2026-06",
+  urls   = "https://primary.invalid/atlas-2026-06.zip",
+  sha256 = "97f28a53a7912a80c12cc8f26e0c422d9212e067e11479ae61ef0a91b456b53a"
 )
 
-# what retrieval looks like, from anywhere
-path <- getaca("wfo", package = "taxify")
+reg  <- registry(package = "yourpkg", resources = list(atlas))
+path <- getaca("atlas", registry = reg)
 ```
+
+Write that registry to `inst/getaca/registry.rds` and every later call reaches it
+from anywhere, with the package name alone:
+
+```r
+path <- getaca("atlas", package = "yourpkg")
+```
+
+`getaca` resolves the declaration through an explicit policy, verifies what arrives
+against the checksum, records where it came from, and returns an ordinary local
+path. The same installed package resolves the same bytes on every machine and in
+every rerun, and `R CMD check` passes with no network at all.
+
+## Why a declaration
+
+Reference data outgrows a package quickly. A taxonomic backbone runs to 800 MB, a
+global climate grid to several GB, a pretrained model to more, and each is
+republished on its own schedule. Sizes like that rule out shipping the data inside
+the package. A check run has no network. And an analysis rerun next year still has
+to see the bytes it saw today.
+
+So the package ships the declaration and `getaca` does the rest. There is one engine
+and many declarations, the way there is one `renv` and many lockfiles.
 
 ## Failures that name who can fix them
 
@@ -63,15 +71,15 @@ Each condition carries an `actor` field, so a declaring package can catch the
 ones its users will meet and answer in its own vocabulary:
 
 ```r
-install_backbone <- function(name = "wfo") {
+install_atlas <- function(name = "atlas") {
   path <- tryCatch(
-    getaca(name, package = "taxify"),
+    getaca(name, package = "yourpkg"),
     getaca_error_unavailable = function(e) {
-      stop("The WFO backbone is not installed and no network is available.\n",
-           "Connect, then run: taxify::install_backbone(\"wfo\")", call. = FALSE)
+      stop("The atlas is not installed and no network is available.\n",
+           "Connect, then run: yourpkg::install_atlas()", call. = FALSE)
     }
   )
-  open_backbone(path)
+  open_atlas(path)
 }
 ```
 
@@ -82,17 +90,17 @@ Three helpers cover the three contexts CRAN cares about:
 
 ```r
 # in tests
-test_that("backbone parses", {
-  getaca_skip_if_unavailable("wfo", package = "taxify")
-  expect_s3_class(read_backbone(getaca("wfo", package = "taxify")), "backbone")
+test_that("the atlas parses", {
+  getaca_skip_if_unavailable("atlas", package = "yourpkg")
+  expect_s3_class(read_atlas(getaca("atlas", package = "yourpkg")), "atlas")
 })
 
 # in examples and vignettes
-path <- getaca_optional("wfo", package = "taxify")
-if (!is.null(path)) summarise_backbone(path)
+path <- getaca_optional("atlas", package = "yourpkg")
+if (!is.null(path)) summarise_atlas(path)
 
 # anywhere a plain logical is easier
-if (getaca_available("wfo", package = "taxify")) { }
+if (getaca_available("atlas", package = "yourpkg")) { }
 ```
 
 Point `GETACA_CACHE` at a pre-seeded directory and a CI job finds everything
@@ -104,7 +112,7 @@ it by key:
   with:
     path: ~/.cache/getaca
     key: getaca-${{ hashFiles('inst/getaca/registry.rds') }}
-- run: Rscript -e 'getaca::getaca_prefetch(package = "taxify")'
+- run: Rscript -e 'getaca::getaca_prefetch(package = "yourpkg")'
   env:
     GETACA_CACHE: ~/.cache/getaca
 ```
@@ -114,7 +122,7 @@ and every later job reuses it.
 
 ## Records and channels
 
-A **resource record** is immutable: `taxify / wfo / 2026-06` names exact bytes
+A **resource record** is immutable: `yourpkg / atlas / 2026-06` names exact bytes
 forever. A **channel** maps the logical name onto one record, and channels
 move.
 
@@ -134,11 +142,11 @@ declaration order cannot stand in for one:
 
 ```r
 registry(
-  package = "taxify",
-  current = c(wfo = "2026-09"),
+  package = "yourpkg",
+  current = c(atlas = "2026-09"),
   resources = list(
-    resource("wfo", "2026-06", urls = "...", sha256 = "..."),
-    resource("wfo", "2026-09", urls = "...", sha256 = "...")
+    resource("atlas", "2026-06", urls = "...", sha256 = "..."),
+    resource("atlas", "2026-09", urls = "...", sha256 = "...")
   )
 )
 ```
@@ -154,13 +162,13 @@ A remote registry can be signed, so a user's session can tell your declaration
 from whatever else the host might one day serve:
 
 ```r
-public <- registry_keygen("~/.keys/taxify.key")   # once, kept out of the repo
+public <- registry_keygen("~/.keys/yourpkg.key")   # once, kept out of the repo
 
-registry(package = "taxify", remote = "https://host.example/taxify.rds",
+registry(package = "yourpkg", remote = "https://host.example/yourpkg.rds",
          keys = public, resources = list(...))
 
-registry_write(reg, "publish/taxify.rds")
-registry_sign("publish/taxify.rds", key = "~/.keys/taxify.key")
+registry_write(reg, "publish/yourpkg.rds")
+registry_sign("publish/yourpkg.rds", key = "~/.keys/yourpkg.key")
 ```
 
 The key travels in the registry your package ships and the declaration comes
@@ -174,26 +182,26 @@ one. A host that cannot be reached still falls back to the bundled declaration;
 a registry that arrives and fails its signature stops instead. Declaring no
 keys leaves everything as it was.
 
-## Declaring the backbones
+## A declaration in full
 
-The declaration `taxify` ships, in full:
+Everything an author writes, in one file:
 
 ```r
 # data-raw/registry.R, run at build time
 registry_write(
   registry(
-    package  = "taxify",
+    package  = "yourpkg",
     policy   = "current",
-    remote   = "https://taxify.invalid/getaca-registry.rds",
-    current  = c(wfo = "2026-06"),
+    remote   = "https://yourpkg.invalid/getaca-registry.rds",
+    current  = c(atlas = "2026-06"),
     resources = list(
-      resource("wfo", "2026-06",
-               urls = c("https://zenodo.org/records/1234567/files/wfo-2026-06.vtr",
-                        "https://github.com/gcol33/taxifydb/releases/download/wfo-2026.06/wfo.vtr"),
+      resource("atlas", "2026-06",
+               urls = c("https://zenodo.invalid/records/1234567/files/atlas-2026-06.zip",
+                        "https://releases.invalid/atlas/2026.06/atlas.zip"),
                sha256 = "9f2c...",
-               size   = 797e6,
+               size   = 4.1e9,
                license = "CC-BY-4.0",
-               upstream = list(wfo_release = "2026-06", taxifydb_build = "3"))
+               upstream = list(source_release = "2026-06", build = "3"))
     )
   ),
   "inst/getaca/registry.rds"
@@ -204,25 +212,27 @@ Installing the package copies a few kilobytes. The first real call retrieves,
 verifies and caches:
 
 ```r
-path <- getaca("wfo", package = "taxify")
+path <- getaca("atlas", package = "yourpkg")
 ```
 
-What each part of the declaration buys:
+Zenodo and GitHub releases both host files this size for free, and listing one of
+each is what makes an outage at either survivable. What the rest of the declaration
+buys:
 
-- **two mirrors** mean a Zenodo outage falls through to the GitHub release
+- **two mirrors** mean an outage at the first falls through to the second
 - **`sha256`** turns a truncated or substituted file into an error at
   retrieval, where it is diagnosable
-- **`upstream`** keeps both identities, the WFO release and the build that
-  turned it into a queryable file, so provenance answers which one moved
+- **`upstream`** keeps both identities, the publisher's release and the build that
+  turned it into the file you ship, so provenance answers which one moved
 - **`policy = "current"`** lets a dead mirror be repaired, or `2026-09`
   published, without a CRAN release
-- **`current`** states which of the published versions a bare `getaca("wfo")`
+- **`current`** states which of the published versions a bare `getaca("atlas")`
   returns
 
-When WFO publishes `2026-09`, the remote registry adds the record and moves the
-head. When WFO replaces `2026-06` in place, the checksum stops matching, the
-cached copy is left alone, and the error names the publisher as the party who
-changed something.
+When the publisher issues `2026-09`, the remote registry adds the record and moves
+the head. When the publisher replaces `2026-06` in place, the checksum stops
+matching, the cached copy is left alone, and the error names the publisher as the
+party who changed something.
 
 ## What the cached path guarantees
 
@@ -262,18 +272,18 @@ whose holder died goes stale and is taken over.
 ## Provenance, and what is cached
 
 ```r
-getaca_info("wfo", package = "taxify")
-#> <getaca cache entry> taxify/wfo@2026-06
-#>   path        ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.vtr
+getaca_info("atlas", package = "yourpkg")
+#> <getaca cache entry> yourpkg/atlas@2026-06
+#>   path        ~/.cache/R/getaca/yourpkg/atlas/2026-06/raw/atlas-2026-06.zip
 #>   store       hardlink to blobs/sha256/9f/9f2c8d1e5a3b
 #>   sha256      9f2c8d1e...
-#>   size        797,000,000 bytes
+#>   size        4,100,000,000 bytes
 #>   license     CC-BY-4.0
-#>   built from  wfo_release: 2026-06
-#>   built from  taxifydb_build: 3
+#>   built from  source_release: 2026-06
+#>   built from  build: 3
 #>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
-#>   source url  https://zenodo.org/records/1234567/files/wfo-2026-06.vtr
-#>   getaca      0.0.0.9000
+#>   source url  https://zenodo.invalid/records/1234567/files/atlas-2026-06.zip
+#>   getaca      0.1.0
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
 #>   checked     2026-07-26 15:31:02 (size and mtime)
@@ -288,10 +298,10 @@ resource the installed packages declare and every copy the cache holds:
 
 ```r
 getaca_catalogue()[, c("package", "name", "version", "current", "declared", "cached")]
-#>   package name version current declared cached
-#> 1  taxify  wfo 2026-06    TRUE     TRUE   TRUE
-#> 2  taxify  wfo 2026-03   FALSE    FALSE   TRUE
-#> 3  taxify  col 2026-06    TRUE     TRUE  FALSE
+#>   package  name version current declared cached
+#> 1 yourpkg atlas 2026-06    TRUE     TRUE   TRUE
+#> 2 yourpkg atlas 2026-03   FALSE    FALSE   TRUE
+#> 3 yourpkg  grid 2026-06    TRUE     TRUE  FALSE
 ```
 
 Row 2 is a copy of a version nothing asks for any more, which is what the
@@ -304,8 +314,8 @@ preparing a package-specific layout. It carries an id, so the processed result
 gets its own cache slot and its own provenance.
 
 ```r
-resource("wfo", "2026-06",
-         urls = "https://example.org/wfo-2026-06.zip",
+resource("atlas", "2026-06",
+         urls = "https://primary.invalid/atlas-2026-06.zip",
          sha256 = "9f2c...",
          processor = processor("unzip", function(input, output_dir) {
            utils::unzip(input, exdir = output_dir)
@@ -332,7 +342,7 @@ bundled registry names, and anything under an active lock are never touched.
 
 ```r
 getaca_clean(dry_run = TRUE)      # what would go, and why
-getaca_keep("wfo", package = "taxify")   # exempt this one permanently
+getaca_keep("atlas", package = "yourpkg")  # exempt this one permanently
 options(getaca.max_bytes = 50 * 1024^3)  # raise the ceiling
 ```
 
