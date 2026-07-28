@@ -80,7 +80,7 @@ a support issue.
 **`sha256`** is the point of the whole design. It is the digest of the file as
 served, which is not always the digest of the file you built: if your host
 recompresses, or you upload a re-zipped copy, compute the hash after the
-upload by downloading it back.
+upload by downloading it back. `registry_draft()`, below, does exactly that.
 
 **`size`** in bytes is optional and cheap. A transfer that ends short is
 detected before a multi-gigabyte hash runs, and reported as a truncation
@@ -107,6 +107,66 @@ resource("wfo", "2026-06", urls = "http://insecure.invalid/wfo.zip",
 resource("wfo", "2026-06", urls = "https://ok.invalid/wfo.zip",
          sha256 = "not-a-digest")
 ```
+
+## Drafting from where the data is
+
+Typing a record by hand is fine for everything except the checksum, which has
+to come from the bytes. `registry_draft()` takes the locations, retrieves each
+file once, hashes it locally and returns a registry:
+
+```{r, eval = FALSE}
+reg <- registry_draft(
+  c(wfo = "https://zenodo.org/records/1234567/files/wfo-2026-06.zip"),
+  package = "taxify",
+  version = "2026-06"
+)
+```
+
+A location is a plain URL, or an identifier for an archive holding several
+files. Which one it is, and which archive, is read off the string:
+
+```{r, eval = FALSE}
+registry_draft("10.5281/zenodo.4924875", package = "taxify")
+registry_draft("10.6084/m9.figshare.14763051.v1", package = "taxify")
+registry_draft("10.11588/data/TKCFEF", package = "taxify")
+```
+
+Zenodo and figshare register their own DOI prefixes, so those are recognised
+from the string with no lookup. A Dataverse instance is self-hosted under its
+own prefix, so a bare DOI is resolved through `doi.org` to find which host to
+ask. Each archive supplies what it knows: the licence, the version, and a DOI
+for the artefact. Zenodo mints a record id per version and that becomes the
+version label; figshare and Dataverse carry their own version numbers. For a
+plain URL there is nothing to infer, so `version =` is required.
+
+Checksums the archive reports are read past. All three publish md5, and all
+three publish it from the host that serves the file, so it says nothing the
+transfer has not already said. What ends up in the record is a SHA-256 computed
+here, from the bytes that arrived.
+
+A draft is a starting point. Resources are named after their files, which is
+rarely the name you want a user to type, and `description` is empty. Both are
+ordinary `resource()` arguments: edit the returned registry, or write the
+`registry_draft()` call into `data-raw/` and edit around it. Give a name in the
+call where a location is one file:
+
+```{r, eval = FALSE}
+reg <- registry_draft(
+  list(wfo = c("https://zenodo.org/records/1234567/files/wfo-2026-06.zip",
+               "https://mirror.invalid/wfo-2026-06.zip")),
+  package = "taxify",
+  version = "2026-06"
+)
+registry_write(reg, "inst/getaca/registry.rds")
+```
+
+A list element is the mirrors of one resource. The first is retrieved and
+hashed; the rest are recorded and walked at fetch time like any other mirror
+list.
+
+Drafting a large record downloads it. Pass `keep = TRUE` to leave the bytes in
+the cache, so the first `getaca()` call for the drafted resource finds them
+already there.
 
 ## Assembling the registry
 
@@ -585,8 +645,80 @@ GitHub Releases work as a second mirror. Release assets are stable once
 uploaded, they are served from a CDN, and the tag names a version in a way
 that reads well beside the record's own label.
 
-`getaca` has no Zenodo client and will not grow one. It is a recommendation
-about where to put files, not a feature.
+An archive is consulted when a registry is written and never when a user
+fetches. `registry_draft()` is the whole of it, and what it produces is a list
+of `https://` locations, which are what ship. A Zenodo file URL is derivable
+from the record anyway: `10.5281/zenodo.1234567` and a file name give
+`https://zenodo.org/records/1234567/files/<name>`, which is a `urls` entry like
+any other. Record the identifier itself in `doi =`, where it is cited from
+rather than fetched from:
+
+```{r, eval = FALSE}
+resource(
+  "wfo", "2026-06",
+  urls = "https://zenodo.org/records/1234567/files/wfo-2026-06.zip",
+  doi = "10.5281/zenodo.1234567",
+  sha256 = "...", license = "CC-BY-4.0"
+)
+```
+
+The DOI travels into provenance and appears in `getaca_info()` and
+`getaca_catalogue()`, so an analysis can report the identifier for the exact
+bytes it read.
+
+## Data behind a registration
+
+Some archives serve their files only to a registered account. A declaration
+says which credential a host requires; it never carries one. `bearer()` and
+`basic()` name environment variables, and `auth_host()` binds a scheme to the
+host it applies to:
+
+```{r, eval = FALSE}
+registry(
+  package = "canopy",
+  auth = list(
+    auth_host("data.ornldaac.earthdata.nasa.gov",
+              bearer("EARTHDATA_TOKEN"),
+              register = "https://urs.earthdata.nasa.gov/users/new")
+  ),
+  resources = list(
+    resource("gedi-l4a", "2026-06",
+             urls = "https://data.ornldaac.earthdata.nasa.gov/gedi/l4a-2026-06.h5",
+             sha256 = "...", license = "CC-BY-4.0")
+  )
+)
+```
+
+The credential is read from the environment at the moment of the request. It is
+never stored, never written to the cache, never recorded in provenance and never
+printed. It travels as an `Authorization` header, which libcurl withholds from a
+redirect to another host, and these archives redirect to object storage
+routinely. A token carried in a query string would have neither protection and
+would appear in every error message listing the URLs that were tried, so one is
+not accepted.
+
+A credential belongs to a host rather than to a file, so the declaration is
+matched by host: a record listing an authenticated mirror beside a public one
+presents the credential to the first and not to the second, and a record that
+falls through to the public mirror simply succeeds. Hosts match exactly, without
+wildcards.
+
+Credentials are read from the registry the package *ships*, never from a remote
+one, for the reason signing keys are. A declaration arriving over the network
+that could name the hosts a credential is sent to would be able to nominate its
+own.
+
+Say plainly in your documentation which variable a user sets and where they
+register. `getaca_credentials()` reports both, and whether the variable is set,
+without touching the network:
+
+```{r, eval = FALSE}
+getaca_credentials(package = "canopy")
+```
+
+The reproducibility promise narrows for these resources, from every machine
+getting the same bytes to every machine holding the credential getting the same
+bytes. Weigh that against a public mirror before declaring one.
 
 ## Testing your declaration
 

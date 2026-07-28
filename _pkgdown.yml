@@ -89,6 +89,7 @@ reference:
   - processor
   - unpack
   - registry
+  - registry_draft
   - registry_write
   - registry_for
   - registry_digest
@@ -108,6 +109,11 @@ reference:
   - registry_keygen
   - registry_sign
   - registry_verify
+- title: Credentials
+  desc: Naming what a host requires, without holding it
+  contents:
+  - getaca-auth
+  - getaca_credentials
 - title: Checks and Offline Use
   desc: Behaving during R CMD check
   contents:
