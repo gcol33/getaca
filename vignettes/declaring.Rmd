@@ -428,15 +428,8 @@ A processor turns one verified path into another. It carries a stable id, so
 the derived result gets its own cache slot and its own provenance rather than
 being confused with the archive it came from.
 
-```{r}
-unpack <- processor("unzip", function(input, output_dir) {
-  utils::unzip(input, exdir = output_dir)
-  output_dir
-})
-unpack$id
-```
-
-Attach it to the record that needs it:
+Most declarations of an archive want the same transformation, so it is shipped.
+`unpack()` reads the format from the cached file's name:
 
 ```{r}
 archive <- resource(
@@ -445,9 +438,45 @@ archive <- resource(
   urls      = "https://host.invalid/wfo-2026-06.zip",
   sha256    = strrep("9f", 32),
   license   = "CC-BY-4.0",
-  processor = unpack
+  processor = unpack()
 )
 archive
+```
+
+It covers `.zip`, the tarballs under any compression (`.tar`, `.tar.gz`,
+`.tgz`, `.tar.bz2`, `.tbz2`, `.tar.xz`, `.txz`) and a single compressed file
+(`.gz`, `.bz2`, `.xz`), which is decompressed under its own name with the
+extension dropped. Name the format for a file whose name does not carry one:
+
+```{r}
+unpack("gzip")$id
+```
+
+A large archive holding one subtree you need takes `members`, which names a
+file, or a directory and everything under it:
+
+```{r}
+unpack(members = "tables")$id
+```
+
+The id encodes the settings for a reason. It is what the cache slot and the
+registry manifest are keyed on, so two records asking for different subsets of
+one archive must not resolve to one slot. A name that matches nothing in the
+archive is an error rather than an empty result, since getaca hashes the
+archive and never looks at what came out of it: an empty slot would pass every
+later check.
+
+### Writing your own
+
+Anything else is a function of two arguments:
+
+```{r}
+index <- processor("index-v1", function(input, output_dir) {
+  out <- file.path(output_dir, "wfo.tsv")
+  write.table(read.csv(input), out, sep = "\t", row.names = FALSE)
+  out
+})
+index$id
 ```
 
 The function receives the verified input path and a staging directory, and
@@ -457,8 +486,8 @@ leaves no half-built result. A returned path outside the output directory is
 an error, since the cache would then hold an entry pointing somewhere it does
 not own.
 
-Changing what the transformation does means changing the id. `"unzip"` to
-`"unzip-v2"` invalidates previously processed copies without touching the raw
+Changing what the transformation does means changing the id. `"index-v1"` to
+`"index-v2"` invalidates previously processed copies without touching the raw
 artefact they were built from, so users re-run the transformation rather than
 re-downloading gigabytes. `getaca(..., processed = FALSE)` returns the raw
 artefact for anyone who wants it.

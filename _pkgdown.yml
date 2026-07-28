@@ -87,6 +87,7 @@ reference:
   - part
   - combiner
   - processor
+  - unpack
   - registry
   - registry_write
   - registry_for

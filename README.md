@@ -13,9 +13,10 @@ files your package declares it needs.**
   <img src="man/figures/progress.gif" width="100%" alt="A getaca transfer: one call, a bar carrying the share, the rate and an estimate of what is left, and the local path it returns">
 </p>
 
-A taxonomic backbone runs to 800 MB, a global climate grid to several GB, a
-pretrained model to more. Files that size stay outside the package. Declare one in a
-few kilobytes, and retrieving it is one call:
+Some of what a package needs is too large to ship inside it: a reference dataset, a
+trained model, an archive of examples. At 800 MB, or at several gigabytes, the file
+lives somewhere else, and every user has to end up with the same copy of it. Declare
+it in a few kilobytes, and retrieving it is one call:
 
 ```r
 library(getaca)
@@ -50,16 +51,18 @@ backbone <- resource(
   "backbone", "2026-06",
   urls      = "https://primary.invalid/backbone-2026-06.zip",
   sha256    = "97f28a53a7912a80c12cc8f26e0c422d9212e067e11479ae61ef0a91b456b53a",
-  processor = processor("unzip", function(input, output_dir) {
-    utils::unzip(input, exdir = output_dir)
-    output_dir
-  })
+  processor = unpack()
 )
 ```
 
-The archive is verified first and unpacked once. The result gets its own cache
-slot, so a later session finds it already unpacked, and `processed = FALSE`
-hands back the zip it was built from.
+`unpack()` reads the format from the file name and covers `.zip`, the tarballs
+under any compression, and a single `.gz`, `.bz2` or `.xz`. The archive is
+verified first and unpacked once. The result gets its own cache slot, so a later
+session finds it already unpacked, and `processed = FALSE` hands back the zip it
+was built from.
+
+Take one subtree of a large archive with `unpack(members = "tables")`, and name
+the format where the file name does not carry one with `unpack("gzip")`.
 
 ## What the declaration is for
 
@@ -346,21 +349,32 @@ retention sweeps reclaim first. Row 3 is work still to do on this machine.
 
 ## Processors
 
-Unpacking an archive is one case of a general one. A processor turns any
-verified path into another: converting a format on arrival, or building the
-layout your package reads. Both forms stay reachable:
+`unpack()` is one case of a general one. A processor turns any verified path
+into another, so anything you would otherwise make every user do on first load
+can happen once, in the cache: converting a format on arrival, or building the
+layout your package reads.
 
 ```r
-dir <- getaca("backbone", package = "yourpkg")                     # unpacked
-zip <- getaca("backbone", package = "yourpkg", processed = FALSE)  # as it arrived
+processor("index-v1", function(input, output_dir) {
+  out <- file.path(output_dir, "backbone.fst")
+  write_index(read_backbone(input), out)
+  out
+})
 ```
 
 The function receives the verified path and a staging directory, and the
 directory is renamed into place once it returns, so one that fails part-way
-leaves nothing behind. Changing what the transformation does means changing the
-id, which invalidates previously processed copies without touching the download
-they were built from: users re-run the transformation rather than re-fetching
-gigabytes. `getaca` knows nothing about file formats and never reads data.
+leaves nothing behind. Both forms stay reachable afterwards:
+
+```r
+built <- getaca("backbone", package = "yourpkg")                     # processed
+zip   <- getaca("backbone", package = "yourpkg", processed = FALSE)  # as it arrived
+```
+
+Changing what the transformation does means changing the id, which invalidates
+previously processed copies without touching the download they were built from:
+users re-run the transformation rather than re-fetching gigabytes. `getaca`
+knows nothing about file formats and never reads data.
 
 ## Files that arrive in pieces
 
@@ -502,6 +516,7 @@ them, which puts verification at disk speed: 1.43 GB/s on an i9-14900K, so a
 - **`part()`**, **`combiner()`** declare a record that arrives as a series, and
   how the series composes
 - **`processor()`** declare a post-verification transformation
+- **`unpack()`** the stock one: extract an archive or a compressed file
 - **`getaca_progress()`**, **`reporter()`** choose what a transfer looks like, or
   write your own
 - **`getaca_info()`** full provenance for a cached resource
