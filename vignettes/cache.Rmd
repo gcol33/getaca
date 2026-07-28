@@ -11,6 +11,21 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(getaca)
 
+# The session temp directory carries the account name of whoever knits, so
+# printing a cache path would put it in the built article. Redact it.
+local({
+  roots <- unique(c(tempdir(),
+                    normalizePath(tempdir(), winslash = "\\", mustWork = FALSE),
+                    normalizePath(tempdir(), winslash = "/", mustWork = FALSE)))
+  roots <- unique(c(gsub("\\", "\\\\", roots, fixed = TRUE), roots))
+  roots <- roots[order(nchar(roots), decreasing = TRUE)]
+  render <- knitr::knit_hooks$get("output")
+  knitr::knit_hooks$set(output = function(x, options) {
+    for (root in roots) x <- gsub(root, "<tempdir>", x, fixed = TRUE)
+    render(x, options)
+  })
+})
+
 options(getaca.cache = file.path(tempdir(), "getaca-cache-vignette"))
 Sys.setenv(GETACA_OFFLINE = "true", NOT_CRAN = "true")
 
