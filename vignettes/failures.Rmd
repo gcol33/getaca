@@ -34,13 +34,14 @@ act. Callers branch on the class rather than on message text.
 | `getaca_error_unavailable` | no mirror answered | user | connect, or prefetch elsewhere |
 | `getaca_error_offline` | not cached, network not permitted here | user | prefetch, or point `GETACA_CACHE` at a seeded cache |
 | `getaca_error_incomplete` | every mirror ended short | user | retry |
+| `getaca_error_credentials` | every mirror refused to serve | user, or author | set the credential named; where none is declared, report it |
 | `getaca_error_upstream_changed` | published bytes were replaced | upstream | the declaring package needs a new record |
 | `getaca_error_cache_corrupt` | local copy drifted from its own record | user | clean and refetch |
 | `getaca_error_invalid_registry` | the declaration is wrong | author | report to the declaring package |
 | `getaca_error_declaration` | every mirror agrees, the registry disagrees | author | report to the declaring package |
 | `getaca_error_composition` | the parts arrived intact and compose to something else | author | report to the declaring package |
 
-All eight inherit from `getaca_error`, which inherits from `error`, so a
+All nine inherit from `getaca_error`, which inherits from `error`, so a
 handler for `getaca_error` catches everything the package raises and nothing
 else.
 
@@ -171,6 +172,53 @@ Where some mirrors ended short and others could not be reached at all, the
 broader `getaca_error_unavailable` is raised instead, with each mirror's
 reason listed. Retrying helps one kind of failure and not the other, so
 claiming the whole thing was a truncation would be wrong.
+
+## `getaca_error_credentials`
+
+Every mirror that failed answered 401 or 403. The resource is reachable and
+the machine has a network; what is missing is permission. Telling that user to
+connect to a network would send them looking in the wrong place, which is the
+same reasoning that separates a truncation from an outage.
+
+```{r, eval = FALSE}
+getaca("gedi-l4a", package = "canopy")
+#> Error: Access to canopy/gedi-l4a@2026-06 was refused.
+#>   data.ornldaac.earthdata.nasa.gov: bearer credential from EARTHDATA_TOKEN (not set: EARTHDATA_TOKEN)
+#>     obtain one at https://urs.earthdata.nasa.gov/users/new
+#>
+#> Actions: set the variables named above and retry; or, if a credential is
+#> already set, check that it is current and carries access to this resource.
+#>
+#> Fix: see the actions listed above.
+```
+
+Which variable is wanted comes from the declaration rather than from the
+response, because a server that never saw a credential and one that rejected
+the credential it saw answer alike. The message says which of the two happened,
+since "not set" and "set, and refused" call for different next steps.
+
+`err$demands` carries one entry per host, each with `host`, `scheme`,
+`variables`, `missing` and `register`. Nothing in the condition holds a
+credential; the value is read at the moment of the request and never stored.
+
+This is the one condition whose `actor` depends on the situation. Where the
+declaration names a credential, the person who can act is the user holding it.
+Where a host refuses and the declaration names none, there is no variable to
+set: either the resource became restricted after it was declared or the
+location is wrong, and both are the declaring package's to fix, so `actor` is
+`"author"` and the message says so instead of asking for a variable that does
+not exist.
+
+To ask before fetching rather than after failing, `getaca_credentials()`
+reports every variable a package's declaration reads and whether it is set:
+
+```{r, eval = FALSE}
+getaca_credentials(package = "canopy")
+#>   package                                  host scheme         variable   set
+#> 1  canopy data.ornldaac.earthdata.nasa.gov bearer EARTHDATA_TOKEN FALSE
+```
+
+See `vignette("declaring")` for how a package declares one.
 
 ## `getaca_error_upstream_changed`
 

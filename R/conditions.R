@@ -10,6 +10,10 @@
 #'   \item{`getaca_error_unavailable`}{No mirror could be reached. actor: user.}
 #'   \item{`getaca_error_incomplete`}{Transfer ended short of the expected
 #'     size. actor: user.}
+#'   \item{`getaca_error_credentials`}{Every source that answered refused to
+#'     serve the resource, so the missing thing is a permission rather than a
+#'     network. actor: user where the declaration names a credential, author
+#'     where it does not.}
 #'   \item{`getaca_error_upstream_changed`}{A complete download hashed to
 #'     something other than the declared checksum, and the declaration is
 #'     otherwise sound. actor: upstream.}
@@ -92,6 +96,59 @@ err_incomplete <- function(id, expected, observed, call = NULL) {
     actor = "user",
     data = list(id = id, expected = expected, observed = observed),
     call = call
+  )
+}
+
+# Every source refused. What the caller needs is stated per host, since a record
+# may list mirrors with different requirements, and it comes from the
+# declaration rather than from the response: a server that never saw a
+# credential and one that rejected the credential it saw both answer 401, and
+# only the declaration knows which variable was wanted.
+err_credentials <- function(id, demands, call = NULL) {
+  hosts <- vapply(demands, function(d) d$host, character(1))
+  demands <- demands[!duplicated(hosts)]
+  # A refusal from a host the declaration says nothing about is a different
+  # situation and a different person's: there is no variable to set, and what
+  # is wrong is either the declared location or an access condition that has
+  # changed since it was declared.
+  declared <- any(vapply(demands, function(d) length(d$variables) > 0L, logical(1)))
+  getaca_abort(
+    "getaca_error_credentials",
+    c(
+      sprintf("Access to %s was refused.", format(id)),
+      unlist(lapply(demands, credential_lines), use.names = FALSE),
+      "",
+      if (declared) {
+        c("Actions: set the variables named above and retry; or, if a credential is",
+          "already set, check that it is current and carries access to this resource.")
+      } else {
+        c("Nothing here is a network problem, and the declaration names no",
+          "credential for these hosts. Either the resource has become restricted",
+          "since it was declared, or the location is wrong.",
+          "",
+          "Action: report it to the declaring package.")
+      }
+    ),
+    actor = if (declared) "user" else "author",
+    data = list(id = id, demands = demands),
+    call = call
+  )
+}
+
+credential_lines <- function(d) {
+  if (!length(d$variables)) {
+    return(sprintf("  %s: refused, and the declaration names no credential for it",
+                   d$host))
+  }
+  state <- if (length(d$missing)) {
+    sprintf("not set: %s", paste(d$missing, collapse = ", "))
+  } else {
+    "set, and refused"
+  }
+  c(
+    sprintf("  %s: %s credential from %s (%s)", d$host, d$scheme,
+            paste(d$variables, collapse = ", "), state),
+    if (!is.null(d$register)) sprintf("    obtain one at %s", d$register)
   )
 }
 

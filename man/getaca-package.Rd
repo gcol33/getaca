@@ -15,7 +15,8 @@ resolvable offline, and safe during \verb{R CMD check}.
 \item{Get}{Resolve mirrors, download safely, return an ordinary local path.}
 \item{Authenticate}{Verify the exact expected bytes before the path is
 handed back. Throughout the API this operation is called \emph{verify};
-"authentication" is reserved for credentials.}
+"authentication" is reserved for credentials, which are declared rather
+than held. See \link{getaca-auth}.}
 \item{Track}{Record version, registry state, resolution policy, observed
 checksum and verification state.}
 \item{Cache}{Reuse resources across sessions and actively remove

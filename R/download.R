@@ -51,16 +51,21 @@ partial_path <- function(record, url) {
 # Adjudication is the part worth testing, and it is testable without a
 # network because the transport is injectable.
 fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one,
-                          reporter = NULL) {
+                          reporter = NULL, auth = NULL) {
   unreachable <- character()
   reasons <- character()
   observed_hashes <- character()
   short <- numeric()
+  refused <- list()
   rep <- reporter %||% effective_reporter(quiet)
+  # The credential is attached to the transport rather than threaded through the
+  # loop, so nothing below here handles one and a stand-in transport is
+  # unaffected by a declaration it is not exercising.
+  send <- if (is.null(auth)) transport else with_credentials(transport, auth)
 
   for (url in record$urls) {
     dest <- partial_path(record, url)
-    out <- attempt_mirror(url, dest, record, transport, rep, id)
+    out <- attempt_mirror(url, dest, record, send, rep, id)
 
     if (identical(out$status, "ok")) {
       return(list(path = dest, url = url, sha256 = out$sha256))
@@ -71,6 +76,14 @@ fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one,
       unreachable <- c(unreachable, url)
       reasons <- c(reasons, out$reason)
       if (identical(out$status, "truncated")) short <- c(short, out$observed)
+      # What this URL required, asked of the declaration rather than of the
+      # response, so the report says which variable was wanted whether the
+      # server rejected a credential or never saw one.
+      if (isTRUE(out$http %in% c(401L, 403L))) {
+        refused[[length(refused) + 1L]] <- credential_demand(url, auth) %||%
+          list(host = url_host(url), scheme = NA_character_,
+               variables = character(), missing = character(), register = NULL)
+      }
     }
   }
 
@@ -87,6 +100,12 @@ fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one,
   # message lists each mirror's reason including the truncations.
   if (length(short) && length(short) == length(unreachable)) {
     err_incomplete(id, record$size, max(short))
+  }
+  # Every failure was a refusal to serve, which is a permission the caller can
+  # obtain rather than a network they have to find. Same reasoning as the
+  # truncation branch above, and a mixed set keeps the broader condition.
+  if (length(refused) && length(refused) == length(unreachable)) {
+    err_credentials(id, refused)
   }
   err_unavailable(id, unreachable, reasons)
 }
@@ -120,7 +139,8 @@ one_pass <- function(url, dest, record, transport, rep, id) {
   if (!isTRUE(res$success)) {
     emit(rep, "end", id = id, status = "failed", bytes = arrived,
          reason = res$reason)
-    return(list(status = "unreachable", reason = res$reason, resumed = resumed))
+    return(list(status = "unreachable", reason = res$reason, resumed = resumed,
+                http = res$http))
   }
   emit(rep, "end", id = id, status = "ok", bytes = arrived,
        reason = NA_character_)
@@ -150,10 +170,22 @@ bytes_on_disk <- function(path) {
 # counts decoded ones, and libcurl reports the combination as a content-encoding
 # error rather than as bytes. Identity is what a resumable transfer needs, and
 # what getaca wants for its own sake, since what it hashes is what it stores.
-transfer_handle <- function(url, offset) {
+#
+# A credential reaches the request as an `Authorization` header and nothing
+# else. libcurl withholds that header from a redirect to a different host, and
+# these archives redirect to object storage routinely, so a token in a query
+# string or in a header of another name would be handed to a third party. Basic
+# goes through libcurl's own user and password option, which is the same header
+# under the same protection.
+transfer_handle <- function(url, offset, auth = NULL) {
   h <- new_handle_for(url)
   curl::handle_setopt(h, accept_encoding = "identity", noprogress = TRUE)
   if (offset > 0) curl::handle_setopt(h, resume_from_large = offset)
+  if (identical(auth$scheme, "bearer")) {
+    curl::handle_setheaders(h, Authorization = auth$header)
+  } else if (identical(auth$scheme, "basic")) {
+    curl::handle_setopt(h, userpwd = auth$userpwd, httpauth = 1L)
+  }
   h
 }
 
@@ -164,9 +196,9 @@ transfer_handle <- function(url, offset) {
 # including whatever it resumed onto. It is the only thing the transport knows
 # about reporting: what the bytes mean, and how they are drawn, belongs to the
 # reporter that supplied the callback.
-try_one <- function(url, dest, progress = NULL) {
+try_one <- function(url, dest, progress = NULL, auth = NULL) {
   offset <- bytes_on_disk(dest)
-  handle <- transfer_handle(url, offset)
+  handle <- transfer_handle(url, offset, auth)
   st <- new.env(parent = emptyenv())
   st$con <- NULL
   st$refused <- FALSE
@@ -237,7 +269,7 @@ close_transfer <- function(st) {
 transfer_result <- function(st, dest, offset) {
   if (!st$completed) {
     reason <- if (!is.na(st$error) && nzchar(st$error)) st$error else "transfer failed"
-    return(list(success = FALSE, reason = reason))
+    return(list(success = FALSE, reason = reason, http = NA_integer_))
   }
   status <- st$status
   if (!is.na(status) && status >= 400) {
@@ -247,12 +279,13 @@ transfer_result <- function(st, dest, offset) {
     # partial disagrees with upstream and cannot be continued. Anything else
     # keeps the bytes an earlier attempt did get.
     if (offset == 0 || identical(as.integer(status), 416L)) unlink(dest)
-    return(list(success = FALSE, reason = paste("HTTP", status)))
+    return(list(success = FALSE, reason = paste("HTTP", status),
+                http = as.integer(status)))
   }
   # A resource of no bytes still has to arrive as a file, and a response with an
   # empty body never reaches the writer.
   if (!file.exists(dest)) file.create(dest)
-  list(success = TRUE, reason = NA_character_)
+  list(success = TRUE, reason = NA_character_, http = as.integer(status))
 }
 
 # Verified bytes join the store under their own digest, and the version slot

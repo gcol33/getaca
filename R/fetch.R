@@ -109,13 +109,15 @@ getaca <- function(name, package = NULL, registry = NULL, version = NULL,
     on.exit(release_locks(held), add = TRUE)
     placed <- promote(id, record,
                       compose_parts(id, record, quiet = quiet,
-                                    reporter = effective_reporter(quiet)))
+                                    reporter = effective_reporter(quiet),
+                                    auth = res$auth))
     # No single location served these bytes. What produced them is the part
     # series the entry records.
     url_used <- NA_character_
   } else {
     got <- fetch_to_temp(id, record, quiet = quiet,
-                         reporter = effective_reporter(quiet))
+                         reporter = effective_reporter(quiet),
+                         auth = res$auth)
     placed <- promote(id, record, got$path)
     url_used <- got$url
   }
@@ -206,9 +208,9 @@ err_offline <- function(id, why, call = NULL) {
 #' Answers, for a cached resource: which package declared it, which registry
 #' state and which policy resolved it, the exact version, declared and observed
 #' checksums, which mirror served it, when it was fetched and when it was last
-#' fully verified, its license, any processor applied, which getaca retrieved
-#' it, and the local path. Suitable for a reproducibility appendix or a bug
-#' report.
+#' fully verified, its license and DOI, any processor applied, which getaca
+#' retrieved it, and the local path. Suitable for a reproducibility appendix or
+#' a bug report.
 #'
 #' The registry state appears as a [registry_digest()], so the declaration that
 #' resolved the resource can be identified exactly rather than by a number
@@ -247,7 +249,8 @@ getaca_info <- function(name, package = NULL, registry = NULL, version = NULL,
 #'   force names that version, `FALSE` when it does not, and `NA` when no
 #'   registry could be read for the package; `current` is `NA` in that same
 #'   case. `cached` says whether a local copy is recorded; the provenance
-#'   columns are `NA` for declared resources that are not cached. `link` says
+#'   columns are `NA` for declared resources that are not cached. `doi` is what
+#'   the artefact is cited as, where the declaration states one. `link` says
 #'   how the slot reaches its bytes, so two packages sharing one copy in the
 #'   store are visible as such.
 #' @export
@@ -331,6 +334,7 @@ entry_row <- function(e, declared, current) {
     cached = TRUE,
     size = e$size,
     license = e$license %||% NA_character_,
+    doi = e$doi %||% NA_character_,
     source = e$source,
     registry_digest = e$registry_digest %||% NA_character_,
     verified_at = e$verified_at,
@@ -354,6 +358,7 @@ declared_row <- function(package, rec, current) {
     cached = FALSE,
     size = as.numeric(rec$size),
     license = rec$license %||% NA_character_,
+    doi = rec$doi %||% NA_character_,
     source = NA_character_,
     registry_digest = NA_character_,
     verified_at = na_time(),
@@ -371,7 +376,7 @@ empty_catalogue <- function() {
     package = character(), name = character(), version = character(),
     current = logical(), processor = character(), parts = integer(),
     link = character(), declared = logical(), cached = logical(),
-    size = numeric(), license = character(),
+    size = numeric(), license = character(), doi = character(),
     source = character(), registry_digest = character(),
     verified_at = na_time(0L), accessed_at = na_time(0L),
     pinned = logical(), path = character(), stringsAsFactors = FALSE

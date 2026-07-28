@@ -30,6 +30,11 @@
 #'   the registry the *package ships*, which reaches a user by a different route
 #'   than the remote does, and that is what a signature rests on. See
 #'   [getaca-signing].
+#' @param auth Optional list of [auth_host()] declarations, naming the
+#'   environment variables a host requires before it will serve a resource.
+#'   Read from the registry the *package ships*, never from a remote one, for
+#'   the reason `keys` is: a declaration arriving over the network must not be
+#'   able to say where a credential is sent. See [getaca-auth].
 #'
 #' @section Identity:
 #' A registry state is identified by [registry_digest()], derived from the
@@ -76,7 +81,7 @@
 #' )
 registry <- function(package, resources, remote = NULL,
                      policy = c("bundled", "current", "pinned", "offline"),
-                     current = NULL, keys = NULL) {
+                     current = NULL, keys = NULL, auth = NULL) {
   policy <- match.arg(policy)
   stopifnot(is_string(package))
   # A record is itself a list, so a lone one is recognised by its class. Asking
@@ -95,6 +100,7 @@ registry <- function(package, resources, remote = NULL,
       policy = policy,
       current = as_channel_heads(current),
       keys = if (length(keys)) unique(as.character(keys)) else NULL,
+      auth = if (length(auth)) auth else NULL,
       resources = resources
     ),
     class = "getaca_registry"
@@ -107,10 +113,11 @@ registry <- function(package, resources, remote = NULL,
   reg
 }
 
-# 3 since resources may declare parts. An older getaca refuses a registry at
-# this schema, which is the right answer: it has no composition step and would
-# read a record with no `urls` as one with nowhere to fetch from.
-REGISTRY_SCHEMA <- 3L
+# 4 since a registry may declare `auth`. An older getaca refuses a registry at
+# this schema, which is the right answer: it would fetch an authenticated host
+# with no credential and report the refusal as an outage. `doi` arrived with it
+# and would not have justified a bump on its own.
+REGISTRY_SCHEMA <- 4L
 
 validate_registry <- function(x) {
   p <- character()
@@ -143,6 +150,7 @@ validate_registry <- function(x) {
     p <- c(p, "`remote` must be an https URL")
   }
   p <- c(p, validate_keys(x$keys))
+  p <- c(p, validate_auth(x$auth))
   p
 }
 
@@ -217,6 +225,7 @@ print.getaca_registry <- function(x, ...) {
   }
   if (!is.null(x$remote)) cat("  remote: ", x$remote, "\n", sep = "")
   for (k in x$keys) cat("  signed by: ", short_key(k), "\n", sep = "")
+  for (a in x$auth) cat("  credential: ", format(a), "\n", sep = "")
   for (r in x$resources) {
     head <- identical(channel_head(x, r$name), r$version)
     cat("  - ", format(r), if (head) "  (current)", "\n", sep = "")
@@ -334,6 +343,7 @@ as_registry <- function(x, package, ...) {
       # Authoring formats accept either spelling; the model has one field.
       license = spec$license %||% spec$licence %||% NA_character_,
       description = spec$description %||% NA_character_,
+      doi = spec$doi,
       parts = authoring_parts(spec$parts),
       combiner = authoring_combiner(spec$combiner, nm),
       file = spec$file

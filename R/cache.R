@@ -111,6 +111,7 @@ new_entry <- function(id, record, path, observed_sha, source, digest,
       observed_sha256 = observed_sha,
       size = file_size(path),
       license = record$license,
+      doi = record$doi,
       upstream = record$upstream,
       source = source,
       # Which declaration state resolved these bytes, when that state was
@@ -176,6 +177,7 @@ print.getaca_entry <- function(x, ...) {
   cat("  sha256      ", x$observed_sha256, "\n", sep = "")
   cat("  size        ", format(x$size, big.mark = ","), " bytes\n", sep = "")
   cat("  license     ", x$license, "\n", sep = "")
+  if (!is.null(x$doi)) cat("  doi         ", x$doi, "\n", sep = "")
   if (!is.null(x$upstream)) {
     for (nm in names(x$upstream)) {
       cat("  built from  ", nm, ": ", as.character(x$upstream[[nm]]), "\n", sep = "")

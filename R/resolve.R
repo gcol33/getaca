@@ -10,12 +10,13 @@
 #' @param policy Resolution policy, defaulting to [getaca_policy()].
 #' @param version Optional explicit version, bypassing channel resolution.
 #'
-#' @return A list with `id`, `record`, `policy`, `source`, `digest` and
-#'   `created`. `policy` is the one actually in force, after the argument, the
+#' @return A list with `id`, `record`, `policy`, `source`, `digest`, `created`
+#'   and `auth`. `policy` is the one actually in force, after the argument, the
 #'   session setting, the registry default and the check clamp have been
 #'   resolved. `digest` identifies the registry state that answered, and
 #'   `created` says when that state was published, or `NA` for a declaration
-#'   that was built in the session rather than read from a file.
+#'   that was built in the session rather than read from a file. `auth` is the
+#'   credential declaration, taken from the registry the package ships.
 #' @export
 resolve_resource <- function(name, package = NULL, registry = NULL,
                              policy = NULL, version = NULL) {
@@ -54,7 +55,13 @@ resolve_resource <- function(name, package = NULL, registry = NULL,
     # Identity comes from the channel that answered, not from the bundled
     # registry, so provenance names the state that actually chose the record.
     digest = registry_digest(channel),
-    created = channel$created %||% .POSIXct(NA_real_)
+    created = channel$created %||% .POSIXct(NA_real_),
+    # Credentials come from the bundled registry, never from the channel, for
+    # the reason the trusted signing keys do. A declaration arriving over the
+    # network that could name the hosts a credential is sent to would be able to
+    # nominate its own, and the checksum failing afterwards is no consolation
+    # once the credential has been handed over.
+    auth = reg$auth
   )
 }
 

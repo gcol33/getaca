@@ -15,6 +15,10 @@ message text.
 \item{\code{getaca_error_unavailable}}{No mirror could be reached. actor: user.}
 \item{\code{getaca_error_incomplete}}{Transfer ended short of the expected
 size. actor: user.}
+\item{\code{getaca_error_credentials}}{Every source that answered refused to
+serve the resource, so the missing thing is a permission rather than a
+network. actor: user where the declaration names a credential, author
+where it does not.}
 \item{\code{getaca_error_upstream_changed}}{A complete download hashed to
 something other than the declared checksum, and the declaration is
 otherwise sound. actor: upstream.}

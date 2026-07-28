@@ -12,6 +12,7 @@ resource(
   size = NA_real_,
   license = NA_character_,
   description = NA_character_,
+  doi = NULL,
   upstream = NULL,
   processor = NULL,
   parts = NULL,
@@ -36,6 +37,12 @@ transfers before hashing.}
 \item{license}{License identifier for the data, for example \code{"CC-BY-4.0"}.}
 
 \item{description}{One-line human description.}
+
+\item{doi}{Optional DOI for these bytes, for example
+\code{"10.5281/zenodo.1234567"}. A \verb{https://doi.org/} or \verb{doi:} prefix is
+accepted and stripped. This is what the artefact is cited as, and it
+travels into provenance; it never routes anything, and the locations to
+fetch from stay in \code{urls}.}
 
 \item{upstream}{Optional named list identifying what these bytes were built
 from, when the artefact is derived rather than an original release. A

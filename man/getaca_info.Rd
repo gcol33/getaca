@@ -35,9 +35,9 @@ A \code{getaca_entry}, or \code{NULL} when the resource is not cached.
 Answers, for a cached resource: which package declared it, which registry
 state and which policy resolved it, the exact version, declared and observed
 checksums, which mirror served it, when it was fetched and when it was last
-fully verified, its license, any processor applied, which getaca retrieved
-it, and the local path. Suitable for a reproducibility appendix or a bug
-report.
+fully verified, its license and DOI, any processor applied, which getaca
+retrieved it, and the local path. Suitable for a reproducibility appendix or
+a bug report.
 }
 \details{
 The registry state appears as a \code{\link[=registry_digest]{registry_digest()}}, so the declaration that

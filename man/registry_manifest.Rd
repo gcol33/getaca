@@ -36,11 +36,14 @@ in the stored form need not change how existing fields are rendered.
 package taxify
 remote https://taxify.example.org/registry.rds
 key ed25519:9f8a...
+auth data.example.org bearer EXAMPLE_TOKEN
+  register https://data.example.org/register
 current wfo 2026-09
 resource wfo 2026-06
   sha256 3f9ac2...
   size 1048576
   license CC-BY-4.0
+  doi 10.5281/zenodo.123
   url https://zenodo.org/record/123/wfo-2026-06.parquet
   url https://mirror.example.org/wfo-2026-06.parquet
   upstream release 2026-06
@@ -65,10 +68,10 @@ omitted rather than rendered as empty, since a key that is present carries a
 value by construction.
 
 Rendering an absent field as nothing is what let signing keys join the
-manifest without a new format version, and then \code{file}, \code{part} and
-\code{combiner} after them. A registry declaring none of them renders exactly the
-bytes it always did, so every digest recorded before they existed still
-identifies the state that produced it.
+manifest without a new format version, and then \code{file}, \code{part}, \code{combiner},
+\code{auth} and \code{doi} after them. A registry declaring none of them renders
+exactly the bytes it always did, so every digest recorded before they existed
+still identifies the state that produced it.
 }
 
 \section{What is left out}{

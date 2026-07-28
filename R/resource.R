@@ -68,6 +68,11 @@ as.character.getaca_id <- function(x, ...) format(x)
 #'   transfers before hashing.
 #' @param license License identifier for the data, for example `"CC-BY-4.0"`.
 #' @param description One-line human description.
+#' @param doi Optional DOI for these bytes, for example
+#'   `"10.5281/zenodo.1234567"`. A `https://doi.org/` or `doi:` prefix is
+#'   accepted and stripped. This is what the artefact is cited as, and it
+#'   travels into provenance; it never routes anything, and the locations to
+#'   fetch from stay in `urls`.
 #' @param upstream Optional named list identifying what these bytes were built
 #'   from, when the artefact is derived rather than an original release. A
 #'   prepared database records both its own build identity and the upstream
@@ -108,7 +113,7 @@ as.character.getaca_id <- function(x, ...) format(x)
 #' )
 resource <- function(name, version, urls = NULL, sha256,
                      size = NA_real_, license = NA_character_,
-                     description = NA_character_, upstream = NULL,
+                     description = NA_character_, doi = NULL, upstream = NULL,
                      processor = NULL, parts = NULL, combiner = NULL,
                      file = NULL) {
   rec <- structure(
@@ -120,6 +125,7 @@ resource <- function(name, version, urls = NULL, sha256,
       size = as_size(size),
       license = license,
       description = description,
+      doi = as_doi(doi),
       upstream = upstream,
       processor = processor,
       parts = if (length(parts)) parts else NULL,
@@ -148,7 +154,20 @@ validate_resource <- function(x) {
   if (!is.null(x$processor) && !inherits(x$processor, "getaca_processor")) {
     p <- c(p, sprintf("resource '%s': `processor` must come from processor()", x$name))
   }
+  if (!is.null(x$doi) && !grepl("^10\\.[0-9]{4,9}/[^[:space:]]+$", x$doi)) {
+    p <- c(p, sprintf("resource '%s': `doi` must be a DOI such as \"10.5281/zenodo.1234567\"",
+                      x$name))
+  }
   p
+}
+
+# One stored form for the three ways a DOI is written down. A registered DOI
+# starts at the `10.` prefix; the resolver in front of it is a way to open one
+# in a browser rather than part of the identifier.
+as_doi <- function(doi) {
+  if (is.null(doi) || !length(doi) || is.na(doi[1])) return(NULL)
+  doi <- sub("^https?://(dx\\.)?doi\\.org/", "", as.character(doi)[1])
+  sub("^doi:", "", doi)
 }
 
 # Where the bytes come from. Declaring both `urls` and `parts` would be two
@@ -230,6 +249,7 @@ print.getaca_resource <- function(x, ...) {
   cat("  sha256    ", x$sha256, "\n", sep = "")
   cat("  size      ", if (is.na(x$size)) "unknown" else format(x$size, big.mark = ","), "\n", sep = "")
   cat("  license   ", x$license, "\n", sep = "")
+  if (!is.null(x$doi)) cat("  doi       ", x$doi, "\n", sep = "")
   if (!is.null(x$file)) cat("  file      ", x$file, "\n", sep = "")
   if (length(x$urls)) {
     cat("  urls      ", paste(x$urls, collapse = "\n             "), "\n", sep = "")

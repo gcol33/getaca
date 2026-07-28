@@ -22,11 +22,14 @@
 #' package taxify
 #' remote https://taxify.example.org/registry.rds
 #' key ed25519:9f8a...
+#' auth data.example.org bearer EXAMPLE_TOKEN
+#'   register https://data.example.org/register
 #' current wfo 2026-09
 #' resource wfo 2026-06
 #'   sha256 3f9ac2...
 #'   size 1048576
 #'   license CC-BY-4.0
+#'   doi 10.5281/zenodo.123
 #'   url https://zenodo.org/record/123/wfo-2026-06.parquet
 #'   url https://mirror.example.org/wfo-2026-06.parquet
 #'   upstream release 2026-06
@@ -51,10 +54,10 @@
 #' value by construction.
 #'
 #' Rendering an absent field as nothing is what let signing keys join the
-#' manifest without a new format version, and then `file`, `part` and
-#' `combiner` after them. A registry declaring none of them renders exactly the
-#' bytes it always did, so every digest recorded before they existed still
-#' identifies the state that produced it.
+#' manifest without a new format version, and then `file`, `part`, `combiner`,
+#' `auth` and `doi` after them. A registry declaring none of them renders
+#' exactly the bytes it always did, so every digest recorded before they existed
+#' still identifies the state that produced it.
 #'
 #' @section What is left out:
 #' `created` and `policy` are not part of the declaration. `created` says when
@@ -84,6 +87,7 @@ registry_manifest <- function(registry) {
     manifest_line("package", registry$package),
     manifest_line("remote", registry$remote),
     manifest_line("key", manifest_order_values(registry$keys)),
+    manifest_auth(registry$auth),
     manifest_current(registry$current),
     unlist(lapply(manifest_sorted(registry$resources), manifest_resource),
            use.names = FALSE)
@@ -156,6 +160,7 @@ manifest_resource <- function(r) {
     manifest_line("sha256", r$sha256, indent = TRUE),
     manifest_line("size", manifest_size(r$size), indent = TRUE),
     manifest_line("license", r$license, indent = TRUE),
+    manifest_line("doi", r$doi, indent = TRUE),
     manifest_line("file", r$file, indent = TRUE),
     manifest_line("url", r$urls, indent = TRUE),
     manifest_parts(r$parts, r$combiner),
@@ -181,6 +186,27 @@ manifest_parts <- function(parts, combiner) {
     }), use.names = FALSE),
     paste("  combiner", manifest_escape(combiner_id(combiner)))
   )
+}
+
+# Sorted by host, since which host needs a credential is a set rather than an
+# order. The variable names are rendered, never their values; there is nothing
+# secret in a declaration to leave out.
+#
+# `register` is rendered, unlike `description`. It is a URL shown to a user
+# under an instruction to obtain a credential there, which is worth forging, so
+# a signature has to cover it. The cost is that correcting a typo in one changes
+# the digest, which is the cheaper of the two.
+manifest_auth <- function(auth) {
+  if (!length(auth)) return(character())
+  hosts <- vapply(auth, function(a) a$host, character(1))
+  auth <- auth[manifest_order(hosts)]
+  unlist(lapply(auth, function(a) {
+    c(
+      paste("auth", manifest_escape(a$host), manifest_escape(a$scheme$scheme),
+            paste(manifest_escape(unname(a$scheme$variables)), collapse = " ")),
+      manifest_line("register", a$register, indent = TRUE)
+    )
+  }), use.names = FALSE)
 }
 
 manifest_upstream <- function(upstream) {

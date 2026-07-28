@@ -10,7 +10,8 @@ registry(
   remote = NULL,
   policy = c("bundled", "current", "pinned", "offline"),
   current = NULL,
-  keys = NULL
+  keys = NULL,
+  auth = NULL
 )
 }
 \arguments{
@@ -41,6 +42,12 @@ registry is then refused rather than used. The keys trusted are the ones in
 the registry the \emph{package ships}, which reaches a user by a different route
 than the remote does, and that is what a signature rests on. See
 \link{getaca-signing}.}
+
+\item{auth}{Optional list of \code{\link[=auth_host]{auth_host()}} declarations, naming the
+environment variables a host requires before it will serve a resource.
+Read from the registry the \emph{package ships}, never from a remote one, for
+the reason \code{keys} is: a declaration arriving over the network must not be
+able to say where a credential is sent. See \link{getaca-auth}.}
 }
 \value{
 An object of class \code{getaca_registry}.
