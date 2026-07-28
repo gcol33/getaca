@@ -10,7 +10,7 @@
 files your package declares it needs.**
 
 <p align="center">
-  <img src="man/figures/progress.gif" width="100%" alt="A getaca transfer: three parts of a series, each with its share, its rate and an estimate of what is left">
+  <img src="man/figures/progress.gif" width="100%" alt="A getaca transfer: one call, a bar carrying the share, the rate and an estimate of what is left, and the local path it returns">
 </p>
 
 A taxonomic backbone runs to 800 MB, a global climate grid to several GB, a
