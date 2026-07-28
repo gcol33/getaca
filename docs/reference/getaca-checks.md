@@ -67,7 +67,9 @@ getaca_skip_if_unavailable(
 
 - quiet:
 
-  Suppress progress reporting.
+  Report nothing for this call, whatever
+  [`getaca_progress()`](https://gillescolling.com/getaca/reference/getaca_progress.md)
+  is set to.
 
 ## Value
 

@@ -25,6 +25,7 @@
 <url><loc>https://gillescolling.com/getaca/reference/getaca-locking.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-package.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-parts.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/getaca-progress.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-signing.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-store.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-transfer.html</loc></url>
@@ -37,6 +38,7 @@
 <url><loc>https://gillescolling.com/getaca/reference/getaca_pin.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca_policy.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca_prefetch.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/getaca_progress.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca_refresh.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/index.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/part.html</loc></url>
@@ -49,6 +51,7 @@
 <url><loc>https://gillescolling.com/getaca/reference/registry_sign.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/registry_verify.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/registry_write.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/reporter.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/resolve_resource.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/resource.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/resource_id.html</loc></url>

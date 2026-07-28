@@ -60,6 +60,16 @@ copy and two independent dependency records. They also transfer it once,
 because the lock is keyed on the checksum, so the second session waits
 for the first and then finds the bytes already there.
 
+A resource composed from
+[`part()`](https://gillescolling.com/getaca/reference/part.md) records
+stores its pieces in the same place. Each part is admitted under its own
+digest, so a base every version of a series declares is one blob however
+many versions declare it, and publishing a version costs a consumer the
+delta rather than the whole artefact. No version slot names a part. What
+reaches it is the entry composed from it, which records the part digests
+beside its provenance, and that is what keeps a base alive for exactly
+as long as the last cached version still holding it.
+
 Everything the cache owns is read-only. A caller writing to a returned
 path would otherwise damage every package that shares those bytes, so
 the write fails at the point of the mistake instead. A caller that needs
@@ -122,6 +132,15 @@ its own copy, which is what a filesystem refusing links leaves, and a
 processed tree derived from the bytes are answerable only for
 themselves.
 
+A part is re-hashed every time a composition reuses it, since nothing
+else ever looks at it. Scheduled re-verification is driven from the
+entries, and a part blob is named by an entry’s part list rather than
+being an entry of its own, so a base that rotted on disk would otherwise
+surface as the declaration failing to produce its own artefact. A part
+failing its own checksum is dropped and fetched again the way a stale
+partial transfer is: the declaration lists mirrors for those bytes, and
+nothing else names them.
+
 The fourth timestamp is `fetched_at`, which never moves. Together the
 four answer questions that collapsing them would destroy: a resource
 fetched in January, re-hashed in April and read this morning reports
@@ -144,6 +163,18 @@ getaca_info("wfo", package = "taxify")
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
 #>   checked     2026-07-26 15:31:02 (size and mtime)
+```
+
+A composed resource reports what produced it, under the source url its
+series leaves empty:
+
+``` r
+
+#>   source url  NA
+#>   composed    3 parts via 'concat'
+#>     part      919191919191
+#>     part      4e4e4e4e4e4e
+#>     part      777777777777
 ```
 
 An uncached resource gives `NULL`, which is what makes the call safe in
@@ -196,7 +227,8 @@ str(getaca_catalogue(), max.level = 1)
 
 The columns worth knowing: `size` in bytes, `license`, `source` and
 `registry_digest` naming the policy and the registry state that resolved
-it, the three timestamps, `pinned`, and `path`.
+it, `parts` for how many pieces the artefact was composed from and `0`
+where it was served whole, the three timestamps, `pinned`, and `path`.
 
 ## Two sessions, one download
 
@@ -230,6 +262,14 @@ Step 4 is the point. The waiter reads the entry the first session wrote
 and returns that path, so the second transfer never starts. The cache
 check is repeated after the lock is acquired precisely because the
 situation may have changed while waiting.
+
+Composing from parts takes one lock per distinct part digest, held for
+the whole composition rather than for each transfer. Two sessions must
+not both fetch one part, which is what the acquisition lock already does
+for a whole file. And a part blob is named by no index until the entry
+composed from it is written, so the lock is also what tells another
+session that bytes nothing references yet are wanted: the `unreferenced`
+sweep treats a blob under an active lock as live.
 
 A lock whose holder died leaves a directory behind. It goes stale after
 `getaca.lock_stale_seconds`, defaulting to 1800, after which the next
@@ -276,6 +316,76 @@ filesystem. Bytes already in the store are already named by their
 checksum, so admitting the same file a second time is a no-op and the
 temporary copy is dropped.
 
+A composed resource joins at that same point. Each part lands in `.tmp/`
+and is admitted under its own digest, the series is combined into a
+second temporary file named after the artefact’s checksum, and that file
+is hashed against the record before anything else sees it. Only a result
+matching the declaration is admitted and given its view, so a
+[`combiner()`](https://gillescolling.com/getaca/reference/combiner.md)
+needs no more trust than a mirror does: it cannot produce bytes the
+declaration did not already name. A part already in the store is used
+where it lies, which is the whole point of declaring one, and an
+interrupted composition is overwritten by the retry rather than
+accumulating.
+
+## Watching a transfer
+
+getaca drives its own transfer loop, so what a download looks like is a
+setting rather than whatever the transfer library prints.
+
+``` r
+
+getaca_progress("bar")    # redraws one line, the default when interactive
+getaca_progress("line")   # one line to start and one to finish, for a log
+getaca_progress("none")   # nothing
+```
+
+    taxify/wfo@2026-09  [============>      ]  63%  512 MB / 812 MB  41 MB/s  ETA 00:07
+
+The share is measured against the size the registry declares, which is
+known before the first byte arrives and stays right when a mirror sends
+no content length. A resource composed from parts reports each piece
+under its own label, so a series reads as one download in stages:
+
+    taxify/wfo@2026-09 (part 1 of 3)  [===================] 100%  797 MB in 00:19
+    taxify/wfo@2026-09 (part 2 of 3)  [========>          ]  44%  4.0 MB / 9.1 MB  ...
+
+`quiet = TRUE` on a single call reports nothing whatever the session is
+set to, so one silent retrieval never needs the setting changed and put
+back:
+
+``` r
+
+getaca("wfo", package = "taxify", quiet = TRUE)
+```
+
+A package that wants a download to look like its own writes a
+[`reporter()`](https://gillescolling.com/getaca/reference/reporter.md),
+which is a function of one argument:
+
+``` r
+
+counter <- reporter("counter", function(event) {
+  if (identical(event$type, "end") && identical(event$status, "ok")) {
+    message(format(event$id), ": ", event$bytes, " bytes")
+  }
+})
+counter
+#> <getaca reporter> counter
+```
+
+The events are `begin`, `bytes` and `end`, and a handler switches on
+`event$type` and ignores what it does not use. `begin` carries the
+resource, the mirror, the declared `total` and the `offset` an
+interrupted transfer resumed from; `bytes` carries the cumulative count;
+`end` carries the outcome. See
+[`?"getaca-progress"`](https://gillescolling.com/getaca/reference/getaca-progress.md)
+for the fields.
+
+A reporter never decides whether a retrieval succeeds. One that raises
+is caught, reported once as a warning, and switched off for the rest of
+the call.
+
 ## Retention
 
 CRAN permits
@@ -300,10 +410,17 @@ the bytes those names were for, once the last one is gone. A blob under
 an active lock is left alone: it belongs to a session that has admitted
 it and has not yet written its entry.
 
+What an entry names, for this purpose, is the blob it holds together
+with the parts that blob was composed from. Reachability runs over both,
+so a base stays for as long as some cached version is still composed
+from it and goes with the last one.
+
 The size ceiling measures what the cache occupies, so shared bytes count
 once. Two packages declaring the same 4 GB file count 4 GB against
 `getaca.max_bytes`, and evicting one of them frees nothing until the
-other goes too.
+other goes too. Part blobs are occupancy on the same terms: evicting one
+version of a series reclaims the pieces no surviving version holds, and
+leaves a base that another version still declares.
 
 Superseded and not-recently-used age on separate clocks on purpose. An
 expensive resource that is still the current version is never dropped
@@ -365,6 +482,7 @@ with the option taking precedence.
 |----|----|----|----|
 | `getaca.cache` | `GETACA_CACHE` | `R_user_dir()` | where everything lives |
 | `getaca.policy` | `GETACA_POLICY` | registry default | which channel resolves |
+| `getaca.progress` | `GETACA_PROGRESS` | `auto` | what a transfer looks like |
 | `getaca.verify_days` | `GETACA_VERIFY_DAYS` | 90 | scheduled re-hash interval |
 | `getaca.supersede_days` | `GETACA_SUPERSEDE_DAYS` | 30 | retention for undeclared versions |
 | `getaca.max_bytes` | `GETACA_MAX_BYTES` | 20 GB | ceiling above which LRU runs |
@@ -416,3 +534,6 @@ cache restores is the cache, with nothing to rebuild.
 
 - [`vignette("policies")`](https://gillescolling.com/getaca/articles/policies.md)
   for what decides which version lands in the cache
+
+- [`vignette("declaring")`](https://gillescolling.com/getaca/articles/declaring.md)
+  for declaring a resource that arrives as a series

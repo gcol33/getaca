@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -152,6 +152,14 @@ GB file therefore keep one copy and two independent dependency records.
 They also transfer it once, because the lock is keyed on the checksum,
 so the second session waits for the first and then finds the bytes
 already there.</p>
+<p>A resource composed from <code><a href="../reference/part.html">part()</a></code> records stores its
+pieces in the same place. Each part is admitted under its own digest, so
+a base every version of a series declares is one blob however many
+versions declare it, and publishing a version costs a consumer the delta
+rather than the whole artefact. No version slot names a part. What
+reaches it is the entry composed from it, which records the part digests
+beside its provenance, and that is what keeps a base alive for exactly
+as long as the last cached version still holding it.</p>
 <p>Everything the cache owns is read-only. A caller writing to a
 returned path would otherwise damage every package that shares those
 bytes, so the write fails at the point of the mistake instead. A caller
@@ -235,6 +243,14 @@ record, so a mismatch in the shared copy withdraws
 re-hashes on next access. A slot holding its own copy, which is what a
 filesystem refusing links leaves, and a processed tree derived from the
 bytes are answerable only for themselves.</p>
+<p>A part is re-hashed every time a composition reuses it, since nothing
+else ever looks at it. Scheduled re-verification is driven from the
+entries, and a part blob is named by an entry’s part list rather than
+being an entry of its own, so a base that rotted on disk would otherwise
+surface as the declaration failing to produce its own artefact. A part
+failing its own checksum is dropped and fetched again the way a stale
+partial transfer is: the declaration lists mirrors for those bytes, and
+nothing else names them.</p>
 <p>The fourth timestamp is <code>fetched_at</code>, which never moves.
 Together the four answer questions that collapsing them would destroy: a
 resource fetched in January, re-hashed in April and read this morning
@@ -257,14 +273,22 @@ reports exactly that.</p>
 <span><span class="co">#&gt;   fetched     2026-07-26 11:02:13</span></span>
 <span><span class="co">#&gt;   verified    2026-07-26 11:09:44 (full re-hash)</span></span>
 <span><span class="co">#&gt;   checked     2026-07-26 15:31:02 (size and mtime)</span></span></code></pre></div>
+<p>A composed resource reports what produced it, under the source url
+its series leaves empty:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">#&gt;   source url  NA</span></span>
+<span><span class="co">#&gt;   composed    3 parts via 'concat'</span></span>
+<span><span class="co">#&gt;     part      919191919191</span></span>
+<span><span class="co">#&gt;     part      4e4e4e4e4e4e</span></span>
+<span><span class="co">#&gt;     part      777777777777</span></span></code></pre></div>
 <p>An uncached resource gives <code>NULL</code>, which is what makes the
 call safe in a report covering a machine that holds some of the set:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p><code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> is the same information across
 everything, plus the declarations that have never been downloaded:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span>registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"package"</span>, <span class="st">"name"</span>, <span class="st">"version"</span>,</span>
 <span>                                     <span class="st">"current"</span>, <span class="st">"declared"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   package name version current declared cached</span></span>
@@ -272,7 +296,7 @@ everything, plus the declarations that have never been downloaded:</p>
 <p>With no arguments it covers every installed package that ships a
 registry together with every package holding cached resources, which is
 the report worth pasting into an issue:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span><span class="op">)</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 'data.frame':    0 obs. of  17 variables:</span></span>
 <span><span class="co">#&gt;  $ package        : chr </span></span>
@@ -295,8 +319,9 @@ the report worth pasting into an issue:</p>
 <p>The columns worth knowing: <code>size</code> in bytes,
 <code>license</code>, <code>source</code> and
 <code>registry_digest</code> naming the policy and the registry state
-that resolved it, the three timestamps, <code>pinned</code>, and
-<code>path</code>.</p>
+that resolved it, <code>parts</code> for how many pieces the artefact
+was composed from and <code>0</code> where it was served whole, the
+three timestamps, <code>pinned</code>, and <code>path</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="two-sessions-one-download">Two sessions, one download<a class="anchor" aria-label="anchor" href="#two-sessions-one-download"></a>
@@ -325,13 +350,21 @@ returns that path</p></li>
 wrote and returns that path, so the second transfer never starts. The
 cache check is repeated after the lock is acquired precisely because the
 situation may have changed while waiting.</p>
+<p>Composing from parts takes one lock per distinct part digest, held
+for the whole composition rather than for each transfer. Two sessions
+must not both fetch one part, which is what the acquisition lock already
+does for a whole file. And a part blob is named by no index until the
+entry composed from it is written, so the lock is also what tells
+another session that bytes nothing references yet are wanted: the
+<code>unreferenced</code> sweep treats a blob under an active lock as
+live.</p>
 <p>A lock whose holder died leaves a directory behind. It goes stale
 after <code>getaca.lock_stale_seconds</code>, defaulting to 1800, after
 which the next session removes it and takes over. A session that waits
 longer than its timeout gets an error naming the lock path and the
 <code><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink()</a></code> call that clears it, so a genuinely wedged lock is
 a one-line fix rather than a support thread.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.lock_stale_seconds <span class="op">=</span> <span class="fl">600</span><span class="op">)</span></span></code></pre></div>
 <p>Set it lower for short downloads on a shared machine, higher when a
 single transfer legitimately runs for an hour.</p>
@@ -363,6 +396,59 @@ rename, since <code>.tmp/</code> and <code>blobs/</code> share the cache
 root and therefore share a filesystem. Bytes already in the store are
 already named by their checksum, so admitting the same file a second
 time is a no-op and the temporary copy is dropped.</p>
+<p>A composed resource joins at that same point. Each part lands in
+<code>.tmp/</code> and is admitted under its own digest, the series is
+combined into a second temporary file named after the artefact’s
+checksum, and that file is hashed against the record before anything
+else sees it. Only a result matching the declaration is admitted and
+given its view, so a <code><a href="../reference/combiner.html">combiner()</a></code> needs no more trust than a
+mirror does: it cannot produce bytes the declaration did not already
+name. A part already in the store is used where it lies, which is the
+whole point of declaring one, and an interrupted composition is
+overwritten by the retry rather than accumulating.</p>
+</div>
+<div class="section level2">
+<h2 id="watching-a-transfer">Watching a transfer<a class="anchor" aria-label="anchor" href="#watching-a-transfer"></a>
+</h2>
+<p>getaca drives its own transfer loop, so what a download looks like is
+a setting rather than whatever the transfer library prints.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"bar"</span><span class="op">)</span>    <span class="co"># redraws one line, the default when interactive</span></span>
+<span><span class="fu"><a href="../reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"line"</span><span class="op">)</span>   <span class="co"># one line to start and one to finish, for a log</span></span>
+<span><span class="fu"><a href="../reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"none"</span><span class="op">)</span>   <span class="co"># nothing</span></span></code></pre></div>
+<pre><code>taxify/wfo@2026-09  [============&gt;      ]  63%  512 MB / 812 MB  41 MB/s  ETA 00:07</code></pre>
+<p>The share is measured against the size the registry declares, which
+is known before the first byte arrives and stays right when a mirror
+sends no content length. A resource composed from parts reports each
+piece under its own label, so a series reads as one download in
+stages:</p>
+<pre><code>taxify/wfo@2026-09 (part 1 of 3)  [===================] 100%  797 MB in 00:19
+taxify/wfo@2026-09 (part 2 of 3)  [========&gt;          ]  44%  4.0 MB / 9.1 MB  ...</code></pre>
+<p><code>quiet = TRUE</code> on a single call reports nothing whatever
+the session is set to, so one silent retrieval never needs the setting
+changed and put back:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>A package that wants a download to look like its own writes a
+<code><a href="../reference/reporter.html">reporter()</a></code>, which is a function of one argument:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">counter</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporter.html">reporter</a></span><span class="op">(</span><span class="st">"counter"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">event</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">event</span><span class="op">$</span><span class="va">type</span>, <span class="st">"end"</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">event</span><span class="op">$</span><span class="va">status</span>, <span class="st">"ok"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">event</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>, <span class="st">": "</span>, <span class="va">event</span><span class="op">$</span><span class="va">bytes</span>, <span class="st">" bytes"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">counter</span></span>
+<span><span class="co">#&gt; &lt;getaca reporter&gt; counter</span></span></code></pre></div>
+<p>The events are <code>begin</code>, <code>bytes</code> and
+<code>end</code>, and a handler switches on <code>event$type</code> and
+ignores what it does not use. <code>begin</code> carries the resource,
+the mirror, the declared <code>total</code> and the <code>offset</code>
+an interrupted transfer resumed from; <code>bytes</code> carries the
+cumulative count; <code>end</code> carries the outcome. See
+<code><a href="../reference/getaca-progress.html">?"getaca-progress"</a></code> for the fields.</p>
+<p>A reporter never decides whether a retrieval succeeds. One that
+raises is caught, reported once as a warning, and switched off for the
+rest of the call.</p>
 </div>
 <div class="section level2">
 <h2 id="retention">Retention<a class="anchor" aria-label="anchor" href="#retention"></a>
@@ -418,10 +504,17 @@ every successful retrieval.</p>
 last and removes the bytes those names were for, once the last one is
 gone. A blob under an active lock is left alone: it belongs to a session
 that has admitted it and has not yet written its entry.</p>
+<p>What an entry names, for this purpose, is the blob it holds together
+with the parts that blob was composed from. Reachability runs over both,
+so a base stays for as long as some cached version is still composed
+from it and goes with the last one.</p>
 <p>The size ceiling measures what the cache occupies, so shared bytes
 count once. Two packages declaring the same 4 GB file count 4 GB against
 <code>getaca.max_bytes</code>, and evicting one of them frees nothing
-until the other goes too.</p>
+until the other goes too. Part blobs are occupancy on the same terms:
+evicting one version of a series reclaims the pieces no surviving
+version holds, and leaves a base that another version still
+declares.</p>
 <p>Superseded and not-recently-used age on separate clocks on purpose.
 An expensive resource that is still the current version is never dropped
 merely for being old; it is dropped only when the cache is over its
@@ -437,14 +530,14 @@ of a download.</p>
 <div class="section level2">
 <h2 id="cleaning-by-hand">Cleaning by hand<a class="anchor" aria-label="anchor" href="#cleaning-by-hand"></a>
 </h2>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] package  resource reason   bytes    path    </span></span>
 <span><span class="co">#&gt; &lt;0 rows&gt; (or 0-length row.names)</span></span></code></pre></div>
 <p>An empty result on a fresh cache. On a working one, each row names
 the package, the resource, the reason and the bytes it would reclaim,
 which is the report to read before running it for real.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   package        resource                         reason      bytes</span></span>
 <span><span class="co">#&gt; 1  taxify taxify/wfo@2026-03 superseded version past retent... 7.97e+08</span></span>
@@ -455,7 +548,7 @@ which is the report to read before running it for real.</p>
 <span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>             <span class="co"># one package</span></span>
 <span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>      <span class="co"># one resource name</span></span></code></pre></div>
 <p>Keeping something the sweeps would otherwise take:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>                  <span class="co"># pin it</span></span>
 <span><span class="fu"><a href="../reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>, pinned <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># release the pin</span></span></code></pre></div>
 <p>A pinned entry is exempt from the superseded and LRU sweeps
@@ -494,36 +587,42 @@ with the option taking precedence.</p>
 <td>which channel resolves</td>
 </tr>
 <tr class="odd">
+<td><code>getaca.progress</code></td>
+<td><code>GETACA_PROGRESS</code></td>
+<td><code>auto</code></td>
+<td>what a transfer looks like</td>
+</tr>
+<tr class="even">
 <td><code>getaca.verify_days</code></td>
 <td><code>GETACA_VERIFY_DAYS</code></td>
 <td>90</td>
 <td>scheduled re-hash interval</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>getaca.supersede_days</code></td>
 <td><code>GETACA_SUPERSEDE_DAYS</code></td>
 <td>30</td>
 <td>retention for undeclared versions</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>getaca.max_bytes</code></td>
 <td><code>GETACA_MAX_BYTES</code></td>
 <td>20 GB</td>
 <td>ceiling above which LRU runs</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>getaca.timeout</code></td>
 <td><code>GETACA_TIMEOUT</code></td>
 <td>3600</td>
 <td>transfer timeout in seconds</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>getaca.lock_stale_seconds</code></td>
 <td><code>GETACA_LOCK_STALE_SECONDS</code></td>
 <td>1800</td>
 <td>when a lock is abandoned</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>getaca.pin_file</code></td>
 <td></td>
 <td>
@@ -537,7 +636,7 @@ datasets. Two are worth revisiting on a shared machine: raise
 <code>getaca.max_bytes</code> when the cache lives on a volume sized for
 it, and lower <code>getaca.lock_stale_seconds</code> when transfers are
 short and a wedged lock costs more than a rare duplicate download.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span></span>
 <span>  getaca.cache        <span class="op">=</span> <span class="st">"/mnt/data/getaca"</span>,</span>
 <span>  getaca.max_bytes    <span class="op">=</span> <span class="fl">200</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span>,</span>
@@ -549,7 +648,7 @@ short and a wedged lock costs more than a rare duplicate download.</p>
 </h2>
 <p>Copy the directory. There are no absolute paths recorded inside it,
 so a cache built on one machine works on another:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># on a connected machine</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>GETACA_CACHE <span class="op">=</span> <span class="st">"/tmp/seed"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
@@ -570,6 +669,8 @@ CI</p></li>
 <code>getaca_error_cache_corrupt</code> and its neighbours</p></li>
 <li><p><code><a href="../articles/policies.html">vignette("policies")</a></code> for what decides which version
 lands in the cache</p></li>
+<li><p><code><a href="../articles/declaring.html">vignette("declaring")</a></code> for declaring a resource that
+arrives as a series</p></li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -9,6 +9,17 @@ The single front door
 - [`getaca_prefetch()`](https://gillescolling.com/getaca/reference/getaca_prefetch.md)
   : Warm the cache ahead of time
 
+## Progress
+
+What a transfer looks like
+
+- [`getaca-progress`](https://gillescolling.com/getaca/reference/getaca-progress.md)
+  : How a transfer reports itself
+- [`getaca_progress()`](https://gillescolling.com/getaca/reference/getaca_progress.md)
+  : Choose how transfers report progress
+- [`reporter()`](https://gillescolling.com/getaca/reference/reporter.md)
+  : Write a progress reporter
+
 ## Declaration
 
 What a package says it needs

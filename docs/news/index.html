@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,6 +65,28 @@
       <small>Source: <a href="https://github.com/gcol33/getaca/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.2" id="getaca-012">getaca 0.1.2<a class="anchor" aria-label="anchor" href="#getaca-012"></a></h2>
+<div class="section level3">
+<h3 id="transfers-report-themselves-0-1-2">Transfers report themselves<a class="anchor" aria-label="anchor" href="#transfers-report-themselves-0-1-2"></a></h3>
+<ul><li>
+<code><a href="../reference/getaca_progress.html">getaca_progress()</a></code> chooses what a transfer looks like: <code>"bar"</code> redraws a line with the share, the rate and what is left, <code>"line"</code> writes one line to start and one to finish for a log, <code>"none"</code> says nothing, and <code>"auto"</code> picks between the first and the third by whether the session is interactive. Also readable from <code>getaca.progress</code> and <code>GETACA_PROGRESS</code>, and <code>quiet = TRUE</code> on a single <code><a href="../reference/getaca.html">getaca()</a></code> call still overrides all of it.</li>
+<li>
+<code><a href="../reference/reporter.html">reporter()</a></code> builds your own out of a function of one argument, so a declaring package can report a download in its own voice, or into a Shiny session, or as a row in a log. No dependency: <code>Imports</code> is still <code>curl</code> plus three base packages.</li>
+<li>The events carry what the registry knows and a transfer library cannot: the resource identity, which renders as <code>taxify/wfo@2026-09 (part 2 of 3)</code> for a series, the size the declaration states rather than whatever content length the mirror sent, which mirror is being tried, and how much was already on disk when an interrupted transfer resumed. The share a bar shows is therefore right before the first byte arrives and stays right for a host that sends no content length at all.</li>
+<li>A reporter that raises is caught, warned about once and switched off. Reporting is cosmetic and a retrieval is not.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="the-transfer-loop-0-1-2">The transfer loop<a class="anchor" aria-label="anchor" href="#the-transfer-loop-0-1-2"></a></h3>
+<ul><li>getaca drives the transfer over the curl multi interface rather than handing a URL to <code><a href="https://jeroen.r-universe.dev/curl/reference/multi_download.html" class="external-link">curl::multi_download()</a></code>, which is what makes the byte counts reachable at all: <code>multi_download()</code> sets <code>noprogress</code> on the handle after the caller’s options, so a progress callback attached to it never runs. See <code>dev_notes/adr-008-own-transfer-loop.md</code>.</li>
+<li>Resumed transfers now ask for <code>identity</code> encoding. A range request counts bytes of the decoded stream and a compressing server counts encoded ones, and libcurl reports the combination as an error rather than as bytes: against <code>raw.githubusercontent.com</code> a resumed request failed with <code>curl_error_bad_content_encoding</code> and transferred nothing. Every resume from a compressing mirror was silently starting the download over.</li>
+<li>The response status is read before the first byte is written, so the body of a failed request is never written to the partial file. It was previously written and then removed.</li>
+<li>
+<code>HTTP 416</code> is distinguished from other refusals. It says the offset asked for is past the end of the file the server holds, so the partial disagrees with upstream and is dropped; any other refusal leaves the bytes an earlier attempt did get.</li>
+<li>A mirror that answers a resume request with the whole file is now detected from the status and written from zero. It previously appended, and cost a full retry once the checksum failed.</li>
+<li>Transfers now send getaca’s user agent. <code>new_handle_for()</code> never set the URL or reached the transfer path at all; the multi interface takes both from the handle.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.1" id="getaca-011">getaca 0.1.1<a class="anchor" aria-label="anchor" href="#getaca-011"></a></h2>
 <div class="section level3">

@@ -61,7 +61,9 @@ getaca(
 
 - quiet:
 
-  Suppress progress reporting.
+  Report nothing for this call, whatever
+  [`getaca_progress()`](https://gillescolling.com/getaca/reference/getaca_progress.md)
+  is set to.
 
 ## Value
 
@@ -85,13 +87,35 @@ for cache management.
 ## Examples
 
 ``` r
-# Resources are declared by the packages that need them:
-reg <- registry("demo", list(
-  resource("example", "1.0",
-           urls = "https://example.org/example-1.0.csv",
-           sha256 = strrep("c", 64))
-))
-reg
+# Resources are declared by the packages that need them. This one is a zip
+# its host would not take whole, uploaded in two pieces and unpacked on
+# arrival:
+unzipper <- processor("unzip", function(input, output_dir) {
+  utils::unzip(input, exdir = output_dir)
+  output_dir
+})
 
-# getaca("example", registry = reg)   # would download and verify
+atlas <- resource("atlas", "1.0",
+                  sha256 = strrep("c", 64),
+                  size = 1572864,
+                  file = "atlas.zip",
+                  license = "CC-BY-4.0",
+                  parts = list(
+                    part("https://example.org/atlas-1.0.zip.001",
+                         sha256 = strrep("a", 64), size = 1048576),
+                    part("https://example.org/atlas-1.0.zip.002",
+                         sha256 = strrep("b", 64), size = 524288)
+                  ),
+                  processor = unzipper)
+atlas
+
+reg <- registry("demo", list(atlas))
+
+# Each piece is fetched and verified on its own, the two are concatenated,
+# and the zip is held to the resource's own sha256 before the processor
+# sees it. The returned path is the unpacked directory:
+# getaca("atlas", registry = reg)
+
+# The raw zip, without unpacking:
+# getaca("atlas", registry = reg, processed = FALSE)
 ```

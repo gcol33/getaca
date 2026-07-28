@@ -30,7 +30,9 @@ getaca_prefetch(names = NULL, package = NULL, registry = NULL, quiet = FALSE)
 
 - quiet:
 
-  Suppress progress reporting.
+  Report nothing for this call, whatever
+  [`getaca_progress()`](https://gillescolling.com/getaca/reference/getaca_progress.md)
+  is set to.
 
 ## Value
 

@@ -24,7 +24,7 @@ and a failed transfer never touches a copy that was already good."><script>
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,6 +82,11 @@ and a failed transfer never touches a copy that was already good.</p>
     <p>The temporary file is named after the declared checksum, so an interrupted
 download resumes on the next attempt rather than starting over. That
 matters when the resource is measured in gigabytes.</p>
+<p>getaca drives the transfer itself, over the curl multi interface, rather
+than handing a URL to a function that returns when it is done. What that
+buys is the response status before the first byte is written, and a count of
+the bytes as they arrive. The first decides where they go; the second is
+what <a href="getaca-progress.html">getaca-progress</a> reports.</p>
     </div>
 
   </main></div>

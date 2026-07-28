@@ -402,6 +402,43 @@ identity: re-splitting a file or moving a piece to a new host changes
 the route, and what a version means is fixed by the checksum at the end
 of it.
 
+## Watching a transfer
+
+![A getaca transfer: three parts of a series, each with its share, its
+rate and an estimate of what is left](reference/figures/progress.gif)
+
+`getaca` drives its own transfer loop, so what a download looks like is
+a setting:
+
+``` r
+
+getaca_progress("bar")    # redraws one line, the default when interactive
+getaca_progress("line")   # one line to start and one to finish, for a log
+getaca_progress("none")
+```
+
+The share is measured against the size the registry declares, so it is
+right before the first byte arrives and stays right for a mirror that
+sends no content length. A series reports each piece under its own
+label, and a resumed transfer counts from what was already on disk.
+
+A package that wants downloads to look like its own writes a
+[`reporter()`](https://gillescolling.com/getaca/reference/reporter.md),
+which is a function of one argument:
+
+``` r
+
+getaca_progress(reporter("shiny", function(event) {
+  if (identical(event$type, "bytes")) {
+    shiny::setProgress(event$bytes / event$total, format(event$id))
+  }
+}))
+```
+
+The events carry the resource, the mirror, the declared size and the
+resume offset. `quiet = TRUE` on a single call reports nothing whatever
+the session is set to.
+
 ## Keeping the cache in bounds
 
 CRAN permits
@@ -500,6 +537,9 @@ on an i9-14900K, so a 4 GB resource is verified in under three seconds.
   declare a record that arrives as a series, and how the series composes
 - **[`processor()`](https://gillescolling.com/getaca/reference/processor.md)**
   declare a post-verification transformation
+- **[`getaca_progress()`](https://gillescolling.com/getaca/reference/getaca_progress.md)**,
+  **[`reporter()`](https://gillescolling.com/getaca/reference/reporter.md)**
+  choose what a transfer looks like, or write your own
 - **[`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.md)**
   full provenance for a cached resource
 - **[`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)**

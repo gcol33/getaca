@@ -39,7 +39,7 @@
 
     <a class="navbar-brand me-2" href="index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -418,11 +418,30 @@
 <p>Parts are concatenated unless the record declares a <code><a href="reference/combiner.html">combiner()</a></code>, which is what a delta format needs. Either way the artefact is the identity: re-splitting a file or moving a piece to a new host changes the route, and what a version means is fixed by the checksum at the end of it.</p>
 </div>
 <div class="section level2">
+<h2 id="watching-a-transfer">Watching a transfer<a class="anchor" aria-label="anchor" href="#watching-a-transfer"></a>
+</h2>
+<p><img src="reference/figures/progress.gif" width="100%" alt="A getaca transfer: three parts of a series, each with its share, its rate and an estimate of what is left"></p>
+<p><code>getaca</code> drives its own transfer loop, so what a download looks like is a setting:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"bar"</span><span class="op">)</span>    <span class="co"># redraws one line, the default when interactive</span></span>
+<span><span class="fu"><a href="reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"line"</span><span class="op">)</span>   <span class="co"># one line to start and one to finish, for a log</span></span>
+<span><span class="fu"><a href="reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"none"</span><span class="op">)</span></span></code></pre></div>
+<p>The share is measured against the size the registry declares, so it is right before the first byte arrives and stays right for a mirror that sends no content length. A series reports each piece under its own label, and a resumed transfer counts from what was already on disk.</p>
+<p>A package that wants downloads to look like its own writes a <code><a href="reference/reporter.html">reporter()</a></code>, which is a function of one argument:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="fu"><a href="reference/reporter.html">reporter</a></span><span class="op">(</span><span class="st">"shiny"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">event</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">event</span><span class="op">$</span><span class="va">type</span>, <span class="st">"bytes"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu">shiny</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/withProgress.html" class="external-link">setProgress</a></span><span class="op">(</span><span class="va">event</span><span class="op">$</span><span class="va">bytes</span> <span class="op">/</span> <span class="va">event</span><span class="op">$</span><span class="va">total</span>, <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">event</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The events carry the resource, the mirror, the declared size and the resume offset. <code>quiet = TRUE</code> on a single call reports nothing whatever the session is set to.</p>
+</div>
+<div class="section level2">
 <h2 id="keeping-the-cache-in-bounds">Keeping the cache in bounds<a class="anchor" aria-label="anchor" href="#keeping-the-cache-in-bounds"></a>
 </h2>
 <p>CRAN permits <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> on condition that contents are “actively managed (including removing outdated material)”. <code>getaca</code> reads that as a retention policy, and collects after every successful retrieval.</p>
 <p>Removal runs cheapest and safest first: broken material, abandoned transfers, superseded versions past their retention window, least-recently-used entries once over the size ceiling, and finally bytes that no declaration references any more. Superseded and not-recently-used age on separate clocks, so an expensive resource is never dropped merely for being old. Pinned entries, the version the bundled registry names, and anything under an active lock are never touched.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>      <span class="co"># what would go, and why</span></span>
 <span><span class="fu"><a href="reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>  <span class="co"># exempt this one permanently</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.max_bytes <span class="op">=</span> <span class="fl">50</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span><span class="op">)</span>  <span class="co"># raise the ceiling</span></span></code></pre></div>
@@ -508,6 +527,8 @@
 <li>
 <strong><code><a href="reference/processor.html">processor()</a></code></strong> declare a post-verification transformation</li>
 <li>
+<strong><code><a href="reference/getaca_progress.html">getaca_progress()</a></code></strong>, <strong><code><a href="reference/reporter.html">reporter()</a></code></strong> choose what a transfer looks like, or write your own</li>
+<li>
 <strong><code><a href="reference/getaca_info.html">getaca_info()</a></code></strong> full provenance for a cached resource</li>
 <li>
 <strong><code><a href="reference/getaca_catalogue.html">getaca_catalogue()</a></code></strong> what is declared, what is current, what is cached</li>
@@ -530,7 +551,7 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/getaca"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -567,12 +588,12 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb16"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co">@software{getaca,</span></span>
-<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
-<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co">  title = {getaca: Reproducible External Data Dependencies for R Packages},</span></span>
-<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co">  url = {https://github.com/gcol33/getaca}</span></span>
-<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co">@software{getaca,</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="co">  title = {getaca: Reproducible External Data Dependencies for R Packages},</span></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">  url = {https://github.com/gcol33/getaca}</span></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
