@@ -46,6 +46,26 @@ what arrives against the checksum, records where it came from, and
 returns an ordinary local path. The same installed package resolves the
 same bytes on every machine and in every rerun.
 
+That path is the zip. A record can also carry the step that unpacks it,
+so what comes back is the directory:
+
+``` r
+
+backbone <- resource(
+  "backbone", "2026-06",
+  urls      = "https://primary.invalid/backbone-2026-06.zip",
+  sha256    = "97f28a53a7912a80c12cc8f26e0c422d9212e067e11479ae61ef0a91b456b53a",
+  processor = processor("unzip", function(input, output_dir) {
+    utils::unzip(input, exdir = output_dir)
+    output_dir
+  })
+)
+```
+
+The archive is verified first and unpacked once. The result gets its own
+cache slot, so a later session finds it already unpacked, and
+`processed = FALSE` hands back the zip it was built from.
+
 ## What the declaration is for
 
 Downloading a file into a cache directory and checking its hash is a few
@@ -356,25 +376,23 @@ machine.
 
 ## Processors
 
-A processor turns one verified path into another: unpacking an archive,
-or preparing a package-specific layout. It carries an id, so the
-processed result gets its own cache slot and its own provenance.
+Unpacking an archive is one case of a general one. A processor turns any
+verified path into another: converting a format on arrival, or building
+the layout your package reads. Both forms stay reachable:
 
 ``` r
 
-resource("backbone", "2026-06",
-         urls = "https://primary.invalid/backbone-2026-06.zip",
-         sha256 = "9f2c...",
-         processor = processor("unzip", function(input, output_dir) {
-           utils::unzip(input, exdir = output_dir)
-           output_dir
-         }))
+dir <- getaca("backbone", package = "yourpkg")                     # unpacked
+zip <- getaca("backbone", package = "yourpkg", processed = FALSE)  # as it arrived
 ```
 
-Changing what the transformation does means changing the id, which
-invalidates previously processed copies.
-`getaca(..., processed = FALSE)` returns the raw artefact. `getaca`
-knows nothing about file formats and never reads data.
+The function receives the verified path and a staging directory, and the
+directory is renamed into place once it returns, so one that fails
+part-way leaves nothing behind. Changing what the transformation does
+means changing the id, which invalidates previously processed copies
+without touching the download they were built from: users re-run the
+transformation rather than re-fetching gigabytes. `getaca` knows nothing
+about file formats and never reads data.
 
 ## Files that arrive in pieces
 
