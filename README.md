@@ -14,9 +14,9 @@ files your package declares it needs.**
 </p>
 
 Some of what a package needs is too large to ship inside it: a reference dataset, a
-trained model, an archive of examples. At 800 MB, or at several gigabytes, the file
-lives somewhere else, and every user has to end up with the same copy of it. Declare
-it in a few kilobytes, and retrieving it is one call:
+trained model, an archive of examples. At multiple GB it lives somewhere else, and
+every user has to end up with the same copy of it. Declare it in a few kilobytes,
+and retrieving it is one call:
 
 ```r
 library(getaca)

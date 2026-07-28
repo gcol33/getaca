@@ -95,7 +95,7 @@
 <p><strong>One engine that retrieves, verifies, caches and garbage-collects the large data files your package declares it needs.</strong></p>
 <p align="center">
 <img src="reference/figures/progress.gif" width="100%" alt="A getaca transfer: one call, a bar carrying the share, the rate and an estimate of what is left, and the local path it returns"></p>
-<p>Some of what a package needs is too large to ship inside it: a reference dataset, a trained model, an archive of examples. At 800 MB, or at several gigabytes, the file lives somewhere else, and every user has to end up with the same copy of it. Declare it in a few kilobytes, and retrieving it is one call:</p>
+<p>Some of what a package needs is too large to ship inside it: a reference dataset, a trained model, an archive of examples. At multiple GB it lives somewhere else, and every user has to end up with the same copy of it. Declare it in a few kilobytes, and retrieving it is one call:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/getaca/">getaca</a></span><span class="op">)</span></span>
 <span></span>
