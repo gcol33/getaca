@@ -174,12 +174,13 @@ the report worth pasting into an issue:
 ``` r
 
 str(getaca_catalogue(), max.level = 1)
-#> 'data.frame':    0 obs. of  16 variables:
+#> 'data.frame':    0 obs. of  17 variables:
 #>  $ package        : chr 
 #>  $ name           : chr 
 #>  $ version        : chr 
 #>  $ current        : logi 
 #>  $ processor      : chr 
+#>  $ parts          : int 
 #>  $ link           : chr 
 #>  $ declared       : logi 
 #>  $ cached         : logi 

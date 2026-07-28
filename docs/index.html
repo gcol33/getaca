@@ -39,7 +39,7 @@
 
     <a class="navbar-brand me-2" href="index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -120,7 +120,7 @@
 <div class="section level2">
 <h2 id="failures-that-name-who-can-fix-them">Failures that name who can fix them<a class="anchor" aria-label="anchor" href="#failures-that-name-who-can-fix-them"></a>
 </h2>
-<p>A retrieval produces the bytes the package was built against, or an error naming who can act on it. Six situations get six answers, each classed so callers can branch on the cause:</p>
+<p>A retrieval produces the bytes the package was built against, or an error naming who can act on it. Seven situations get seven answers, each classed so callers can branch on the cause:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -161,6 +161,11 @@
 <tr>
 <td><code>getaca_error_declaration</code></td>
 <td>every mirror agrees, the registry disagrees</td>
+<td>author</td>
+</tr>
+<tr>
+<td><code>getaca_error_composition</code></td>
+<td>the parts arrived intact and compose to something else</td>
 <td>author</td>
 </tr>
 </tbody>
@@ -398,11 +403,26 @@
 <p>Changing what the transformation does means changing the id, which invalidates previously processed copies. <code>getaca(..., processed = FALSE)</code> returns the raw artefact. <code>getaca</code> knows nothing about file formats and never reads data.</p>
 </div>
 <div class="section level2">
+<h2 id="files-that-arrive-in-pieces">Files that arrive in pieces<a class="anchor" aria-label="anchor" href="#files-that-arrive-in-pieces"></a>
+</h2>
+<p>A host that caps file size, or a publisher issuing deltas against a base release, gives you a resource that arrives as a series. Declare the pieces, and <code>sha256</code> describes the artefact they compose:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"atlas"</span>, <span class="st">"2026-09"</span>,</span>
+<span>         sha256 <span class="op">=</span> <span class="st">"b104..."</span>,</span>
+<span>         file   <span class="op">=</span> <span class="st">"atlas.parquet"</span>,</span>
+<span>         parts  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>           <span class="fu"><a href="reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://primary.invalid/atlas-base.bin"</span>,    sha256 <span class="op">=</span> <span class="st">"91cc..."</span><span class="op">)</span>,</span>
+<span>           <span class="fu"><a href="reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://primary.invalid/atlas-2026-09.bin"</span>, sha256 <span class="op">=</span> <span class="st">"4e77..."</span><span class="op">)</span></span>
+<span>         <span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Each part is verified and stored under its own digest, so the base is transferred once however many versions declare it, and publishing a version costs your users the delta. The composed result is hashed against the record’s own checksum before anyone sees it, then joins the store exactly as a downloaded file does.</p>
+<p>Parts are concatenated unless the record declares a <code><a href="reference/combiner.html">combiner()</a></code>, which is what a delta format needs. Either way the artefact is the identity: re-splitting a file or moving a piece to a new host changes the route, and what a version means is fixed by the checksum at the end of it.</p>
+</div>
+<div class="section level2">
 <h2 id="keeping-the-cache-in-bounds">Keeping the cache in bounds<a class="anchor" aria-label="anchor" href="#keeping-the-cache-in-bounds"></a>
 </h2>
 <p>CRAN permits <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> on condition that contents are “actively managed (including removing outdated material)”. <code>getaca</code> reads that as a retention policy, and collects after every successful retrieval.</p>
 <p>Removal runs cheapest and safest first: broken material, abandoned transfers, superseded versions past their retention window, least-recently-used entries once over the size ceiling, and finally bytes that no declaration references any more. Superseded and not-recently-used age on separate clocks, so an expensive resource is never dropped merely for being old. Pinned entries, the version the bundled registry names, and anything under an active lock are never touched.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>      <span class="co"># what would go, and why</span></span>
 <span><span class="fu"><a href="reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>  <span class="co"># exempt this one permanently</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.max_bytes <span class="op">=</span> <span class="fl">50</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span><span class="op">)</span>  <span class="co"># raise the ceiling</span></span></code></pre></div>
@@ -484,6 +504,8 @@
 <li>
 <strong><code><a href="reference/as_registry.html">as_registry()</a></code></strong> build one from a YAML or JSON authoring file</li>
 <li>
+<strong><code><a href="reference/part.html">part()</a></code></strong>, <strong><code><a href="reference/combiner.html">combiner()</a></code></strong> declare a record that arrives as a series, and how the series composes</li>
+<li>
 <strong><code><a href="reference/processor.html">processor()</a></code></strong> declare a post-verification transformation</li>
 <li>
 <strong><code><a href="reference/getaca_info.html">getaca_info()</a></code></strong> full provenance for a cached resource</li>
@@ -508,7 +530,7 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/getaca"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -545,12 +567,12 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb15"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co">@software{getaca,</span></span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">  title = {getaca: Reproducible External Data Dependencies for R Packages},</span></span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">  url = {https://github.com/gcol33/getaca}</span></span>
-<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co">@software{getaca,</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co">  author = {Colling, Gilles},</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co">  title = {getaca: Reproducible External Data Dependencies for R Packages},</span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co">  url = {https://github.com/gcol33/getaca}</span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

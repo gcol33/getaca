@@ -28,7 +28,7 @@ reclaims.'><script>
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -104,7 +104,9 @@ installed declaring package.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame, one row per resource version. <code>current</code> marks the
+    <p>A data frame, one row per resource version. <code>parts</code> is how many
+pieces the artefact is composed from, and <code>0</code> where it is served whole, so
+what a version update costs to fetch is visible. <code>current</code> marks the
 version a bare request for that name resolves to, so a channel head is
 visible rather than implied. <code>declared</code> is <code>TRUE</code> when the registry in
 force names that version, <code>FALSE</code> when it does not, and <code>NA</code> when no

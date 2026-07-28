@@ -57,21 +57,29 @@ rendered.
       url https://mirror.example.org/wfo-2026-06.parquet
       upstream release 2026-06
       processor unzip-v2
+    resource wfo 2026-09
+      sha256 b104e7...
+      file wfo.parquet
+      part 91cc0d... 1048576
+        url https://zenodo.org/record/456/wfo-base.bin
+      part 4e77a1... 20481
+        url https://zenodo.org/record/456/wfo-2026-09.bin
+      combiner concat
 
 Resources are sorted by `name@version` in the C locale, so the same
 declaration renders identically wherever it is read. URLs keep
 declaration order, which is load-bearing: mirrors are tried in the order
-given. Signing keys are sorted, since which one signs is a fact about
-the signature rather than about the declaration. Absent and `NA` fields
-are omitted rather than rendered as empty, since a key that is present
-carries a value by construction.
+given. Parts keep it for a stronger reason, since the order is the one
+they are combined in. Signing keys are sorted, since which one signs is
+a fact about the signature rather than about the declaration. Absent and
+`NA` fields are omitted rather than rendered as empty, since a key that
+is present carries a value by construction.
 
 Rendering an absent field as nothing is what let signing keys join the
-manifest without a new format version. A registry declaring none renders
-exactly the bytes it always did, so every digest recorded before keys
-existed still identifies the state that produced it. Only a registry
-that actually carries a key renders a line for one, and none did before
-the field existed.
+manifest without a new format version, and then `file`, `part` and
+`combiner` after them. A registry declaring none of them renders exactly
+the bytes it always did, so every digest recorded before they existed
+still identifies the state that produced it.
 
 ## What is left out
 

@@ -26,7 +26,7 @@ an upstream mutation, not a routine update, and getaca reports it as such."><scr
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,13 +84,16 @@ an upstream mutation, not a routine update, and getaca reports it as such.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">resource</span><span class="op">(</span></span>
 <span>  <span class="va">name</span>,</span>
 <span>  <span class="va">version</span>,</span>
-<span>  <span class="va">urls</span>,</span>
+<span>  urls <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">sha256</span>,</span>
 <span>  size <span class="op">=</span> <span class="cn">NA_real_</span>,</span>
 <span>  license <span class="op">=</span> <span class="cn">NA_character_</span>,</span>
 <span>  description <span class="op">=</span> <span class="cn">NA_character_</span>,</span>
 <span>  upstream <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  processor <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  processor <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  parts <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  combiner <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -108,11 +111,12 @@ an upstream mutation, not a routine update, and getaca reports it as such.</p>
 
 <dt id="arg-urls">urls<a class="anchor" aria-label="anchor" href="#arg-urls"></a></dt>
 <dd><p>Character vector of download locations, tried in order. All
-must be <code>https://</code>.</p></dd>
+must be <code>https://</code>. Give this or <code>parts</code>.</p></dd>
 
 
 <dt id="arg-sha-">sha256<a class="anchor" aria-label="anchor" href="#arg-sha-"></a></dt>
-<dd><p>Lowercase hex SHA-256 of the file as served.</p></dd>
+<dd><p>Lowercase hex SHA-256 of the artefact. For a record with
+<code>parts</code>, of the artefact they compose rather than of any one of them.</p></dd>
 
 
 <dt id="arg-size">size<a class="anchor" aria-label="anchor" href="#arg-size"></a></dt>
@@ -138,10 +142,36 @@ release it was made from, and both travel into provenance.</p></dd>
 <dt id="arg-processor">processor<a class="anchor" aria-label="anchor" href="#arg-processor"></a></dt>
 <dd><p>Optional <code><a href="processor.html">processor()</a></code> applied after verification.</p></dd>
 
+
+<dt id="arg-parts">parts<a class="anchor" aria-label="anchor" href="#arg-parts"></a></dt>
+<dd><p>Optional list of <code><a href="part.html">part()</a></code> records, in the order they are
+combined. Give this or <code>urls</code>.</p></dd>
+
+
+<dt id="arg-combiner">combiner<a class="anchor" aria-label="anchor" href="#arg-combiner"></a></dt>
+<dd><p>Optional <code><a href="combiner.html">combiner()</a></code> turning the parts into the artefact.
+The default concatenates them, which is what a file split for a host with
+a size limit needs.</p></dd>
+
+
+<dt id="arg-file">file<a class="anchor" aria-label="anchor" href="#arg-file"></a></dt>
+<dd><p>Name the artefact is cached under. Defaults to the file name in
+the first URL, and is required alongside <code>parts</code>, where the URLs name the
+pieces rather than the result.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>getaca_resource</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="whole-files-and-parts">Whole files and parts<a class="anchor" aria-label="anchor" href="#whole-files-and-parts"></a></h2>
+
+
+<p>A record names either locations for the whole file, in <code>urls</code>, or the
+ordered series it is composed from, in <code>parts</code>. <code>sha256</code> describes the
+artefact either way, so what a version means does not depend on how it
+arrives. See <code><a href="part.html">part()</a></code>.</p>
     </div>
 
     <div class="section level2">
@@ -153,6 +183,18 @@ release it was made from, and both travel into provenance.</p></dd>
 <span>  sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="fl">64</span><span class="op">)</span>,</span>
 <span>  size <span class="op">=</span> <span class="fl">1048576</span>,</span>
 <span>  license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The same artefact, published as a base and the delta issued against it:</span></span>
+<span><span class="fu">resource</span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"wfo"</span>,</span>
+<span>  version <span class="op">=</span> <span class="st">"2026.2"</span>,</span>
+<span>  sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"b"</span>, <span class="fl">64</span><span class="op">)</span>,</span>
+<span>  file <span class="op">=</span> <span class="st">"wfo.parquet"</span>,</span>
+<span>  parts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="part.html">part</a></span><span class="op">(</span><span class="st">"https://example.org/wfo-base.bin"</span>, sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"c"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="part.html">part</a></span><span class="op">(</span><span class="st">"https://example.org/wfo-2026.2.bin"</span>, sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"d"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

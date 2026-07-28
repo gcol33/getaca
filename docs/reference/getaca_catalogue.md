@@ -29,7 +29,9 @@ getaca_catalogue(package = NULL, registry = NULL)
 
 ## Value
 
-A data frame, one row per resource version. `current` marks the version
+A data frame, one row per resource version. `parts` is how many pieces
+the artefact is composed from, and `0` where it is served whole, so what
+a version update costs to fetch is visible. `current` marks the version
 a bare request for that name resolves to, so a channel head is visible
 rather than implied. `declared` is `TRUE` when the registry in force
 names that version, `FALSE` when it does not, and `NA` when no registry

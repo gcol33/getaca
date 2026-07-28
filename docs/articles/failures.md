@@ -17,8 +17,9 @@ who can act. Callers branch on the class rather than on message text.
 | `getaca_error_cache_corrupt` | local copy drifted from its own record | user | clean and refetch |
 | `getaca_error_invalid_registry` | the declaration is wrong | author | report to the declaring package |
 | `getaca_error_declaration` | every mirror agrees, the registry disagrees | author | report to the declaring package |
+| `getaca_error_composition` | the parts arrived intact and compose to something else | author | report to the declaring package |
 
-All seven inherit from `getaca_error`, which inherits from `error`, so a
+All eight inherit from `getaca_error`, which inherits from `error`, so a
 handler for `getaca_error` catches everything the package raises and
 nothing else.
 
@@ -246,6 +247,45 @@ wrong row.
 
 It requires more than one mirror to be diagnosable at all, which is a
 practical argument for declaring two.
+
+## `getaca_error_composition`
+
+Every declared
+[`part()`](https://gillescolling.com/getaca/reference/part.md) arrived
+and matched its own checksum, and combining them produced something
+other than the artefact the record names.
+
+``` r
+
+getaca("wfo", package = "taxify")
+#> Error: The parts declared for taxify/wfo@2026-09 do not produce the declared bytes.
+#>   3 parts, each matching its own checksum, combined by 'concat'
+#>   declared SHA-256: b1b1b1...
+#>   composed SHA-256: 2c40f9...
+#>
+#> Every part arrived intact, so this is not a transfer problem. Either the
+#> series is not the one this version is made of, or it is put together by
+#> something other than what the registry names.
+#>
+#> Fix: the declaring package needs a correction. Report it to its maintainer.
+```
+
+This is `getaca_error_declaration` one level up. There, the transport
+was sound and the checksum was wrong; here every checksum in the series
+was right and what they add up to was wrong. A part that goes missing or
+arrives changed raises the ordinary transfer conditions instead, naming
+which part of the series it was:
+
+``` r
+
+#> Error: Cannot reach any source for taxify/wfo@2026-09 (part 2 of 3).
+```
+
+As an author, reach for this after re-splitting a file, reordering a
+series, or changing what a
+[`combiner()`](https://gillescolling.com/getaca/reference/combiner.md)
+does without changing its id. Nothing reaches the cache, so a user
+hitting it is not left with a half-composed artefact.
 
 ## `getaca_error_cache_corrupt`
 

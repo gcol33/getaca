@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -274,12 +274,13 @@ registry together with every package holding cached resources, which is
 the report worth pasting into an issue:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span><span class="op">)</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 'data.frame':    0 obs. of  16 variables:</span></span>
+<span><span class="co">#&gt; 'data.frame':    0 obs. of  17 variables:</span></span>
 <span><span class="co">#&gt;  $ package        : chr </span></span>
 <span><span class="co">#&gt;  $ name           : chr </span></span>
 <span><span class="co">#&gt;  $ version        : chr </span></span>
 <span><span class="co">#&gt;  $ current        : logi </span></span>
 <span><span class="co">#&gt;  $ processor      : chr </span></span>
+<span><span class="co">#&gt;  $ parts          : int </span></span>
 <span><span class="co">#&gt;  $ link           : chr </span></span>
 <span><span class="co">#&gt;  $ declared       : logi </span></span>
 <span><span class="co">#&gt;  $ cached         : logi </span></span>

@@ -216,7 +216,7 @@ tree:
 secret <- file.path(tempdir(), "taxify-signing.key")
 public <- registry_keygen(secret)
 substr(public, 1, 24)
-#> [1] "ed25519:e1c844d464e1210d"
+#> [1] "ed25519:0d76c02633e6605a"
 ```
 
 Declare the public half in the registry the package ships:
@@ -245,9 +245,9 @@ registry_sign(path, key = secret)
 
 cat(readLines(paste0(path, ".sig"))[1:4], sep = "\n")
 #> getaca-signature 1
-#> digest sha256:4db1e52fb0b24f5a2f1e94aca7fd3bb5b75b49f318996eca04817fb80226223f
-#> created 2026-07-28T12:52:33Z
-#> expires 2026-10-26T12:52:33Z
+#> digest sha256:f88778884eaafd32d93a69ee86c5ca14cc454011c75fbb3ddf9461be69ce687f
+#> created 2026-07-28T13:45:06Z
+#> expires 2026-10-26T13:45:06Z
 ```
 
 Upload the `.sig` beside the registry; getaca fetches it from the
@@ -272,7 +272,7 @@ saveRDS(moved, path, version = 3)
 registry_verify(path)
 #> Error:
 #> ! The registry for 'taxify' could not be established as authentic.
-#>   the signature covers sha256:4db1e52fb0b2 but this registry is sha256:9ef7afd4dfee
+#>   the signature covers sha256:f88778884eaa but this registry is sha256:c29ac83bb99e
 #> 
 #> This package declares signing keys, so a remote registry that cannot be
 #> checked against one is refused rather than used. The bundled declaration

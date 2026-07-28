@@ -17,6 +17,10 @@ What a package says it needs
   : Declare an immutable resource record
 - [`resource_id()`](https://gillescolling.com/getaca/reference/resource_id.md)
   : Identify a resource
+- [`part()`](https://gillescolling.com/getaca/reference/part.md) :
+  Declare one part of a resource
+- [`combiner()`](https://gillescolling.com/getaca/reference/combiner.md)
+  : Declare how parts are combined
 - [`processor()`](https://gillescolling.com/getaca/reference/processor.md)
   : Declare a post-download processor
 - [`registry()`](https://gillescolling.com/getaca/reference/registry.md)

@@ -26,7 +26,7 @@ the text that produced the disagreement."><script>
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -124,20 +124,28 @@ in the stored form need not change how existing fields are rendered.</p>
 <span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  url https<span class="sc">:</span><span class="er">//</span>zenodo.org<span class="sc">/</span>record<span class="sc">/</span><span class="dv">123</span><span class="sc">/</span>wfo<span class="dv">-2026</span><span class="fl">-06.</span>parquet</span>
 <span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>  url https<span class="sc">:</span><span class="er">//</span>mirror.example.org<span class="sc">/</span>wfo<span class="dv">-2026</span><span class="fl">-06.</span>parquet</span>
 <span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>  upstream release <span class="dv">2026-06</span></span>
-<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  processor unzip<span class="sc">-</span>v2</span></code></pre><p></p></div>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  processor unzip<span class="sc">-</span>v2</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>resource wfo <span class="dv">2026-09</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>  sha256 b104e7...</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>  file wfo.parquet</span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>  part <span class="dv">91</span>cc0d... <span class="dv">1048576</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>    url https<span class="sc">:</span><span class="er">//</span>zenodo.org<span class="sc">/</span>record<span class="sc">/</span><span class="dv">456</span><span class="sc">/</span>wfo<span class="sc">-</span>base.bin</span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>  part <span class="fl">4e77</span>a1... <span class="dv">20481</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>    url https<span class="sc">:</span><span class="er">//</span>zenodo.org<span class="sc">/</span>record<span class="sc">/</span><span class="dv">456</span><span class="sc">/</span>wfo<span class="dv">-2026</span><span class="fl">-09.</span>bin</span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>  combiner concat</span></code></pre><p></p></div>
 <p>Resources are sorted by <code>name@version</code> in the C locale, so the same
 declaration renders identically wherever it is read. URLs keep declaration
-order, which is load-bearing: mirrors are tried in the order given. Signing
-keys are sorted, since which one signs is a fact about the signature rather
-than about the declaration. Absent and <code>NA</code> fields are omitted rather than
-rendered as empty, since a key that is present carries a value by
-construction.</p>
+order, which is load-bearing: mirrors are tried in the order given. Parts
+keep it for a stronger reason, since the order is the one they are combined
+in. Signing keys are sorted, since which one signs is a fact about the
+signature rather than about the declaration. Absent and <code>NA</code> fields are
+omitted rather than rendered as empty, since a key that is present carries a
+value by construction.</p>
 <p>Rendering an absent field as nothing is what let signing keys join the
-manifest without a new format version. A registry declaring none renders
-exactly the bytes it always did, so every digest recorded before keys
-existed still identifies the state that produced it. Only a registry that
-actually carries a key renders a line for one, and none did before the field
-existed.</p>
+manifest without a new format version, and then <code>file</code>, <code>part</code> and
+<code>combiner</code> after them. A registry declaring none of them renders exactly the
+bytes it always did, so every digest recorded before they existed still
+identifies the state that produced it.</p>
     </div>
     <div class="section level2">
     <h2 id="what-is-left-out">What is left out<a class="anchor" aria-label="anchor" href="#what-is-left-out"></a></h2>

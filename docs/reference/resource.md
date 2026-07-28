@@ -12,13 +12,16 @@ reports it as such.
 resource(
   name,
   version,
-  urls,
+  urls = NULL,
   sha256,
   size = NA_real_,
   license = NA_character_,
   description = NA_character_,
   upstream = NULL,
-  processor = NULL
+  processor = NULL,
+  parts = NULL,
+  combiner = NULL,
+  file = NULL
 )
 ```
 
@@ -35,11 +38,12 @@ resource(
 - urls:
 
   Character vector of download locations, tried in order. All must be
-  `https://`.
+  `https://`. Give this or `parts`.
 
 - sha256:
 
-  Lowercase hex SHA-256 of the file as served.
+  Lowercase hex SHA-256 of the artefact. For a record with `parts`, of
+  the artefact they compose rather than of any one of them.
 
 - size:
 
@@ -67,9 +71,36 @@ resource(
   [`processor()`](https://gillescolling.com/getaca/reference/processor.md)
   applied after verification.
 
+- parts:
+
+  Optional list of
+  [`part()`](https://gillescolling.com/getaca/reference/part.md)
+  records, in the order they are combined. Give this or `urls`.
+
+- combiner:
+
+  Optional
+  [`combiner()`](https://gillescolling.com/getaca/reference/combiner.md)
+  turning the parts into the artefact. The default concatenates them,
+  which is what a file split for a host with a size limit needs.
+
+- file:
+
+  Name the artefact is cached under. Defaults to the file name in the
+  first URL, and is required alongside `parts`, where the URLs name the
+  pieces rather than the result.
+
 ## Value
 
 An object of class `getaca_resource`.
+
+## Whole files and parts
+
+A record names either locations for the whole file, in `urls`, or the
+ordered series it is composed from, in `parts`. `sha256` describes the
+artefact either way, so what a version means does not depend on how it
+arrives. See
+[`part()`](https://gillescolling.com/getaca/reference/part.md).
 
 ## Examples
 
@@ -81,5 +112,17 @@ resource(
   sha256 = strrep("a", 64),
   size = 1048576,
   license = "CC-BY-4.0"
+)
+
+# The same artefact, published as a base and the delta issued against it:
+resource(
+  name = "wfo",
+  version = "2026.2",
+  sha256 = strrep("b", 64),
+  file = "wfo.parquet",
+  parts = list(
+    part("https://example.org/wfo-base.bin", sha256 = strrep("c", 64)),
+    part("https://example.org/wfo-2026.2.bin", sha256 = strrep("d", 64))
+  )
 )
 ```

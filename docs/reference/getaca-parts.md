@@ -1,0 +1,26 @@
+# Composing an artefact from its parts
+
+A resource may name an ordered series of
+[`part()`](https://gillescolling.com/getaca/reference/part.md)s instead
+of locations for the whole file. Each part is retrieved and verified on
+its own, admitted to the store under its own digest, and the series is
+then combined into the artefact the resource names.
+
+## Details
+
+What makes this safe is that the result is held to the resource's own
+SHA-256, and reaches the store through the same `admit()` every
+downloaded file goes through. After composition a composed artefact is
+indistinguishable from a transferred one: the same blob, the same view,
+the same periodic re-verification.
+
+Parts are transport. Which pieces a declaration is assembled from, and
+where each piece comes from, may change the way a mirror list may
+change, because what a version means is fixed by the record's checksum
+rather than by the route to it. A combiner therefore needs no more trust
+than a mirror does: it cannot produce bytes the declaration did not
+already name.
+
+The saving is in the transfer. A base part shared by every version of a
+resource is stored once under its own digest, so publishing a new
+version costs its consumers the delta rather than the whole file.

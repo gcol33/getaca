@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -209,6 +209,10 @@ record, so a downstream result can report what terms its inputs came
 under.</p>
 <p><strong><code>description</code></strong> is one line for humans
 reading <code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> output.</p>
+<p><strong><code>file</code></strong> is optional and names the cached
+file. The default is the file name in the first URL, which is right
+until the URL ends in <code>download?id=7</code>, and which a record
+composed from parts has to state for itself.</p>
 <p>Malformed records are refused where they are written, with the
 problem named:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
@@ -285,7 +289,7 @@ Pass a fixed <code>created</code> when a build has to be
 byte-reproducible.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_write.html">registry_read</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span><span class="op">$</span><span class="va">created</span></span>
-<span><span class="co">#&gt; [1] "2026-07-28 14:52:25 CEST"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "2026-07-28 15:44:58 CEST"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="naming-the-channel-head">Naming the channel head<a class="anchor" aria-label="anchor" href="#naming-the-channel-head"></a>
@@ -423,12 +427,150 @@ release or something you built. It retrieves and verifies what you
 declared; your package owns their scientific meaning.</p>
 </div>
 <div class="section level2">
+<h2 id="files-that-arrive-in-parts">Files that arrive in parts<a class="anchor" aria-label="anchor" href="#files-that-arrive-in-parts"></a>
+</h2>
+<p>Two situations call for a record whose bytes arrive in pieces. Your
+host caps the size of a single file, so a 6 GB database goes up as
+chunks. Or upstream publishes a base release and then issues deltas
+against it, because each delta is a hundredth of the size of the thing
+it updates.</p>
+<p>Declare the pieces with <code><a href="../reference/part.html">part()</a></code> and the artefact they
+compose with <code>sha256</code>, as usual:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">series</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
+<span>  name    <span class="op">=</span> <span class="st">"wfo"</span>,</span>
+<span>  version <span class="op">=</span> <span class="st">"2026-09"</span>,</span>
+<span>  sha256  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"b1"</span>, <span class="fl">32</span><span class="op">)</span>,</span>
+<span>  size    <span class="op">=</span> <span class="fl">812e6</span>,</span>
+<span>  file    <span class="op">=</span> <span class="st">"wfo.parquet"</span>,</span>
+<span>  license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span>,</span>
+<span>  parts   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://zenodo.invalid/records/456/files/wfo-base.bin"</span>,</span>
+<span>         sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"91"</span>, <span class="fl">32</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">797e6</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://zenodo.invalid/records/456/files/wfo-2026-06.bin"</span>,</span>
+<span>         sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"4e"</span>, <span class="fl">32</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">9.1e6</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://zenodo.invalid/records/456/files/wfo-2026-09.bin"</span>,</span>
+<span>         sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"77"</span>, <span class="fl">32</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">5.4e6</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">series</span></span>
+<span><span class="co">#&gt; &lt;getaca resource record&gt;</span></span>
+<span><span class="co">#&gt;   name      wfo</span></span>
+<span><span class="co">#&gt;   version   2026-09</span></span>
+<span><span class="co">#&gt;   sha256    b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1</span></span>
+<span><span class="co">#&gt;   size      8.12e+08</span></span>
+<span><span class="co">#&gt;   license   CC-BY-4.0</span></span>
+<span><span class="co">#&gt;   file      wfo.parquet</span></span>
+<span><span class="co">#&gt;   composed  3 parts via 'concat'</span></span>
+<span><span class="co">#&gt;     919191919191  7.97e+08  https://zenodo.invalid/records/456/files/wfo-base.bin</span></span>
+<span><span class="co">#&gt;     4e4e4e4e4e4e  9,100,000  https://zenodo.invalid/records/456/files/wfo-2026-06.bin</span></span>
+<span><span class="co">#&gt;     777777777777  5,400,000  https://zenodo.invalid/records/456/files/wfo-2026-09.bin</span></span></code></pre></div>
+<p>A record names locations for the whole file or the parts it is
+composed from, so <code>urls</code> and <code>parts</code> are
+alternatives and declaring both is refused. Each part is fetched through
+the same mirror walk, verified against its own checksum, and stored
+under its own digest. The pieces are then combined, the result is hashed
+against the record’s <code>sha256</code>, and it joins the store exactly
+as a downloaded file does. Everything after that point is identical: the
+same blob, the same cached path, the same periodic re-verification, the
+same <code><a href="../reference/getaca_info.html">getaca_info()</a></code>.</p>
+<p>Storing each part under its own digest is what makes the next version
+cheap. The base above is one blob, and every version declaring it points
+at that blob, so <code>2026-12</code> costs your users the new delta
+rather than 812 MB. The trade is disk: the parts stay for as long as
+some cached version still names them, which is what keeps the saving
+available.</p>
+<p><strong><code>sha256</code> still describes the artefact</strong>,
+which is the rule everything else follows from. A version means the
+bytes its checksum names and nothing about the route to them, so
+re-splitting a file at different boundaries, adding a mirror for one
+piece, or moving the series to a new host are all changes of route. Your
+users are held to the artefact either way, and a series that does not
+produce it is reported against the declaration:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Error: The parts declared for taxify/wfo@2026-09 do not produce the declared bytes.</span></span>
+<span><span class="co">#&gt;   3 parts, each matching its own checksum, combined by 'concat'</span></span>
+<span><span class="co">#&gt;   declared SHA-256: b1b1b1...</span></span>
+<span><span class="co">#&gt;   composed SHA-256: 2c40f9...</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Every part arrived intact, so this is not a transfer problem.</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="combining-by-something-other-than-concatenation">Combining by something other than concatenation<a class="anchor" aria-label="anchor" href="#combining-by-something-other-than-concatenation"></a>
+</h3>
+<p>Parts are concatenated in declaration order, which is what a file
+split for an upload limit needs. A delta format needs
+<code><a href="../reference/combiner.html">combiner()</a></code>, since applying a patch is knowledge about a
+file format and <code>getaca</code> has none:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">apply_deltas</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/combiner.html">combiner</a></span><span class="op">(</span><span class="st">"bsdiff"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">parts</span>, <span class="va">output</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">current</span> <span class="op">&lt;-</span> <span class="va">parts</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">delta</span> <span class="kw">in</span> <span class="va">parts</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">current</span> <span class="op">&lt;-</span> <span class="fu">bspatch</span><span class="op">(</span><span class="va">current</span>, <span class="va">delta</span>, <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="va">current</span>, <span class="va">output</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">apply_deltas</span></span>
+<span><span class="co">#&gt; &lt;getaca combiner&gt; bsdiff</span></span></code></pre></div>
+<p>The function receives the verified part paths in declaration order
+and the file to write. Attach it with
+<code>combiner = apply_deltas</code>. Like a processor, it carries an
+id, and the manifest records that id rather than the closure. Unlike a
+processor, what it produced is checked against the record’s own
+<code>sha256</code> before anyone sees it, so an id is all the manifest
+needs: the checksum is what says the result is right.</p>
+<p>Order matters more here than it does for mirrors. Mirrors are tried
+in the order given and any one of them ends the walk; parts are combined
+in the order given, so two orderings of one series are two different
+artefacts, and reordering a series changes the registry digest.</p>
+<p>So the two situations this section opened with are the same
+declaration with a different combiner. A file split for an upload limit
+is <code><a href="../reference/part.html">part()</a></code> and the default. A base with deltas against it is
+<code><a href="../reference/part.html">part()</a></code> and a <code><a href="../reference/combiner.html">combiner()</a></code> that knows the delta
+format.</p>
+</div>
+<div class="section level3">
+<h3 id="a-series-that-keeps-growing">A series that keeps growing<a class="anchor" aria-label="anchor" href="#a-series-that-keeps-growing"></a>
+</h3>
+<p>For a base with deltas, each version declares the whole series from
+the base onwards: <code>2026-12</code> is the base and three deltas.
+Your users still transfer only the new delta, since the earlier pieces
+are already blobs in their store, and the combiner reapplies the chain
+from the base each time. That is local work rather than transfer, and
+for most formats it is the cheaper of the two by a wide margin.</p>
+<p>When the chain gets long enough that reapplying it stops being cheap,
+publish the composed artefact of each version alongside its deltas and
+anchor the next version on it:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
+<span>  name    <span class="op">=</span> <span class="st">"wfo"</span>,</span>
+<span>  version <span class="op">=</span> <span class="st">"2026-12"</span>,</span>
+<span>  sha256  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"c2"</span>, <span class="fl">32</span><span class="op">)</span>,</span>
+<span>  file    <span class="op">=</span> <span class="st">"wfo.parquet"</span>,</span>
+<span>  parts   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="co"># The artefact of 2026-09, at its published checksum.</span></span>
+<span>    <span class="fu"><a href="../reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://zenodo.invalid/records/456/files/wfo-2026-09.parquet"</span>,</span>
+<span>         sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"b1"</span>, <span class="fl">32</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://zenodo.invalid/records/789/files/wfo-2026-12.bin"</span>,</span>
+<span>         sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"d3"</span>, <span class="fl">32</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  combiner <span class="op">=</span> <span class="va">apply_deltas</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Nothing new is needed for this, and it costs nothing extra to the
+users it does not help. A machine holding <code>2026-09</code> already
+has those bytes under that digest, finds them in the store, and applies
+one delta. A machine holding nothing downloads the previous artefact
+whole and applies one delta. Which happens is decided by what is in the
+store, and the record reads the same either way.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="processors">Processors<a class="anchor" aria-label="anchor" href="#processors"></a>
 </h2>
 <p>A processor turns one verified path into another. It carries a stable
 id, so the derived result gets its own cache slot and its own provenance
 rather than being confused with the archive it came from.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">unpack</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/processor.html">processor</a></span><span class="op">(</span><span class="st">"unzip"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output_dir</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/unzip.html" class="external-link">unzip</a></span><span class="op">(</span><span class="va">input</span>, exdir <span class="op">=</span> <span class="va">output_dir</span><span class="op">)</span></span>
 <span>  <span class="va">output_dir</span></span>
@@ -436,7 +578,7 @@ rather than being confused with the archive it came from.</p>
 <span><span class="va">unpack</span><span class="op">$</span><span class="va">id</span></span>
 <span><span class="co">#&gt; [1] "unzip"</span></span></code></pre></div>
 <p>Attach it to the record that needs it:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">archive</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"wfo"</span>,</span>
 <span>  version   <span class="op">=</span> <span class="st">"2026-06"</span>,</span>
@@ -478,25 +620,25 @@ trade.</p>
 <p>The stored form is an R object, so no parser is ever a hard
 dependency. YAML and JSON are accepted at authoring time and gated at
 call time:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_registry.html">as_registry</a></span><span class="op">(</span><span class="st">"data-raw/resources.yml"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg</span>, <span class="st">"inst/getaca/registry.rds"</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb19"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">wfo</span><span class="kw">:</span></span>
-<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">"2026-06"</span></span>
-<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="at">  </span><span class="fu">urls</span><span class="kw">:</span></span>
-<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> https://primary.invalid/wfo-2026-06.zip</span></span>
-<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a></span>
-<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> https://mirror.invalid/wfo-2026-06.zip</span></span>
-<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="at">  </span><span class="fu">sha256</span><span class="kw">:</span><span class="at"> </span><span class="st">"9f9f..."</span></span>
-<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="at">  </span><span class="fu">size</span><span class="kw">:</span><span class="at"> </span><span class="dv">797000000</span></span>
-<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="at">  </span><span class="fu">license</span><span class="kw">:</span><span class="at"> CC-BY-4.0</span></span>
-<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="at">  </span><span class="fu">description</span><span class="kw">:</span><span class="at"> World Flora Online backbone, June 2026</span></span>
-<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a></span>
-<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="fu">col</span><span class="kw">:</span></span>
-<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">"2026-06"</span></span>
-<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="at">  </span><span class="fu">url</span><span class="kw">:</span><span class="at"> https://primary.invalid/col-2026-06.zip</span></span>
-<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="at">  </span><span class="fu">sha256</span><span class="kw">:</span><span class="at"> </span><span class="st">"ab12..."</span></span>
-<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a><span class="at">  </span><span class="fu">license</span><span class="kw">:</span><span class="at"> CC-BY-4.0</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">wfo</span><span class="kw">:</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">"2026-06"</span></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="at">  </span><span class="fu">urls</span><span class="kw">:</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> https://primary.invalid/wfo-2026-06.zip</span></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> https://mirror.invalid/wfo-2026-06.zip</span></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a><span class="at">  </span><span class="fu">sha256</span><span class="kw">:</span><span class="at"> </span><span class="st">"9f9f..."</span></span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a><span class="at">  </span><span class="fu">size</span><span class="kw">:</span><span class="at"> </span><span class="dv">797000000</span></span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a><span class="at">  </span><span class="fu">license</span><span class="kw">:</span><span class="at"> CC-BY-4.0</span></span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="at">  </span><span class="fu">description</span><span class="kw">:</span><span class="at"> World Flora Online backbone, June 2026</span></span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a></span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a><span class="fu">col</span><span class="kw">:</span></span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">"2026-06"</span></span>
+<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a><span class="at">  </span><span class="fu">url</span><span class="kw">:</span><span class="at"> https://primary.invalid/col-2026-06.zip</span></span>
+<span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a><span class="at">  </span><span class="fu">sha256</span><span class="kw">:</span><span class="at"> </span><span class="st">"ab12..."</span></span>
+<span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a><span class="at">  </span><span class="fu">license</span><span class="kw">:</span><span class="at"> CC-BY-4.0</span></span></code></pre></div>
 <p>Either <code>urls</code> or <code>url</code> is accepted, and either
 <code>license</code> or <code>licence</code>, since a YAML file is input
 rather than API. The model has one spelling for each.</p>
@@ -505,7 +647,7 @@ version per name. A registry that offers several versions of a name is
 built in R, where the list is a list and <code>current</code> sits
 beside it. Arguments passed to <code><a href="../reference/as_registry.html">as_registry()</a></code> reach
 <code><a href="../reference/registry.html">registry()</a></code>:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_registry.html">as_registry</a></span><span class="op">(</span><span class="st">"data-raw/resources.yml"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
 <span>            policy <span class="op">=</span> <span class="st">"current"</span>,</span>
 <span>            remote <span class="op">=</span> <span class="st">"https://taxify.invalid/getaca-registry.rds"</span><span class="op">)</span></span></code></pre></div>
@@ -519,7 +661,7 @@ produces an install instruction rather than a missing-object error.</p>
 <p>Every failure is classed, and carries an <code>actor</code> field
 naming who can act. Catch the ones your users will meet and say
 something domain-specific:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"wfo"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="va">name</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>,</span>
@@ -562,7 +704,7 @@ a recommendation about where to put files, not a feature.</p>
 </h2>
 <p>The registry is an ordinary object, so the parts worth testing are
 testable without a network:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the shipped registry is valid and names a head"</span>, <span class="op">{</span></span>
 <span>  <span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_for.html">registry_for</a></span><span class="op">(</span><span class="st">"taxify"</span><span class="op">)</span></span>
 <span>  <span class="fu">expect_s3_class</span><span class="op">(</span><span class="va">reg</span>, <span class="st">"getaca_registry"</span><span class="op">)</span></span>

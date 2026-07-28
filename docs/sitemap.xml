@@ -17,12 +17,14 @@
 <url><loc>https://gillescolling.com/getaca/LICENSE.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/news/index.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/as_registry.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/combiner.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-cache.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-checks.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-conditions.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-gc.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-locking.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-package.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/getaca-parts.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-signing.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-store.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca-transfer.html</loc></url>
@@ -37,6 +39,7 @@
 <url><loc>https://gillescolling.com/getaca/reference/getaca_prefetch.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/getaca_refresh.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/index.html</loc></url>
+<url><loc>https://gillescolling.com/getaca/reference/part.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/processor.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/registry.html</loc></url>
 <url><loc>https://gillescolling.com/getaca/reference/registry_digest.html</loc></url>

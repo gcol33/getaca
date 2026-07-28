@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,6 +65,25 @@
       <small>Source: <a href="https://github.com/gcol33/getaca/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.1" id="getaca-011">getaca 0.1.1<a class="anchor" aria-label="anchor" href="#getaca-011"></a></h2>
+<div class="section level3">
+<h3 id="resources-that-arrive-in-pieces-0-1-1">Resources that arrive in pieces<a class="anchor" aria-label="anchor" href="#resources-that-arrive-in-pieces-0-1-1"></a></h3>
+<ul><li>
+<code><a href="../reference/part.html">part()</a></code> and <code><a href="../reference/combiner.html">combiner()</a></code>: a record names either locations for the whole file or the ordered series it is composed from, and <code>sha256</code> describes the artefact either way. A host that caps file size, and a publisher issuing deltas against a base release, both produce a resource that arrives as a series.</li>
+<li>Each part is verified and stored under its own digest, so a base shared by every version of a resource is transferred once and kept once, and publishing a version costs its consumers the delta rather than the whole file.</li>
+<li>Parts are concatenated unless the record declares a <code><a href="../reference/combiner.html">combiner()</a></code>, which is what a delta format needs. The composed result is held to the record’s own checksum before anything sees it, so a combiner cannot produce bytes the declaration did not already name. That is also why <code>assert_immutable()</code> compares only that checksum: re-splitting a series or moving a piece to another host is a change of route, not of identity.</li>
+<li>
+<code>getaca_error_composition</code>: every part arrived and matched its own checksum, and combining them produced something else. Nothing failed in transit, so the actor is the author rather than the network.</li>
+<li>
+<code>resource(file = )</code>: the name the artefact is cached under, for a URL with no useful basename and for composed records, where each URL names a piece rather than the result.</li>
+<li>A part is reached through the entry composed from it, since no version slot names one. A base shared by several versions therefore lives exactly as long as the last version holding it, under the same reachability rule as everything else in the store.</li>
+<li>
+<code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> gains a <code>parts</code> column, <code>0</code> where a version is served whole, so what an update costs to fetch is visible before it is fetched.</li>
+<li>
+<code>part</code>, <code>combiner</code> and <code>file</code> render nothing when absent, so every registry digest recorded before they existed still identifies the state that produced it. The manifest format is unchanged.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="getaca-010">getaca 0.1.0<a class="anchor" aria-label="anchor" href="#getaca-010"></a></h2>
 <p>First release.</p>

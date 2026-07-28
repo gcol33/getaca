@@ -91,6 +91,11 @@ result can report what terms its inputs came under.
 [`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)
 output.
 
+**`file`** is optional and names the cached file. The default is the
+file name in the first URL, which is right until the URL ends in
+`download?id=7`, and which a record composed from parts has to state for
+itself.
+
 Malformed records are refused where they are written, with the problem
 named:
 
@@ -192,7 +197,7 @@ when a build has to be byte-reproducible.
 ``` r
 
 registry_read(path)$created
-#> [1] "2026-07-28 14:52:25 CEST"
+#> [1] "2026-07-28 15:44:58 CEST"
 ```
 
 ## Naming the channel head
@@ -352,6 +357,163 @@ like `source-2026-06_build-3` keep both visible in the identity itself.
 `getaca` does not care whether bytes are an official release or
 something you built. It retrieves and verifies what you declared; your
 package owns their scientific meaning.
+
+## Files that arrive in parts
+
+Two situations call for a record whose bytes arrive in pieces. Your host
+caps the size of a single file, so a 6 GB database goes up as chunks. Or
+upstream publishes a base release and then issues deltas against it,
+because each delta is a hundredth of the size of the thing it updates.
+
+Declare the pieces with
+[`part()`](https://gillescolling.com/getaca/reference/part.md) and the
+artefact they compose with `sha256`, as usual:
+
+``` r
+
+series <- resource(
+  name    = "wfo",
+  version = "2026-09",
+  sha256  = strrep("b1", 32),
+  size    = 812e6,
+  file    = "wfo.parquet",
+  license = "CC-BY-4.0",
+  parts   = list(
+    part("https://zenodo.invalid/records/456/files/wfo-base.bin",
+         sha256 = strrep("91", 32), size = 797e6),
+    part("https://zenodo.invalid/records/456/files/wfo-2026-06.bin",
+         sha256 = strrep("4e", 32), size = 9.1e6),
+    part("https://zenodo.invalid/records/456/files/wfo-2026-09.bin",
+         sha256 = strrep("77", 32), size = 5.4e6)
+  )
+)
+series
+#> <getaca resource record>
+#>   name      wfo
+#>   version   2026-09
+#>   sha256    b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1
+#>   size      8.12e+08
+#>   license   CC-BY-4.0
+#>   file      wfo.parquet
+#>   composed  3 parts via 'concat'
+#>     919191919191  7.97e+08  https://zenodo.invalid/records/456/files/wfo-base.bin
+#>     4e4e4e4e4e4e  9,100,000  https://zenodo.invalid/records/456/files/wfo-2026-06.bin
+#>     777777777777  5,400,000  https://zenodo.invalid/records/456/files/wfo-2026-09.bin
+```
+
+A record names locations for the whole file or the parts it is composed
+from, so `urls` and `parts` are alternatives and declaring both is
+refused. Each part is fetched through the same mirror walk, verified
+against its own checksum, and stored under its own digest. The pieces
+are then combined, the result is hashed against the record’s `sha256`,
+and it joins the store exactly as a downloaded file does. Everything
+after that point is identical: the same blob, the same cached path, the
+same periodic re-verification, the same
+[`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.md).
+
+Storing each part under its own digest is what makes the next version
+cheap. The base above is one blob, and every version declaring it points
+at that blob, so `2026-12` costs your users the new delta rather than
+812 MB. The trade is disk: the parts stay for as long as some cached
+version still names them, which is what keeps the saving available.
+
+**`sha256` still describes the artefact**, which is the rule everything
+else follows from. A version means the bytes its checksum names and
+nothing about the route to them, so re-splitting a file at different
+boundaries, adding a mirror for one piece, or moving the series to a new
+host are all changes of route. Your users are held to the artefact
+either way, and a series that does not produce it is reported against
+the declaration:
+
+``` r
+
+getaca("wfo", package = "taxify")
+#> Error: The parts declared for taxify/wfo@2026-09 do not produce the declared bytes.
+#>   3 parts, each matching its own checksum, combined by 'concat'
+#>   declared SHA-256: b1b1b1...
+#>   composed SHA-256: 2c40f9...
+#>
+#> Every part arrived intact, so this is not a transfer problem.
+```
+
+### Combining by something other than concatenation
+
+Parts are concatenated in declaration order, which is what a file split
+for an upload limit needs. A delta format needs
+[`combiner()`](https://gillescolling.com/getaca/reference/combiner.md),
+since applying a patch is knowledge about a file format and `getaca` has
+none:
+
+``` r
+
+apply_deltas <- combiner("bsdiff", function(parts, output) {
+  current <- parts[1]
+  for (delta in parts[-1]) {
+    current <- bspatch(current, delta, tempfile())
+  }
+  file.copy(current, output)
+})
+apply_deltas
+#> <getaca combiner> bsdiff
+```
+
+The function receives the verified part paths in declaration order and
+the file to write. Attach it with `combiner = apply_deltas`. Like a
+processor, it carries an id, and the manifest records that id rather
+than the closure. Unlike a processor, what it produced is checked
+against the record’s own `sha256` before anyone sees it, so an id is all
+the manifest needs: the checksum is what says the result is right.
+
+Order matters more here than it does for mirrors. Mirrors are tried in
+the order given and any one of them ends the walk; parts are combined in
+the order given, so two orderings of one series are two different
+artefacts, and reordering a series changes the registry digest.
+
+So the two situations this section opened with are the same declaration
+with a different combiner. A file split for an upload limit is
+[`part()`](https://gillescolling.com/getaca/reference/part.md) and the
+default. A base with deltas against it is
+[`part()`](https://gillescolling.com/getaca/reference/part.md) and a
+[`combiner()`](https://gillescolling.com/getaca/reference/combiner.md)
+that knows the delta format.
+
+### A series that keeps growing
+
+For a base with deltas, each version declares the whole series from the
+base onwards: `2026-12` is the base and three deltas. Your users still
+transfer only the new delta, since the earlier pieces are already blobs
+in their store, and the combiner reapplies the chain from the base each
+time. That is local work rather than transfer, and for most formats it
+is the cheaper of the two by a wide margin.
+
+When the chain gets long enough that reapplying it stops being cheap,
+publish the composed artefact of each version alongside its deltas and
+anchor the next version on it:
+
+``` r
+
+resource(
+  name    = "wfo",
+  version = "2026-12",
+  sha256  = strrep("c2", 32),
+  file    = "wfo.parquet",
+  parts   = list(
+    # The artefact of 2026-09, at its published checksum.
+    part("https://zenodo.invalid/records/456/files/wfo-2026-09.parquet",
+         sha256 = strrep("b1", 32)),
+    part("https://zenodo.invalid/records/789/files/wfo-2026-12.bin",
+         sha256 = strrep("d3", 32))
+  ),
+  combiner = apply_deltas
+)
+```
+
+Nothing new is needed for this, and it costs nothing extra to the users
+it does not help. A machine holding `2026-09` already has those bytes
+under that digest, finds them in the store, and applies one delta. A
+machine holding nothing downloads the previous artefact whole and
+applies one delta. Which happens is decided by what is in the store, and
+the record reads the same either way.
 
 ## Processors
 
