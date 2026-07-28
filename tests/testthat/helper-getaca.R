@@ -56,7 +56,7 @@ demo_registry <- function(sha, urls = "https://example.invalid/res-1.0.csv",
 # Serves a known file as though it had been downloaded, so a retrieval can be
 # exercised end to end without a network.
 serves_file <- function(file) {
-  function(url, dest, quiet = FALSE) {
+  function(url, dest, progress = NULL) {
     file.copy(file$path, dest, overwrite = TRUE)
     list(success = TRUE, reason = NA_character_)
   }

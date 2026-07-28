@@ -22,7 +22,8 @@
 #'   Ordinary access performs a cheap size check and re-hashes on a schedule.
 #' @param processed Apply the declared [processor()], when there is one, and
 #'   return the processed path. `FALSE` returns the raw artefact.
-#' @param quiet Suppress progress reporting.
+#' @param quiet Report nothing for this call, whatever [getaca_progress()] is
+#'   set to.
 #'
 #' @return A local file or directory path.
 #'
@@ -31,15 +32,37 @@
 #' @export
 #'
 #' @examples
-#' # Resources are declared by the packages that need them:
-#' reg <- registry("demo", list(
-#'   resource("example", "1.0",
-#'            urls = "https://example.org/example-1.0.csv",
-#'            sha256 = strrep("c", 64))
-#' ))
-#' reg
+#' # Resources are declared by the packages that need them. This one is a zip
+#' # its host would not take whole, uploaded in two pieces and unpacked on
+#' # arrival:
+#' unzipper <- processor("unzip", function(input, output_dir) {
+#'   utils::unzip(input, exdir = output_dir)
+#'   output_dir
+#' })
 #'
-#' # getaca("example", registry = reg)   # would download and verify
+#' atlas <- resource("atlas", "1.0",
+#'                   sha256 = strrep("c", 64),
+#'                   size = 1572864,
+#'                   file = "atlas.zip",
+#'                   license = "CC-BY-4.0",
+#'                   parts = list(
+#'                     part("https://example.org/atlas-1.0.zip.001",
+#'                          sha256 = strrep("a", 64), size = 1048576),
+#'                     part("https://example.org/atlas-1.0.zip.002",
+#'                          sha256 = strrep("b", 64), size = 524288)
+#'                   ),
+#'                   processor = unzipper)
+#' atlas
+#'
+#' reg <- registry("demo", list(atlas))
+#'
+#' # Each piece is fetched and verified on its own, the two are concatenated,
+#' # and the zip is held to the resource's own sha256 before the processor
+#' # sees it. The returned path is the unpacked directory:
+#' # getaca("atlas", registry = reg)
+#'
+#' # The raw zip, without unpacking:
+#' # getaca("atlas", registry = reg, processed = FALSE)
 getaca <- function(name, package = NULL, registry = NULL, version = NULL,
                    policy = NULL, verify = FALSE, processed = TRUE,
                    quiet = FALSE) {
@@ -84,12 +107,15 @@ getaca <- function(name, package = NULL, registry = NULL, version = NULL,
     # has been written. Until then nothing else knows the blobs are wanted.
     held <- lock_parts(id, record, held = record$sha256)
     on.exit(release_locks(held), add = TRUE)
-    placed <- promote(id, record, compose_parts(id, record, quiet = quiet))
+    placed <- promote(id, record,
+                      compose_parts(id, record, quiet = quiet,
+                                    reporter = effective_reporter(quiet)))
     # No single location served these bytes. What produced them is the part
     # series the entry records.
     url_used <- NA_character_
   } else {
-    got <- fetch_to_temp(id, record, quiet = quiet)
+    got <- fetch_to_temp(id, record, quiet = quiet,
+                         reporter = effective_reporter(quiet))
     placed <- promote(id, record, got$path)
     url_used <- got$url
   }

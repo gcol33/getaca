@@ -1,7 +1,7 @@
 # Serves a known file as though it had been downloaded, so processing can be
 # exercised end to end without a network.
 serves <- function(file) {
-  function(url, dest, quiet = FALSE) {
+  function(url, dest, progress = NULL) {
     file.copy(file$path, dest, overwrite = TRUE)
     list(success = TRUE, reason = NA_character_)
   }

@@ -73,6 +73,12 @@ reference:
   contents:
   - getaca
   - getaca_prefetch
+- title: Progress
+  desc: What a transfer looks like
+  contents:
+  - getaca-progress
+  - getaca_progress
+  - reporter
 - title: Declaration
   desc: What a package says it needs
   contents:

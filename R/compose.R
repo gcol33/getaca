@@ -62,10 +62,12 @@ release_locks <- function(locks) {
 # Returns the path of the composed artefact in .tmp/, verified against the
 # record. The caller promotes it, so composition ends where a transfer ends and
 # everything after it is one path.
-compose_parts <- function(id, record, quiet = FALSE, transport = try_one) {
+compose_parts <- function(id, record, quiet = FALSE, transport = try_one,
+                          reporter = NULL) {
   n <- length(record$parts)
+  rep <- reporter %||% effective_reporter(quiet)
   paths <- vapply(seq_len(n), function(i) {
-    obtain_part(part_id(id, i, n), record$parts[[i]], quiet, transport)
+    obtain_part(part_id(id, i, n), record$parts[[i]], quiet, transport, rep)
   }, character(1))
 
   out <- compose_path(record)
@@ -96,7 +98,7 @@ compose_parts <- function(id, record, quiet = FALSE, transport = try_one) {
 # re-verification is driven from the entries, and a part blob is named by an
 # entry's `parts` field rather than being one, so a rotted base would otherwise
 # surface as the declaration failing to produce its own artefact.
-obtain_part <- function(pid, prt, quiet, transport) {
+obtain_part <- function(pid, prt, quiet, transport, rep = NULL) {
   blob <- blob_path(prt$sha256)
   if (file.exists(blob)) {
     if (identical(sha256_file(blob), prt$sha256)) return(blob)
@@ -106,7 +108,8 @@ obtain_part <- function(pid, prt, quiet, transport) {
     # partial file: a local copy that fails its own checksum indicts itself.
     remove_path(blob)
   }
-  got <- fetch_to_temp(pid, prt, quiet = quiet, transport = transport)
+  got <- fetch_to_temp(pid, prt, quiet = quiet, transport = transport,
+                       reporter = rep)
   admit(got$path, prt$sha256)
 }
 

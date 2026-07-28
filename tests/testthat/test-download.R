@@ -4,7 +4,7 @@
 fake_transport <- function(...) {
   responses <- list(...)
   i <- 0L
-  function(url, dest, quiet = FALSE) {
+  function(url, dest, progress = NULL) {
     i <<- i + 1L
     r <- responses[[i]]
     if (is.null(r$contents)) {
@@ -24,7 +24,7 @@ fake_transport <- function(...) {
 resuming_transport <- function(...) {
   responses <- list(...)
   i <- 0L
-  function(url, dest, quiet = FALSE) {
+  function(url, dest, progress = NULL) {
     i <<- i + 1L
     r <- responses[[i]]
     con <- file(dest, open = if (file.exists(dest)) "ab" else "wb")
@@ -309,7 +309,7 @@ test_that("a mirror serving other bytes is judged on a single attempt", {
   id <- resource_id("demopkg", "res", "1.0")
   rec <- fake_record("payload", "https://a.invalid/f")
   calls <- 0L
-  serves_other <- function(url, dest, quiet = FALSE) {
+  serves_other <- function(url, dest, progress = NULL) {
     calls <<- calls + 1L
     writeBin(charToRaw("something else"), dest)
     list(success = TRUE, reason = NA_character_)
@@ -340,7 +340,7 @@ test_that("an interrupted transfer keeps its partial for the next attempt", {
   id <- resource_id("demopkg", "res", "1.0")
   rec <- fake_record("payload", "https://a.invalid/f")
   part <- getaca:::partial_path(rec, rec$urls[1])
-  cut_short <- function(url, dest, quiet = FALSE) {
+  cut_short <- function(url, dest, progress = NULL) {
     writeBin(charToRaw("pay"), dest)
     list(success = FALSE, reason = "transfer failed")
   }

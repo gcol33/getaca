@@ -19,7 +19,7 @@ MISSING_URL <- paste0(
 # bytes.
 live_checksum <- function() {
   probe <- withr::local_tempfile(.local_envir = parent.frame())
-  res <- getaca:::try_one(FIXTURE_URL, probe, quiet = TRUE)
+  res <- getaca:::try_one(FIXTURE_URL, probe)
   testthat::skip_if(!isTRUE(res$success),
                     paste("the fixture URL did not respond:", res$reason))
   getaca:::sha256_file(probe)
@@ -29,7 +29,7 @@ test_that("a real transfer reports success and writes the bytes", {
   online_only()
   dest <- withr::local_tempfile()
 
-  res <- getaca:::try_one(FIXTURE_URL, dest, quiet = TRUE)
+  res <- getaca:::try_one(FIXTURE_URL, dest)
 
   expect_true(res$success)
   expect_true(is.na(res$reason))
@@ -40,7 +40,7 @@ test_that("a missing path is an HTTP failure, not wrong content", {
   online_only()
   dest <- withr::local_tempfile()
 
-  res <- getaca:::try_one(MISSING_URL, dest, quiet = TRUE)
+  res <- getaca:::try_one(MISSING_URL, dest)
 
   expect_false(res$success)
   expect_match(res$reason, "404")
@@ -48,11 +48,52 @@ test_that("a missing path is an HTTP failure, not wrong content", {
   expect_false(file.exists(dest))
 })
 
+test_that("a real transfer reports its bytes as they arrive", {
+  online_only()
+  dest <- withr::local_tempfile()
+  seen <- numeric()
+
+  res <- getaca:::try_one(FIXTURE_URL, dest,
+                          progress = function(bytes) seen <<- c(seen, bytes))
+
+  expect_true(res$success)
+  expect_gt(length(seen), 0)
+  # Cumulative and non-decreasing, ending at what is on disk.
+  expect_false(is.unsorted(seen))
+  expect_equal(seen[length(seen)], unname(file.info(dest)$size))
+})
+
+test_that("a partial transfer resumes onto what is already there", {
+  online_only()
+  whole <- withr::local_tempfile()
+  expect_true(getaca:::try_one(FIXTURE_URL, whole)$success)
+  full_size <- unname(file.info(whole)$size)
+  full_sha <- getaca:::sha256_file(whole)
+  testthat::skip_if(full_size < 100, "the fixture is too small to resume into")
+
+  # The first 100 bytes of the real file, as an interrupted transfer leaves.
+  dest <- withr::local_tempfile()
+  writeBin(readBin(whole, "raw", n = 100), dest)
+  seen <- numeric()
+
+  res <- getaca:::try_one(FIXTURE_URL, dest,
+                          progress = function(bytes) seen <<- c(seen, bytes))
+
+  expect_true(res$success)
+  # The rest arrived and the whole file is what it should be, which only holds
+  # if the range was honoured and appended rather than restarted.
+  expect_equal(getaca:::sha256_file(dest), full_sha)
+  expect_equal(unname(file.info(dest)$size), full_size)
+  # Reported bytes count from the offset, so the first report is already past
+  # what was on disk. A server ignoring the range would report from zero.
+  expect_gt(seen[1], 100)
+})
+
 test_that("an unresolvable host is a transfer failure", {
   testthat::skip_on_cran()
   dest <- withr::local_tempfile()
 
-  res <- getaca:::try_one("https://getaca-no-such-host.invalid/f", dest, quiet = TRUE)
+  res <- getaca:::try_one("https://getaca-no-such-host.invalid/f", dest)
 
   expect_false(res$success)
   expect_true(is.character(res$reason) && nzchar(res$reason))

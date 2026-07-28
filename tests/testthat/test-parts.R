@@ -33,7 +33,7 @@ composed_of <- function(files, dir, name = "composed.bin") {
 # part already in the store is visibly not fetched a second time.
 serves_parts <- function(files) {
   asked <- character()
-  fn <- function(url, dest, quiet = FALSE) {
+  fn <- function(url, dest, progress = NULL) {
     hit <- Filter(function(f) identical(f$url, url), files)
     if (!length(hit)) return(list(success = FALSE, reason = "HTTP 404"))
     asked <<- c(asked, url)

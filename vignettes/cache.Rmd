@@ -313,6 +313,59 @@ already in the store is used where it lies, which is the whole point of
 declaring one, and an interrupted composition is overwritten by the retry rather
 than accumulating.
 
+## Watching a transfer
+
+getaca drives its own transfer loop, so what a download looks like is a setting
+rather than whatever the transfer library prints.
+
+```{r, eval = FALSE}
+getaca_progress("bar")    # redraws one line, the default when interactive
+getaca_progress("line")   # one line to start and one to finish, for a log
+getaca_progress("none")   # nothing
+```
+
+```
+taxify/wfo@2026-09  [============>      ]  63%  512 MB / 812 MB  41 MB/s  ETA 00:07
+```
+
+The share is measured against the size the registry declares, which is known
+before the first byte arrives and stays right when a mirror sends no content
+length. A resource composed from parts reports each piece under its own label,
+so a series reads as one download in stages:
+
+```
+taxify/wfo@2026-09 (part 1 of 3)  [===================] 100%  797 MB in 00:19
+taxify/wfo@2026-09 (part 2 of 3)  [========>          ]  44%  4.0 MB / 9.1 MB  ...
+```
+
+`quiet = TRUE` on a single call reports nothing whatever the session is set to,
+so one silent retrieval never needs the setting changed and put back:
+
+```{r, eval = FALSE}
+getaca("wfo", package = "taxify", quiet = TRUE)
+```
+
+A package that wants a download to look like its own writes a `reporter()`,
+which is a function of one argument:
+
+```{r}
+counter <- reporter("counter", function(event) {
+  if (identical(event$type, "end") && identical(event$status, "ok")) {
+    message(format(event$id), ": ", event$bytes, " bytes")
+  }
+})
+counter
+```
+
+The events are `begin`, `bytes` and `end`, and a handler switches on
+`event$type` and ignores what it does not use. `begin` carries the resource, the
+mirror, the declared `total` and the `offset` an interrupted transfer resumed
+from; `bytes` carries the cumulative count; `end` carries the outcome. See
+`?"getaca-progress"` for the fields.
+
+A reporter never decides whether a retrieval succeeds. One that raises is
+caught, reported once as a warning, and switched off for the rest of the call.
+
 ## Retention
 
 CRAN permits `tools::R_user_dir()` on condition that contents are "actively
@@ -402,6 +455,7 @@ option taking precedence.
 |---|---|---|---|
 | `getaca.cache` | `GETACA_CACHE` | `R_user_dir()` | where everything lives |
 | `getaca.policy` | `GETACA_POLICY` | registry default | which channel resolves |
+| `getaca.progress` | `GETACA_PROGRESS` | `auto` | what a transfer looks like |
 | `getaca.verify_days` | `GETACA_VERIFY_DAYS` | 90 | scheduled re-hash interval |
 | `getaca.supersede_days` | `GETACA_SUPERSEDE_DAYS` | 30 | retention for undeclared versions |
 | `getaca.max_bytes` | `GETACA_MAX_BYTES` | 20 GB | ceiling above which LRU runs |

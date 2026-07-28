@@ -17,7 +17,8 @@ collide.}
 \item{registry}{A \code{\link[=registry]{registry()}} object, for standalone use without a
 declaring package.}
 
-\item{quiet}{Suppress progress reporting.}
+\item{quiet}{Report nothing for this call, whatever \code{\link[=getaca_progress]{getaca_progress()}} is
+set to.}
 }
 \value{
 A character vector of paths, invisibly.

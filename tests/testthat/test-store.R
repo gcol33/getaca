@@ -88,7 +88,7 @@ test_that("two packages declaring one file store it once and transfer it once", 
   cache <- local_cache()
   f <- seed_file(withr::local_tempdir(), contents = "the shared backbone")
   transfers <- 0L
-  counting <- function(url, dest, quiet = FALSE) {
+  counting <- function(url, dest, progress = NULL) {
     transfers <<- transfers + 1L
     file.copy(f$path, dest, overwrite = TRUE)
     list(success = TRUE, reason = NA_character_)

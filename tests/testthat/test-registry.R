@@ -329,7 +329,7 @@ test_that("retrieval reaches a declaring package by name alone", {
   install_declaring_package("declaringpkg",
                             demo_registry(f$sha256, package = "declaringpkg"))
   testthat::local_mocked_bindings(
-    try_one = function(url, dest, quiet = FALSE) {
+    try_one = function(url, dest, progress = NULL) {
       file.copy(f$path, dest, overwrite = TRUE)
       list(success = TRUE, reason = NA_character_)
     },

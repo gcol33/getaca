@@ -8,6 +8,12 @@
 #' download resumes on the next attempt rather than starting over. That
 #' matters when the resource is measured in gigabytes.
 #'
+#' getaca drives the transfer itself, over the curl multi interface, rather
+#' than handing a URL to a function that returns when it is done. What that
+#' buys is the response status before the first byte is written, and a count of
+#' the bytes as they arrive. The first decides where they go; the second is
+#' what [getaca-progress] reports.
+#'
 #' @name getaca-transfer
 #' @keywords internal
 NULL
@@ -15,6 +21,7 @@ NULL
 new_handle_for <- function(url) {
   h <- curl::new_handle()
   curl::handle_setopt(h,
+    url = url,
     timeout = setting_timeout(),
     connecttimeout = 30,
     followlocation = TRUE,
@@ -43,15 +50,17 @@ partial_path <- function(record, url) {
 # `transport` is the seam between which mirror to trust and how bytes move.
 # Adjudication is the part worth testing, and it is testable without a
 # network because the transport is injectable.
-fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one) {
+fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one,
+                          reporter = NULL) {
   unreachable <- character()
   reasons <- character()
   observed_hashes <- character()
   short <- numeric()
+  rep <- reporter %||% effective_reporter(quiet)
 
   for (url in record$urls) {
     dest <- partial_path(record, url)
-    out <- attempt_mirror(url, dest, record, transport, quiet)
+    out <- attempt_mirror(url, dest, record, transport, rep, id)
 
     if (identical(out$status, "ok")) {
       return(list(path = dest, url = url, sha256 = out$sha256))
@@ -86,25 +95,37 @@ fetch_to_temp <- function(id, record, quiet = FALSE, transport = try_one) {
 # but does not verify indicts the partial rather than the publisher, so the
 # same mirror is asked once more from empty. Without that, one stale temporary
 # file makes a resource permanently unfetchable and blames upstream for it.
-attempt_mirror <- function(url, dest, record, transport, quiet) {
-  out <- one_pass(url, dest, record, transport, quiet)
+attempt_mirror <- function(url, dest, record, transport, rep, id) {
+  out <- one_pass(url, dest, record, transport, rep, id)
   if (identical(out$status, "mismatch") && out$resumed) {
     unlink(dest)
-    out <- one_pass(url, dest, record, transport, quiet)
+    out <- one_pass(url, dest, record, transport, rep, id)
   }
   if (identical(out$status, "mismatch")) unlink(dest)
   out
 }
 
-one_pass <- function(url, dest, record, transport, quiet) {
-  resumed <- file.exists(dest)
-  res <- transport(url, dest, quiet = quiet)
+# One attempt at one mirror, bracketed by the events a reporter sees. The
+# bracket is here rather than around the mirror loop because a resumed transfer
+# that fails its checksum is asked again from empty, and that second attempt is
+# a second transfer to anyone watching.
+one_pass <- function(url, dest, record, transport, rep, id) {
+  offset <- bytes_on_disk(dest)
+  resumed <- offset > 0
+  emit(rep, "begin", id = id, url = url, total = record$size, offset = offset)
+
+  res <- transport(url, dest, progress = byte_callback(rep, id, record$size))
+  arrived <- bytes_on_disk(dest)
 
   if (!isTRUE(res$success)) {
+    emit(rep, "end", id = id, status = "failed", bytes = arrived,
+         reason = res$reason)
     return(list(status = "unreachable", reason = res$reason, resumed = resumed))
   }
+  emit(rep, "end", id = id, status = "ok", bytes = arrived,
+       reason = NA_character_)
 
-  size <- file_size(dest)
+  size <- arrived
   if (!is.na(record$size) && size < record$size) {
     unlink(dest)
     return(list(status = "truncated", observed = size, resumed = resumed,
@@ -116,35 +137,121 @@ one_pass <- function(url, dest, record, transport, quiet) {
   list(status = status, sha256 = observed, resumed = resumed)
 }
 
-try_one <- function(url, dest, quiet = FALSE) {
-  out <- tryCatch(
-    curl::multi_download(
-      url, dest,
-      resume = TRUE,
-      progress = !quiet && interactive(),
-      timeout = setting_timeout()
-    ),
-    error = function(e) NULL
+bytes_on_disk <- function(path) {
+  if (!file.exists(path)) return(0)
+  size <- file_size(path)
+  if (is.na(size)) 0 else size
+}
+
+# The handle for one attempt at one mirror.
+#
+# Content encoding and byte ranges number the same response differently: a
+# server compressing on the fly counts encoded bytes, while a resume offset
+# counts decoded ones, and libcurl reports the combination as a content-encoding
+# error rather than as bytes. Identity is what a resumable transfer needs, and
+# what getaca wants for its own sake, since what it hashes is what it stores.
+transfer_handle <- function(url, offset) {
+  h <- new_handle_for(url)
+  curl::handle_setopt(h, accept_encoding = "identity", noprogress = TRUE)
+  if (offset > 0) curl::handle_setopt(h, resume_from_large = offset)
+  h
+}
+
+# One mirror, driven over the multi interface. Returns the same two fields
+# every transport returns, so which one is in use is invisible above here.
+#
+# `progress` is called with the cumulative bytes on disk for this attempt,
+# including whatever it resumed onto. It is the only thing the transport knows
+# about reporting: what the bytes mean, and how they are drawn, belongs to the
+# reporter that supplied the callback.
+try_one <- function(url, dest, progress = NULL) {
+  offset <- bytes_on_disk(dest)
+  handle <- transfer_handle(url, offset)
+  st <- new.env(parent = emptyenv())
+  st$con <- NULL
+  st$refused <- FALSE
+  st$base <- 0
+  st$written <- 0
+  st$status <- NA_integer_
+  st$completed <- FALSE
+  st$error <- NA_character_
+
+  on.exit(close_transfer(st), add = TRUE)
+
+  pool <- curl::new_pool()
+  curl::multi_add(
+    handle, pool = pool,
+    data = function(buf, final) receive(st, handle, buf, dest, offset, progress),
+    done = function(res) {
+      st$completed <- TRUE
+      st$status <- res$status_code
+    },
+    fail = function(err) st$error <- as.character(err)
   )
-  if (is.null(out)) return(list(success = FALSE, reason = "transfer failed"))
-  status <- out$status_code[1]
-  if (!isTRUE(out$success[1])) {
-    # An interrupted transfer keeps what it managed to write, so the next
-    # attempt resumes rather than starting a large download over.
-    reason <- if (!is.na(out$error[1]) && nzchar(out$error[1])) {
-      out$error[1]
-    } else {
-      paste("HTTP", status)
-    }
+  curl::multi_run(pool = pool)
+  close_transfer(st)
+  transfer_result(st, dest, offset)
+}
+
+# Where the bytes go is decided once, on the first chunk, from the status the
+# response already carries. Three cases, and only the first is the ordinary one:
+# a partial continued, a range request the server ignored, and a response whose
+# body is not the resource at all.
+receive <- function(st, handle, buf, dest, offset, progress) {
+  if (is.null(st$con) && !st$refused) open_destination(st, handle, dest, offset)
+  if (st$refused) return(invisible(NULL))
+  writeBin(buf, st$con)
+  st$written <- st$written + length(buf)
+  if (!is.null(progress)) progress(st$base + st$written)
+  invisible(NULL)
+}
+
+open_destination <- function(st, handle, dest, offset) {
+  status <- tryCatch(curl::handle_data(handle)$status_code,
+                     error = function(e) NA_integer_)
+  st$status <- status
+  # An error response has a body, and it is not the resource. Refusing to open
+  # the file is what keeps it out of a partial a later attempt would resume
+  # onto, and leaves bytes an earlier attempt did get where they are.
+  if (is.na(status) || status >= 400) {
+    st$refused <- TRUE
+    return(invisible(NULL))
+  }
+  # 206 is the range honoured. Anything else in the 2xx range answered a resume
+  # request with the whole file, so what is on disk is the first bytes of it
+  # twice over unless the file is truncated first.
+  resuming <- offset > 0 && identical(as.integer(status), 206L)
+  st$base <- if (resuming) offset else 0
+  st$con <- file(dest, open = if (resuming) "ab" else "wb")
+  invisible(NULL)
+}
+
+close_transfer <- function(st) {
+  if (!is.null(st$con)) {
+    close(st$con)
+    st$con <- NULL
+  }
+  invisible(NULL)
+}
+
+transfer_result <- function(st, dest, offset) {
+  if (!st$completed) {
+    reason <- if (!is.na(st$error) && nzchar(st$error)) st$error else "transfer failed"
     return(list(success = FALSE, reason = reason))
   }
+  status <- st$status
   if (!is.na(status) && status >= 400) {
-    # The body of an error response is not resource bytes, and a range request
-    # this server refused is not resumable either. Neither may survive as a
-    # partial file.
-    unlink(dest)
+    # Nothing was written, so what is on disk is whatever was there before. An
+    # empty file is not a partial and leaves nothing to resume onto, and 416
+    # says the offset is past the end of the file the server holds, so the
+    # partial disagrees with upstream and cannot be continued. Anything else
+    # keeps the bytes an earlier attempt did get.
+    if (offset == 0 || identical(as.integer(status), 416L)) unlink(dest)
     return(list(success = FALSE, reason = paste("HTTP", status)))
   }
+  # A resource of no bytes still has to arrive as a file, and a response with an
+  # empty body never reaches the writer.
+  if (!file.exists(dest)) file.create(dest)
   list(success = TRUE, reason = NA_character_)
 }
 

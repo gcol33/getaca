@@ -368,6 +368,40 @@ a delta format needs. Either way the artefact is the identity: re-splitting a
 file or moving a piece to a new host changes the route, and what a version means
 is fixed by the checksum at the end of it.
 
+## Watching a transfer
+
+<img src="man/figures/progress.gif" width="100%" alt="A getaca transfer: three parts of a series, each with its share, its rate and an estimate of what is left">
+
+
+`getaca` drives its own transfer loop, so what a download looks like is a
+setting:
+
+```r
+getaca_progress("bar")    # redraws one line, the default when interactive
+getaca_progress("line")   # one line to start and one to finish, for a log
+getaca_progress("none")
+```
+
+The share is measured against the size the registry declares, so it is right
+before the first byte arrives and stays right for a mirror that sends no content
+length. A series reports each piece under its own label, and a resumed transfer
+counts from what was already on disk.
+
+A package that wants downloads to look like its own writes a `reporter()`, which
+is a function of one argument:
+
+```r
+getaca_progress(reporter("shiny", function(event) {
+  if (identical(event$type, "bytes")) {
+    shiny::setProgress(event$bytes / event$total, format(event$id))
+  }
+}))
+```
+
+The events carry the resource, the mirror, the declared size and the resume
+offset. `quiet = TRUE` on a single call reports nothing whatever the session is
+set to.
+
 ## Keeping the cache in bounds
 
 CRAN permits `tools::R_user_dir()` on condition that contents are "actively
@@ -450,6 +484,8 @@ them, which puts verification at disk speed: 1.43 GB/s on an i9-14900K, so a
 - **`part()`**, **`combiner()`** declare a record that arrives as a series, and
   how the series composes
 - **`processor()`** declare a post-verification transformation
+- **`getaca_progress()`**, **`reporter()`** choose what a transfer looks like, or
+  write your own
 - **`getaca_info()`** full provenance for a cached resource
 - **`getaca_catalogue()`** what is declared, what is current, what is cached
 - **`getaca_refresh()`** forget cached registry state within a session

@@ -48,7 +48,8 @@ hold an analysis to one release.}
 \item{processed}{Apply the declared \code{\link[=processor]{processor()}}, when there is one, and
 return the processed path. \code{FALSE} returns the raw artefact.}
 
-\item{quiet}{Suppress progress reporting.}
+\item{quiet}{Report nothing for this call, whatever \code{\link[=getaca_progress]{getaca_progress()}} is
+set to.}
 }
 \value{
 \code{getaca_available()} returns \code{TRUE} when the resource is cached and
