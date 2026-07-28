@@ -78,6 +78,8 @@ reference:
   contents:
   - resource
   - resource_id
+  - part
+  - combiner
   - processor
   - registry
   - registry_write

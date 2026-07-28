@@ -22,6 +22,9 @@
 #'     inconsistent registry. actor: author.}
 #'   \item{`getaca_error_declaration`}{Several independent mirrors agreed with
 #'     each other and disagreed with the declared checksum. actor: author.}
+#'   \item{`getaca_error_composition`}{Every declared part arrived and matched
+#'     its own checksum, and combining them produced something other than the
+#'     artefact the record names. actor: author.}
 #'   \item{`getaca_error_signature`}{A registry that must be signed carried no
 #'     usable signature from a trusted key. actor: author.}
 #' }
@@ -186,6 +189,27 @@ err_signature <- function(package, problem, url = NULL, call = NULL) {
     ),
     actor = "author",
     data = list(package = package, problem = problem, url = url),
+    call = call
+  )
+}
+
+err_composition <- function(id, expected, observed, parts, combiner, call = NULL) {
+  getaca_abort(
+    "getaca_error_composition",
+    c(
+      sprintf("The parts declared for %s do not produce the declared bytes.", format(id)),
+      sprintf("  %d parts, each matching its own checksum, combined by '%s'",
+              parts, combiner),
+      sprintf("  declared SHA-256: %s", expected),
+      sprintf("  composed SHA-256: %s", observed),
+      "",
+      "Every part arrived intact, so this is not a transfer problem. Either the",
+      "series is not the one this version is made of, or it is put together by",
+      "something other than what the registry names."
+    ),
+    actor = "author",
+    data = list(id = id, expected = expected, observed = observed,
+                parts = parts, combiner = combiner),
     call = call
   )
 }

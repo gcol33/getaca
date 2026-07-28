@@ -27,6 +27,9 @@ actor: author.}
 inconsistent registry. actor: author.}
 \item{\code{getaca_error_declaration}}{Several independent mirrors agreed with
 each other and disagreed with the declared checksum. actor: author.}
+\item{\code{getaca_error_composition}}{Every declared part arrived and matched
+its own checksum, and combining them produced something other than the
+artefact the record names. actor: author.}
 \item{\code{getaca_error_signature}}{A registry that must be signed carried no
 usable signature from a trusted key. actor: author.}
 }

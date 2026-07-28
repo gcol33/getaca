@@ -129,6 +129,14 @@ entry_blob <- function(entry) {
   if (is.null(entry$link)) NULL else entry$observed_sha256
 }
 
+# Every blob an entry keeps alive: the bytes it names, and the parts those bytes
+# were composed from. A part blob is named by no version slot, so this is the
+# only route to it, which is what keeps a base shared across versions alive for
+# exactly as long as some composed version still holds it.
+entry_blobs <- function(entry) {
+  unique(c(entry_blob(entry), entry$parts))
+}
+
 # Every path that is another name for an entry's bytes rather than a separate
 # copy of them: the blob itself, and the raw view wherever the filesystem
 # allowed a link. A copy is the slot's own, and a processed tree is derived
@@ -152,7 +160,7 @@ live_blobs <- function() {
   shas <- unlist(lapply(list_cached_packages(), function(p) {
     entries <- read_index(p)
     if (!length(entries)) return(character())
-    unlist(lapply(entries, entry_blob), use.names = FALSE)
+    unlist(lapply(entries, entry_blobs), use.names = FALSE)
   }), use.names = FALSE)
   unique(shas)
 }

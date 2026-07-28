@@ -117,3 +117,49 @@ test_that("a pinned entry built from something says both", {
   expect_match(out, "processor")
   expect_match(out, "never garbage collected")
 })
+
+test_that("printing a composed record shows the series and what combines it", {
+  rec <- resource(
+    "wfo", "2026-09",
+    sha256 = strrep("b", 64), size = 1068057, file = "wfo.parquet",
+    parts = list(
+      part("https://primary.invalid/wfo-base.bin",
+           sha256 = strrep("9", 64), size = 1048576),
+      part("https://primary.invalid/wfo-2026-09.bin", sha256 = strrep("4", 64))
+    )
+  )
+
+  out <- shown(rec)
+  expect_match(out, "file      wfo.parquet", fixed = TRUE)
+  expect_match(out, "2 parts via 'concat'", fixed = TRUE)
+  expect_match(out, "999999999999", fixed = TRUE)
+  expect_match(out, "1,048,576", fixed = TRUE)
+  # A part may omit its size, and saying so beats rendering an empty column.
+  expect_match(out, "unknown size", fixed = TRUE)
+  # A composed record has no whole-file mirrors, so it claims none.
+  expect_false(grepl("urls", out, fixed = TRUE))
+})
+
+test_that("a part and a combiner each print as themselves", {
+  p <- part("https://primary.invalid/base.bin", sha256 = strrep("9", 64),
+            size = 2048)
+  expect_match(shown(p), "<getaca part>", fixed = TRUE)
+  expect_match(shown(p), "999999999999", fixed = TRUE)
+  expect_match(shown(p), "primary.invalid/base.bin", fixed = TRUE)
+
+  cmb <- combiner("bsdiff", function(parts, output) NULL)
+  expect_match(shown(cmb), "<getaca combiner> bsdiff", fixed = TRUE)
+})
+
+test_that("printing a composed entry names the parts it was made from", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  reg <- demo_registry(f$sha256)
+  entry <- seed_cache(reg, f)$entry
+  entry$parts <- c(strrep("9", 64), strrep("4", 64))
+  entry$combiner_id <- "concat"
+
+  out <- shown(entry)
+  expect_match(out, "2 parts via 'concat'", fixed = TRUE)
+  expect_match(out, "part      999999999999", fixed = TRUE)
+})

@@ -74,9 +74,19 @@ getaca <- function(name, package = NULL, registry = NULL, version = NULL,
   }
 
   # Bytes already in the store, or a copy in the slot that hashes to the
-  # declaration, are both reasons not to transfer anything.
+  # declaration, are both reasons not to transfer anything. This is checked
+  # ahead of the parts, since an artefact already composed needs none of them.
   if (blob_exists(record$sha256) || adopt(id, record)) {
     placed <- place(id, record)
+    url_used <- NA_character_
+  } else if (length(record$parts)) {
+    # Held until this call returns, which is after the entry naming the parts
+    # has been written. Until then nothing else knows the blobs are wanted.
+    held <- lock_parts(id, record, held = record$sha256)
+    on.exit(release_locks(held), add = TRUE)
+    placed <- promote(id, record, compose_parts(id, record, quiet = quiet))
+    # No single location served these bytes. What produced them is the part
+    # series the entry records.
     url_used <- NA_character_
   } else {
     got <- fetch_to_temp(id, record, quiet = quiet)
@@ -203,7 +213,9 @@ getaca_info <- function(name, package = NULL, registry = NULL, version = NULL,
 #' @param registry A [registry()] object, for standalone use without an
 #'   installed declaring package.
 #'
-#' @return A data frame, one row per resource version. `current` marks the
+#' @return A data frame, one row per resource version. `parts` is how many
+#'   pieces the artefact is composed from, and `0` where it is served whole, so
+#'   what a version update costs to fetch is visible. `current` marks the
 #'   version a bare request for that name resolves to, so a channel head is
 #'   visible rather than implied. `declared` is `TRUE` when the registry in
 #'   force names that version, `FALSE` when it does not, and `NA` when no
@@ -287,6 +299,7 @@ entry_row <- function(e, declared, current) {
     version = e$id$version,
     current = current,
     processor = e$processor_id %||% NA_character_,
+    parts = length(e$parts),
     link = e$link %||% NA_character_,
     declared = declared,
     cached = TRUE,
@@ -309,6 +322,7 @@ declared_row <- function(package, rec, current) {
     version = rec$version,
     current = current,
     processor = if (is.null(rec$processor)) NA_character_ else rec$processor$id,
+    parts = length(rec$parts),
     link = NA_character_,
     declared = TRUE,
     cached = FALSE,
@@ -329,8 +343,8 @@ na_time <- function(n = 1L) .POSIXct(rep(NA_real_, n))
 empty_catalogue <- function() {
   data.frame(
     package = character(), name = character(), version = character(),
-    current = logical(), processor = character(), link = character(),
-    declared = logical(), cached = logical(),
+    current = logical(), processor = character(), parts = integer(),
+    link = character(), declared = logical(), cached = logical(),
     size = numeric(), license = character(),
     source = character(), registry_digest = character(),
     verified_at = na_time(0L), accessed_at = na_time(0L),

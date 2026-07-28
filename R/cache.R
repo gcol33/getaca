@@ -121,6 +121,11 @@ new_entry <- function(id, record, path, observed_sha, source, digest,
       getaca_version = getaca_version(),
       url_used = url_used,
       processor_id = processor_id,
+      # Which pieces these bytes were composed from, and by what. Provenance,
+      # and also reachability: a part blob is named by no version slot, so the
+      # entry composed from it is the only thing that keeps it alive.
+      parts = part_digests(record),
+      combiner_id = if (length(record$parts)) combiner_id(record$combiner) else NULL,
       # How the version slot reaches the bytes. Absent means the bytes sit in
       # the slot itself, which is what a cache built before the store holds.
       link = link,
@@ -182,6 +187,10 @@ print.getaca_entry <- function(x, ...) {
       },
       "\n", sep = "")
   cat("  source url  ", x$url_used, "\n", sep = "")
+  if (length(x$parts)) {
+    cat("  composed    ", length(x$parts), " parts via '", x$combiner_id, "'\n", sep = "")
+    for (sha in x$parts) cat("    part      ", substr(sha, 1, 12), "\n", sep = "")
+  }
   if (!is.null(x$processor_id)) cat("  processor   ", x$processor_id, "\n", sep = "")
   cat("  getaca      ", x$getaca_version %||% "unknown", "\n", sep = "")
   cat("  fetched     ", format(x$fetched_at, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")

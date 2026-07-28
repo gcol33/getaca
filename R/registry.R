@@ -107,7 +107,10 @@ registry <- function(package, resources, remote = NULL,
   reg
 }
 
-REGISTRY_SCHEMA <- 2L
+# 3 since resources may declare parts. An older getaca refuses a registry at
+# this schema, which is the right answer: it has no composition step and would
+# read a record with no `urls` as one with nowhere to fetch from.
+REGISTRY_SCHEMA <- 3L
 
 validate_registry <- function(x) {
   p <- character()
@@ -308,6 +311,10 @@ getaca_refresh <- function() {
 #' `yaml` or `jsonlite` package only when reading those formats; neither is a
 #' hard dependency.
 #'
+#' Multi-part records are expressible, since a [part()] is data. A [combiner()]
+#' is not, so a record combined by anything other than the default has to be
+#' declared with [resource()] in R, where the function it names exists.
+#'
 #' @param x A list, or a path to a `.yml`, `.yaml` or `.json` file.
 #' @param package Declaring package name.
 #' @param ... Passed to [registry()].
@@ -326,10 +333,33 @@ as_registry <- function(x, package, ...) {
       size = spec$size %||% NA_real_,
       # Authoring formats accept either spelling; the model has one field.
       license = spec$license %||% spec$licence %||% NA_character_,
-      description = spec$description %||% NA_character_
+      description = spec$description %||% NA_character_,
+      parts = authoring_parts(spec$parts),
+      combiner = authoring_combiner(spec$combiner, nm),
+      file = spec$file
     )
   })
   registry(package = package, resources = resources, ...)
+}
+
+authoring_parts <- function(parts) {
+  if (!length(parts)) return(NULL)
+  lapply(parts, function(p) {
+    part(urls = unlist(p$urls %||% p$url, use.names = FALSE),
+         sha256 = p$sha256,
+         size = p$size %||% NA_real_)
+  })
+}
+
+# A combiner carries a function, and an authoring format carries data, so the
+# only one nameable here is the default. Saying so is better than accepting the
+# name and combining by something else.
+authoring_combiner <- function(id, name) {
+  if (is.null(id) || identical(as.character(id), CONCAT_ID)) return(NULL)
+  err_invalid_registry(sprintf(
+    "resource '%s': combiner '%s' carries a function, so it cannot come from an authoring format; declare this record with resource() in R",
+    name, id
+  ))
 }
 
 read_authoring_format <- function(path) {

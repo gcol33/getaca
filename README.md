@@ -64,7 +64,7 @@ and many declarations, the way there is one `renv` and many lockfiles.
 ## Failures that name who can fix them
 
 A retrieval produces the bytes the package was built against, or an error
-naming who can act on it. Six situations get six answers, each classed so
+naming who can act on it. Seven situations get seven answers, each classed so
 callers can branch on the cause:
 
 | Condition | Meaning | Who acts |
@@ -75,6 +75,7 @@ callers can branch on the cause:
 | `getaca_error_upstream_changed` | publisher replaced a published version | upstream |
 | `getaca_error_cache_corrupt` | local copy drifted from its own record | user |
 | `getaca_error_declaration` | every mirror agrees, the registry disagrees | author |
+| `getaca_error_composition` | the parts arrived intact and compose to something else | author |
 
 When several independent mirrors return identical bytes and none of them match
 the declared checksum, the registry is the likely error, and
@@ -340,6 +341,33 @@ Changing what the transformation does means changing the id, which invalidates
 previously processed copies. `getaca(..., processed = FALSE)` returns the raw
 artefact. `getaca` knows nothing about file formats and never reads data.
 
+## Files that arrive in pieces
+
+A host that caps file size, or a publisher issuing deltas against a base
+release, gives you a resource that arrives as a series. Declare the pieces, and
+`sha256` describes the artefact they compose:
+
+```r
+resource("atlas", "2026-09",
+         sha256 = "b104...",
+         file   = "atlas.parquet",
+         parts  = list(
+           part("https://primary.invalid/atlas-base.bin",    sha256 = "91cc..."),
+           part("https://primary.invalid/atlas-2026-09.bin", sha256 = "4e77...")
+         ))
+```
+
+Each part is verified and stored under its own digest, so the base is
+transferred once however many versions declare it, and publishing a version
+costs your users the delta. The composed result is hashed against the record's
+own checksum before anyone sees it, then joins the store exactly as a downloaded
+file does.
+
+Parts are concatenated unless the record declares a `combiner()`, which is what
+a delta format needs. Either way the artefact is the identity: re-splitting a
+file or moving a piece to a new host changes the route, and what a version means
+is fixed by the checksum at the end of it.
+
 ## Keeping the cache in bounds
 
 CRAN permits `tools::R_user_dir()` on condition that contents are "actively
@@ -419,6 +447,8 @@ them, which puts verification at disk speed: 1.43 GB/s on an i9-14900K, so a
 - **`registry_digest()`**, **`registry_manifest()`** the identity of a
   declaration state, and the text it is taken over
 - **`as_registry()`** build one from a YAML or JSON authoring file
+- **`part()`**, **`combiner()`** declare a record that arrives as a series, and
+  how the series composes
 - **`processor()`** declare a post-verification transformation
 - **`getaca_info()`** full provenance for a cached resource
 - **`getaca_catalogue()`** what is declared, what is current, what is cached

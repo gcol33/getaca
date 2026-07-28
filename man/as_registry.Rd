@@ -21,3 +21,8 @@ Accepts the list shape a YAML or JSON registry parses into. Requires the
 \code{yaml} or \code{jsonlite} package only when reading those formats; neither is a
 hard dependency.
 }
+\details{
+Multi-part records are expressible, since a \code{\link[=part]{part()}} is data. A \code{\link[=combiner]{combiner()}}
+is not, so a record combined by anything other than the default has to be
+declared with \code{\link[=resource]{resource()}} in R, where the function it names exists.
+}

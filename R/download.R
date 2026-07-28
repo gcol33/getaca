@@ -160,8 +160,15 @@ promote <- function(id, record, temp_path) {
 # carries through to materialise(), so which mechanism the filesystem allows is
 # a decision a caller can stand in for.
 place <- function(id, record, link = link_file) {
-  view <- file.path(cache_raw_dir(id), url_basename(record$urls[1]))
+  view <- file.path(cache_raw_dir(id), record_file_name(record))
   list(path = view, link = materialise(record$sha256, view, link = link))
+}
+
+# What the artefact is called in the slot. A declaration may state it, and a
+# record composed from parts must, since each part's URL names a piece rather
+# than the result.
+record_file_name <- function(record) {
+  record$file %||% url_basename(record$urls[1])
 }
 
 # One move, by whichever mechanism the filesystem allows: a rename when both

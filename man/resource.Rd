@@ -7,13 +7,16 @@
 resource(
   name,
   version,
-  urls,
+  urls = NULL,
   sha256,
   size = NA_real_,
   license = NA_character_,
   description = NA_character_,
   upstream = NULL,
-  processor = NULL
+  processor = NULL,
+  parts = NULL,
+  combiner = NULL,
+  file = NULL
 )
 }
 \arguments{
@@ -22,9 +25,10 @@ resource(
 \item{version}{Version label for these exact bytes, for example \code{"2026.1"}.}
 
 \item{urls}{Character vector of download locations, tried in order. All
-must be \verb{https://}.}
+must be \verb{https://}. Give this or \code{parts}.}
 
-\item{sha256}{Lowercase hex SHA-256 of the file as served.}
+\item{sha256}{Lowercase hex SHA-256 of the artefact. For a record with
+\code{parts}, of the artefact they compose rather than of any one of them.}
 
 \item{size}{Expected size in bytes, or \code{NA}. Used to detect truncated
 transfers before hashing.}
@@ -39,6 +43,17 @@ prepared database records both its own build identity and the upstream
 release it was made from, and both travel into provenance.}
 
 \item{processor}{Optional \code{\link[=processor]{processor()}} applied after verification.}
+
+\item{parts}{Optional list of \code{\link[=part]{part()}} records, in the order they are
+combined. Give this or \code{urls}.}
+
+\item{combiner}{Optional \code{\link[=combiner]{combiner()}} turning the parts into the artefact.
+The default concatenates them, which is what a file split for a host with
+a size limit needs.}
+
+\item{file}{Name the artefact is cached under. Defaults to the file name in
+the first URL, and is required alongside \code{parts}, where the URLs name the
+pieces rather than the result.}
 }
 \value{
 An object of class \code{getaca_resource}.
@@ -49,6 +64,14 @@ locations, under one version label. Once published, a record is immutable.
 If a publisher reissues the same nominal file with different bytes that is
 an upstream mutation, not a routine update, and getaca reports it as such.
 }
+\section{Whole files and parts}{
+
+A record names either locations for the whole file, in \code{urls}, or the
+ordered series it is composed from, in \code{parts}. \code{sha256} describes the
+artefact either way, so what a version means does not depend on how it
+arrives. See \code{\link[=part]{part()}}.
+}
+
 \examples{
 resource(
   name = "wfo",
@@ -57,5 +80,17 @@ resource(
   sha256 = strrep("a", 64),
   size = 1048576,
   license = "CC-BY-4.0"
+)
+
+# The same artefact, published as a base and the delta issued against it:
+resource(
+  name = "wfo",
+  version = "2026.2",
+  sha256 = strrep("b", 64),
+  file = "wfo.parquet",
+  parts = list(
+    part("https://example.org/wfo-base.bin", sha256 = strrep("c", 64)),
+    part("https://example.org/wfo-2026.2.bin", sha256 = strrep("d", 64))
+  )
 )
 }

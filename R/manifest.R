@@ -31,22 +31,30 @@
 #'   url https://mirror.example.org/wfo-2026-06.parquet
 #'   upstream release 2026-06
 #'   processor unzip-v2
+#' resource wfo 2026-09
+#'   sha256 b104e7...
+#'   file wfo.parquet
+#'   part 91cc0d... 1048576
+#'     url https://zenodo.org/record/456/wfo-base.bin
+#'   part 4e77a1... 20481
+#'     url https://zenodo.org/record/456/wfo-2026-09.bin
+#'   combiner concat
 #' ```
 #'
 #' Resources are sorted by `name@version` in the C locale, so the same
 #' declaration renders identically wherever it is read. URLs keep declaration
-#' order, which is load-bearing: mirrors are tried in the order given. Signing
-#' keys are sorted, since which one signs is a fact about the signature rather
-#' than about the declaration. Absent and `NA` fields are omitted rather than
-#' rendered as empty, since a key that is present carries a value by
-#' construction.
+#' order, which is load-bearing: mirrors are tried in the order given. Parts
+#' keep it for a stronger reason, since the order is the one they are combined
+#' in. Signing keys are sorted, since which one signs is a fact about the
+#' signature rather than about the declaration. Absent and `NA` fields are
+#' omitted rather than rendered as empty, since a key that is present carries a
+#' value by construction.
 #'
 #' Rendering an absent field as nothing is what let signing keys join the
-#' manifest without a new format version. A registry declaring none renders
-#' exactly the bytes it always did, so every digest recorded before keys
-#' existed still identifies the state that produced it. Only a registry that
-#' actually carries a key renders a line for one, and none did before the field
-#' existed.
+#' manifest without a new format version, and then `file`, `part` and
+#' `combiner` after them. A registry declaring none of them renders exactly the
+#' bytes it always did, so every digest recorded before they existed still
+#' identifies the state that produced it.
 #'
 #' @section What is left out:
 #' `created` and `policy` are not part of the declaration. `created` says when
@@ -148,9 +156,30 @@ manifest_resource <- function(r) {
     manifest_line("sha256", r$sha256, indent = TRUE),
     manifest_line("size", manifest_size(r$size), indent = TRUE),
     manifest_line("license", r$license, indent = TRUE),
+    manifest_line("file", r$file, indent = TRUE),
     manifest_line("url", r$urls, indent = TRUE),
+    manifest_parts(r$parts, r$combiner),
     manifest_upstream(r$upstream),
     manifest_line("processor", r$processor$id, indent = TRUE)
+  )
+}
+
+# Parts keep declaration order, the way URLs do, and for a stronger reason: the
+# order is the one the combiner applies, so two orderings of one series are two
+# different artefacts. The combiner is named even where it is the default, since
+# what produces the bytes should not have to be inferred from a missing line.
+manifest_parts <- function(parts, combiner) {
+  if (!length(parts)) return(character())
+  c(
+    unlist(lapply(parts, function(p) {
+      head <- if (is.na(p$size)) {
+        paste("  part", p$sha256)
+      } else {
+        paste("  part", p$sha256, manifest_size(p$size))
+      }
+      c(head, paste0("    url ", manifest_escape(p$urls)))
+    }), use.names = FALSE),
+    paste("  combiner", manifest_escape(combiner_id(combiner)))
   )
 }
 

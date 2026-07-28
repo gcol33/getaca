@@ -168,16 +168,20 @@ sweep_lru <- function(candidates, dry_run) {
     )
     total <- total - unshared_bytes(e)
 
-    sha <- entry_blob(e)
-    last <- FALSE
-    if (!is.null(sha)) {
+    # Every blob this entry was the last to reach, which for a composed resource
+    # is the artefact and whichever of its parts no surviving version still
+    # holds. A base declared by a version that stays cached keeps its reference.
+    last <- character()
+    for (sha in entry_blobs(e)) {
       refs[[sha]] <- (refs[[sha]] %||% 1L) - 1L
-      last <- refs[[sha]] <= 0L
-      if (last) total <- total - blob_bytes(sha)
+      if (refs[[sha]] <= 0L) {
+        last <- c(last, sha)
+        total <- total - blob_bytes(sha)
+      }
     }
     if (!dry_run) {
       drop_cached(e)
-      if (last) remove_path(blob_path(sha))
+      for (sha in last) remove_path(blob_path(sha))
     }
   }
   if (!length(out)) return(NULL)
@@ -206,8 +210,7 @@ blob_refs <- function() {
   refs <- list()
   for (p in list_cached_packages()) {
     for (e in read_index(p)) {
-      sha <- entry_blob(e)
-      if (!is.null(sha)) refs[[sha]] <- (refs[[sha]] %||% 0L) + 1L
+      for (sha in entry_blobs(e)) refs[[sha]] <- (refs[[sha]] %||% 0L) + 1L
     }
   }
   refs

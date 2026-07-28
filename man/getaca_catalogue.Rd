@@ -15,7 +15,9 @@ cached resources.}
 installed declaring package.}
 }
 \value{
-A data frame, one row per resource version. \code{current} marks the
+A data frame, one row per resource version. \code{parts} is how many
+pieces the artefact is composed from, and \code{0} where it is served whole, so
+what a version update costs to fetch is visible. \code{current} marks the
 version a bare request for that name resolves to, so a channel head is
 visible rather than implied. \code{declared} is \code{TRUE} when the registry in
 force names that version, \code{FALSE} when it does not, and \code{NA} when no
