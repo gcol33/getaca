@@ -1,3 +1,35 @@
+# getaca 0.1.1
+
+## Resources that arrive in pieces
+* `part()` and `combiner()`: a record names either locations for the whole file
+  or the ordered series it is composed from, and `sha256` describes the artefact
+  either way. A host that caps file size, and a publisher issuing deltas against
+  a base release, both produce a resource that arrives as a series.
+* Each part is verified and stored under its own digest, so a base shared by
+  every version of a resource is transferred once and kept once, and publishing
+  a version costs its consumers the delta rather than the whole file.
+* Parts are concatenated unless the record declares a `combiner()`, which is
+  what a delta format needs. The composed result is held to the record's own
+  checksum before anything sees it, so a combiner cannot produce bytes the
+  declaration did not already name. That is also why `assert_immutable()`
+  compares only that checksum: re-splitting a series or moving a piece to
+  another host is a change of route, not of identity.
+* `getaca_error_composition`: every part arrived and matched its own checksum,
+  and combining them produced something else. Nothing failed in transit, so the
+  actor is the author rather than the network.
+* `resource(file = )`: the name the artefact is cached under, for a URL with no
+  useful basename and for composed records, where each URL names a piece rather
+  than the result.
+* A part is reached through the entry composed from it, since no version slot
+  names one. A base shared by several versions therefore lives exactly as long
+  as the last version holding it, under the same reachability rule as everything
+  else in the store.
+* `getaca_catalogue()` gains a `parts` column, `0` where a version is served
+  whole, so what an update costs to fetch is visible before it is fetched.
+* `part`, `combiner` and `file` render nothing when absent, so every registry
+  digest recorded before they existed still identifies the state that produced
+  it. The manifest format is unchanged.
+
 # getaca 0.1.0
 
 First release.
