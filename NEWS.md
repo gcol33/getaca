@@ -49,6 +49,21 @@
   routes nothing; locations stay in `urls`. A `https://doi.org/` or `doi:`
   prefix is accepted and stripped.
 
+## The bar holds one set of columns
+* The transferred figure and the rate are right-aligned in the width of the
+  widest value they can take, so a transfer crossing 9.9 MB to 10 MB to 105 MB
+  leaves the total, the rate and the estimate in the columns they started in.
+  Past an exabyte, or an estimate past ten hours, the field is outgrown and the
+  line reflows the way it does whenever it runs out of room.
+* `human_bytes()` chooses the unit and the decimal on the value as it will be
+  rounded rather than as it arrives. `sprintf` rounds afterwards, so 9.99 kB
+  rendered `10.0 kB` against the `10 kB` that follows it, a two-column step, and
+  999.6 kB rendered `1000 kB` rather than the megabyte it rounds to.
+* The bar budgets each field it will draw. Five columns were reserved for the
+  estimate, which is what `00:00` takes and two short of `4:37:05`, so a
+  transfer long enough to want the hours form lost its estimate entirely rather
+  than its bar width.
+
 ## Under the hood
 * `REGISTRY_SCHEMA` goes to 4, since an older getaca would fetch an
   authenticated host with no credential and report the refusal as an outage.

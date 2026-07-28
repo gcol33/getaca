@@ -94,6 +94,13 @@
 <code>resource(doi = )</code> records the DOI for an artefact. It renders in the manifest, so a signature covers it, and travels into provenance: <code><a href="../reference/getaca_info.html">getaca_info()</a></code> shows it and <code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> gains a <code>doi</code> column. It routes nothing; locations stay in <code>urls</code>. A <code>https://doi.org/</code> or <code>doi:</code> prefix is accepted and stripped.</li>
 </ul></div>
 <div class="section level3">
+<h3 id="the-bar-holds-one-set-of-columns-0-1-4">The bar holds one set of columns<a class="anchor" aria-label="anchor" href="#the-bar-holds-one-set-of-columns-0-1-4"></a></h3>
+<ul><li>The transferred figure and the rate are right-aligned in the width of the widest value they can take, so a transfer crossing 9.9 MB to 10 MB to 105 MB leaves the total, the rate and the estimate in the columns they started in. Past an exabyte, or an estimate past ten hours, the field is outgrown and the line reflows the way it does whenever it runs out of room.</li>
+<li>
+<code>human_bytes()</code> chooses the unit and the decimal on the value as it will be rounded rather than as it arrives. <code>sprintf</code> rounds afterwards, so 9.99 kB rendered <code>10.0 kB</code> against the <code>10 kB</code> that follows it, a two-column step, and 999.6 kB rendered <code>1000 kB</code> rather than the megabyte it rounds to.</li>
+<li>The bar budgets each field it will draw. Five columns were reserved for the estimate, which is what <code>00:00</code> takes and two short of <code>4:37:05</code>, so a transfer long enough to want the hours form lost its estimate entirely rather than its bar width.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="under-the-hood-0-1-4">Under the hood<a class="anchor" aria-label="anchor" href="#under-the-hood-0-1-4"></a></h3>
 <ul><li>
 <code>REGISTRY_SCHEMA</code> goes to 4, since an older getaca would fetch an authenticated host with no credential and report the refusal as an outage. <code>MANIFEST_FORMAT</code> stays at 1: both new fields render nothing when absent, so every digest already recorded still identifies the state that produced it.</li>
