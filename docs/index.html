@@ -93,6 +93,8 @@
 <p><em>external data your package depends on, pinned to exact bytes</em></p>
 <p><a href="https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/getaca" class="external-link"><img src="https://codecov.io/gh/gcol33/getaca/graph/badge.svg" alt="Codecov test coverage"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
 <p><strong>One engine that retrieves, verifies, caches and garbage-collects the large data files your package declares it needs.</strong></p>
+<p align="center">
+<img src="reference/figures/progress.gif" width="100%" alt="A getaca transfer: three parts of a series, each with its share, its rate and an estimate of what is left"></p>
 <p>A taxonomic backbone runs to 800 MB, a global climate grid to several GB, a pretrained model to more. Files that size stay outside the package. Declare one in a few kilobytes, and retrieving it is one call:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/getaca/">getaca</a></span><span class="op">)</span></span>
@@ -420,7 +422,6 @@
 <div class="section level2">
 <h2 id="watching-a-transfer">Watching a transfer<a class="anchor" aria-label="anchor" href="#watching-a-transfer"></a>
 </h2>
-<p><img src="reference/figures/progress.gif" width="100%" alt="A getaca transfer: three parts of a series, each with its share, its rate and an estimate of what is left"></p>
 <p><code>getaca</code> drives its own transfer loop, so what a download looks like is a setting:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_progress.html">getaca_progress</a></span><span class="op">(</span><span class="st">"bar"</span><span class="op">)</span>    <span class="co"># redraws one line, the default when interactive</span></span>

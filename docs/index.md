@@ -11,6 +11,9 @@ MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.or
 **One engine that retrieves, verifies, caches and garbage-collects the
 large data files your package declares it needs.**
 
+![A getaca transfer: three parts of a series, each with its share, its
+rate and an estimate of what is left](reference/figures/progress.gif)
+
 A taxonomic backbone runs to 800 MB, a global climate grid to several
 GB, a pretrained model to more. Files that size stay outside the
 package. Declare one in a few kilobytes, and retrieving it is one call:
@@ -403,9 +406,6 @@ the route, and what a version means is fixed by the checksum at the end
 of it.
 
 ## Watching a transfer
-
-![A getaca transfer: three parts of a series, each with its share, its
-rate and an estimate of what is left](reference/figures/progress.gif)
 
 `getaca` drives its own transfer loop, so what a download looks like is
 a setting:
