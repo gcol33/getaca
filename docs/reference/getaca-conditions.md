@@ -15,6 +15,12 @@ message text.
 
   Transfer ended short of the expected size. actor: user.
 
+- `getaca_error_credentials`:
+
+  Every source that answered refused to serve the resource, so the
+  missing thing is a permission rather than a network. actor: user where
+  the declaration names a credential, author where it does not.
+
 - `getaca_error_upstream_changed`:
 
   A complete download hashed to something other than the declared

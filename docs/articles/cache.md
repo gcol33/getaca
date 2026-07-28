@@ -205,7 +205,7 @@ the report worth pasting into an issue:
 ``` r
 
 str(getaca_catalogue(), max.level = 1)
-#> 'data.frame':    0 obs. of  17 variables:
+#> 'data.frame':    0 obs. of  18 variables:
 #>  $ package        : chr 
 #>  $ name           : chr 
 #>  $ version        : chr 
@@ -217,6 +217,7 @@ str(getaca_catalogue(), max.level = 1)
 #>  $ cached         : logi 
 #>  $ size           : num 
 #>  $ license        : chr 
+#>  $ doi            : chr 
 #>  $ source         : chr 
 #>  $ registry_digest: chr 
 #>  $ verified_at    : 'POSIXct' num 

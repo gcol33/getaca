@@ -44,9 +44,10 @@ resolve_resource(
 
 ## Value
 
-A list with `id`, `record`, `policy`, `source`, `digest` and `created`.
-`policy` is the one actually in force, after the argument, the session
-setting, the registry default and the check clamp have been resolved.
-`digest` identifies the registry state that answered, and `created` says
-when that state was published, or `NA` for a declaration that was built
-in the session rather than read from a file.
+A list with `id`, `record`, `policy`, `source`, `digest`, `created` and
+`auth`. `policy` is the one actually in force, after the argument, the
+session setting, the registry default and the check clamp have been
+resolved. `digest` identifies the registry state that answered, and
+`created` says when that state was published, or `NA` for a declaration
+that was built in the session rather than read from a file. `auth` is
+the credential declaration, taken from the registry the package ships.

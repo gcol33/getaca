@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -259,7 +259,12 @@ several versions at once, names the head, and can resolve through a
 remote registry the author keeps, which is what lets
 <code>2026-09</code> reach an installed copy between releases.
 <code>urls</code> in pooch sets one URL per file; a <code>getaca</code>
-record takes a list of mirrors and walks it until one answers.</p>
+record takes a list of mirrors and walks it until one answers. pooch
+also accepts a <code>doi:</code> URL and asks figshare, Zenodo or
+Dataverse for the download location as it fetches. <code>getaca</code>
+asks the same three archives in <code><a href="../reference/registry_draft.html">registry_draft()</a></code>, when the
+registry is written, and a record then carries the DOI as what the bytes
+are cited as and the locations as themselves.</p>
 <p>At the back, the constraints are CRAN’s. <code>R CMD check</code>
 runs the tests, examples and vignettes of every package on machines with
 no network, and <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> is permitted on
@@ -381,14 +386,22 @@ ship</td>
 planned:</p>
 <ul>
 <li>
-<strong>Authentication.</strong> No credentials, no tokens, no
-private resources. The transport is HTTPS to a public URL.</li>
+<strong>Credential storage.</strong> A declaration names the
+environment variable a host requires, and getaca reads it at the moment
+of the request. It holds no credentials, reads no <code>.netrc</code>
+and talks to no keyring. See <code><a href="../articles/declaring.html">vignette("declaring")</a></code>.</li>
 <li>
 <strong>Cloud storage abstractions.</strong> No S3, no Azure, no
 board concept. A URL is a URL.</li>
 <li>
-<strong>DOI resolution.</strong> Zenodo is a recommendation about
-where to put files, and there is no Zenodo client.</li>
+<strong>DOI resolution at fetch time.</strong> A <code>doi</code> on
+a record is what the bytes are cited as, and it routes nothing.
+Resolving one through a repository API on every fetch would put a second
+host, which is not itself mirrorable, in front of every retrieval, and
+would break the mirror loop’s assumption that the locations it walks are
+independent sources. The archives are read when the registry is written
+instead: <code><a href="../reference/registry_draft.html">registry_draft()</a></code> covers Zenodo, figshare and
+Dataverse, and emits plain locations.</li>
 <li>
 <strong>Reading data.</strong> <code>getaca</code> returns a path
 and knows nothing about file formats. A processor can unpack an archive;

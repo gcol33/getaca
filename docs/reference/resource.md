@@ -17,6 +17,7 @@ resource(
   size = NA_real_,
   license = NA_character_,
   description = NA_character_,
+  doi = NULL,
   upstream = NULL,
   processor = NULL,
   parts = NULL,
@@ -57,6 +58,13 @@ resource(
 - description:
 
   One-line human description.
+
+- doi:
+
+  Optional DOI for these bytes, for example `"10.5281/zenodo.1234567"`.
+  A `https://doi.org/` or `doi:` prefix is accepted and stripped. This
+  is what the artefact is cited as, and it travels into provenance; it
+  never routes anything, and the locations to fetch from stay in `urls`.
 
 - upstream:
 

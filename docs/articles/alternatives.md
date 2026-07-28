@@ -127,7 +127,12 @@ the data separately, holds several versions at once, names the head, and
 can resolve through a remote registry the author keeps, which is what
 lets `2026-09` reach an installed copy between releases. `urls` in pooch
 sets one URL per file; a `getaca` record takes a list of mirrors and
-walks it until one answers.
+walks it until one answers. pooch also accepts a `doi:` URL and asks
+figshare, Zenodo or Dataverse for the download location as it fetches.
+`getaca` asks the same three archives in
+[`registry_draft()`](https://gillescolling.com/getaca/reference/registry_draft.md),
+when the registry is written, and a record then carries the DOI as what
+the bytes are cited as and the locations as themselves.
 
 At the back, the constraints are CRAN’s. `R CMD check` runs the tests,
 examples and vignettes of every package on machines with no network, and
@@ -222,12 +227,20 @@ for what a pin holds.
 
 Naming the boundary is part of choosing. None of these is planned:
 
-- **Authentication.** No credentials, no tokens, no private resources.
-  The transport is HTTPS to a public URL.
+- **Credential storage.** A declaration names the environment variable a
+  host requires, and getaca reads it at the moment of the request. It
+  holds no credentials, reads no `.netrc` and talks to no keyring. See
+  [`vignette("declaring")`](https://gillescolling.com/getaca/articles/declaring.md).
 - **Cloud storage abstractions.** No S3, no Azure, no board concept. A
   URL is a URL.
-- **DOI resolution.** Zenodo is a recommendation about where to put
-  files, and there is no Zenodo client.
+- **DOI resolution at fetch time.** A `doi` on a record is what the
+  bytes are cited as, and it routes nothing. Resolving one through a
+  repository API on every fetch would put a second host, which is not
+  itself mirrorable, in front of every retrieval, and would break the
+  mirror loop’s assumption that the locations it walks are independent
+  sources. The archives are read when the registry is written instead:
+  [`registry_draft()`](https://gillescolling.com/getaca/reference/registry_draft.md)
+  covers Zenodo, figshare and Dataverse, and emits plain locations.
 - **Reading data.** `getaca` returns a path and knows nothing about file
   formats. A processor can unpack an archive; nothing reads its
   contents.

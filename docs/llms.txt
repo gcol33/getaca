@@ -698,6 +698,8 @@ What a package says it needs
   Unpack an archive or a compressed file
 - [`registry()`](https://gillescolling.com/getaca/reference/registry.md)
   : Declare a package's external resources
+- [`registry_draft()`](https://gillescolling.com/getaca/reference/registry_draft.md)
+  : Draft a registry from where the data is
 - [`registry_write()`](https://gillescolling.com/getaca/reference/registry_write.md)
   [`registry_read()`](https://gillescolling.com/getaca/reference/registry_write.md)
   : Read and write registry files
@@ -735,6 +737,17 @@ Who a remote registry came from
   : Sign a registry file
 - [`registry_verify()`](https://gillescolling.com/getaca/reference/registry_verify.md)
   : Verify a signed registry file
+
+## Credentials
+
+Naming what a host requires, without holding it
+
+- [`bearer()`](https://gillescolling.com/getaca/reference/getaca-auth.md)
+  [`basic()`](https://gillescolling.com/getaca/reference/getaca-auth.md)
+  [`auth_host()`](https://gillescolling.com/getaca/reference/getaca-auth.md)
+  : Declaring a credential without holding one
+- [`getaca_credentials()`](https://gillescolling.com/getaca/reference/getaca_credentials.md)
+  : Which credentials a package expects
 
 ## Checks and Offline Use
 

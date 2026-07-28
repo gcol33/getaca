@@ -14,7 +14,8 @@ bytes, resolvable offline, and safe during `R CMD check`.
 
   Verify the exact expected bytes before the path is handed back.
   Throughout the API this operation is called *verify*; "authentication"
-  is reserved for credentials.
+  is reserved for credentials, which are declared rather than held. See
+  [getaca-auth](https://gillescolling.com/getaca/reference/getaca-auth.md).
 
 - Track:
 

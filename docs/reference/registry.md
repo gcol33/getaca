@@ -13,7 +13,8 @@ registry(
   remote = NULL,
   policy = c("bundled", "current", "pinned", "offline"),
   current = NULL,
-  keys = NULL
+  keys = NULL,
+  auth = NULL
 )
 ```
 
@@ -62,6 +63,17 @@ registry(
   reaches a user by a different route than the remote does, and that is
   what a signature rests on. See
   [getaca-signing](https://gillescolling.com/getaca/reference/getaca-signing.md).
+
+- auth:
+
+  Optional list of
+  [`auth_host()`](https://gillescolling.com/getaca/reference/getaca-auth.md)
+  declarations, naming the environment variables a host requires before
+  it will serve a resource. Read from the registry the *package ships*,
+  never from a remote one, for the reason `keys` is: a declaration
+  arriving over the network must not be able to say where a credential
+  is sent. See
+  [getaca-auth](https://gillescolling.com/getaca/reference/getaca-auth.md).
 
 ## Value
 

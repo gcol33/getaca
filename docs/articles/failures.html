@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -138,30 +138,36 @@ message text.</p>
 <td>retry</td>
 </tr>
 <tr class="even">
+<td><code>getaca_error_credentials</code></td>
+<td>every mirror refused to serve</td>
+<td>user, or author</td>
+<td>set the credential named; where none is declared, report it</td>
+</tr>
+<tr class="odd">
 <td><code>getaca_error_upstream_changed</code></td>
 <td>published bytes were replaced</td>
 <td>upstream</td>
 <td>the declaring package needs a new record</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>getaca_error_cache_corrupt</code></td>
 <td>local copy drifted from its own record</td>
 <td>user</td>
 <td>clean and refetch</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>getaca_error_invalid_registry</code></td>
 <td>the declaration is wrong</td>
 <td>author</td>
 <td>report to the declaring package</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>getaca_error_declaration</code></td>
 <td>every mirror agrees, the registry disagrees</td>
 <td>author</td>
 <td>report to the declaring package</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>getaca_error_composition</code></td>
 <td>the parts arrived intact and compose to something else</td>
 <td>author</td>
@@ -169,7 +175,7 @@ message text.</p>
 </tr>
 </tbody>
 </table>
-<p>All eight inherit from <code>getaca_error</code>, which inherits from
+<p>All nine inherit from <code>getaca_error</code>, which inherits from
 <code>error</code>, so a handler for <code>getaca_error</code> catches
 everything the package raises and nothing else.</p>
 <div class="section level2">
@@ -309,13 +315,60 @@ failure and not the other, so claiming the whole thing was a truncation
 would be wrong.</p>
 </div>
 <div class="section level2">
+<h2 id="getaca_error_credentials">
+<code>getaca_error_credentials</code><a class="anchor" aria-label="anchor" href="#getaca_error_credentials"></a>
+</h2>
+<p>Every mirror that failed answered 401 or 403. The resource is
+reachable and the machine has a network; what is missing is permission.
+Telling that user to connect to a network would send them looking in the
+wrong place, which is the same reasoning that separates a truncation
+from an outage.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"gedi-l4a"</span>, package <span class="op">=</span> <span class="st">"canopy"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Error: Access to canopy/gedi-l4a@2026-06 was refused.</span></span>
+<span><span class="co">#&gt;   data.ornldaac.earthdata.nasa.gov: bearer credential from EARTHDATA_TOKEN (not set: EARTHDATA_TOKEN)</span></span>
+<span><span class="co">#&gt;     obtain one at https://urs.earthdata.nasa.gov/users/new</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Actions: set the variables named above and retry; or, if a credential is</span></span>
+<span><span class="co">#&gt; already set, check that it is current and carries access to this resource.</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Fix: see the actions listed above.</span></span></code></pre></div>
+<p>Which variable is wanted comes from the declaration rather than from
+the response, because a server that never saw a credential and one that
+rejected the credential it saw answer alike. The message says which of
+the two happened, since “not set” and “set, and refused” call for
+different next steps.</p>
+<p><code>err$demands</code> carries one entry per host, each with
+<code>host</code>, <code>scheme</code>, <code>variables</code>,
+<code>missing</code> and <code>register</code>. Nothing in the condition
+holds a credential; the value is read at the moment of the request and
+never stored.</p>
+<p>This is the one condition whose <code>actor</code> depends on the
+situation. Where the declaration names a credential, the person who can
+act is the user holding it. Where a host refuses and the declaration
+names none, there is no variable to set: either the resource became
+restricted after it was declared or the location is wrong, and both are
+the declaring package’s to fix, so <code>actor</code> is
+<code>"author"</code> and the message says so instead of asking for a
+variable that does not exist.</p>
+<p>To ask before fetching rather than after failing,
+<code><a href="../reference/getaca_credentials.html">getaca_credentials()</a></code> reports every variable a package’s
+declaration reads and whether it is set:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_credentials.html">getaca_credentials</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"canopy"</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   package                                  host scheme         variable   set</span></span>
+<span><span class="co">#&gt; 1  canopy data.ornldaac.earthdata.nasa.gov bearer EARTHDATA_TOKEN FALSE</span></span></code></pre></div>
+<p>See <code><a href="../articles/declaring.html">vignette("declaring")</a></code> for how a package declares
+one.</p>
+</div>
+<div class="section level2">
 <h2 id="getaca_error_upstream_changed">
 <code>getaca_error_upstream_changed</code><a class="anchor" aria-label="anchor" href="#getaca_error_upstream_changed"></a>
 </h2>
 <p>A complete transfer whose digest does not match the declaration. The
 publisher appears to have replaced the file without issuing a new
 version.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The remote file no longer matches taxify/wfo@2026-06.</span></span>
 <span><span class="co">#&gt;   declared SHA-256: 9f9f9f...</span></span>
@@ -347,7 +400,7 @@ registry.</p>
 <p>Several independent mirrors returned identical bytes, and none
 matched the declared checksum. When every mirror agrees with the others
 and disagrees with the registry, the registry is the likely error.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The declared checksum for taxify/wfo@2026-06 looks wrong.</span></span>
 <span><span class="co">#&gt;   2 independent sources agreed on SHA-256 3c1a77...</span></span>
@@ -372,7 +425,7 @@ practical argument for declaring two.</p>
 <p>Every declared <code><a href="../reference/part.html">part()</a></code> arrived and matched its own
 checksum, and combining them produced something other than the artefact
 the record names.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The parts declared for taxify/wfo@2026-09 do not produce the declared bytes.</span></span>
 <span><span class="co">#&gt;   3 parts, each matching its own checksum, combined by 'concat'</span></span>
@@ -389,7 +442,7 @@ the transport was sound and the checksum was wrong; here every checksum
 in the series was right and what they add up to was wrong. A part that
 goes missing or arrives changed raises the ordinary transfer conditions
 instead, naming which part of the series it was:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#&gt; Error: Cannot reach any source for taxify/wfo@2026-09 (part 2 of 3).</span></span></code></pre></div>
 <p>As an author, reach for this after re-splitting a file, reordering a
 series, or changing what a <code><a href="../reference/combiner.html">combiner()</a></code> does without changing
@@ -403,7 +456,7 @@ a half-composed artefact.</p>
 <p>The cached copy no longer matches its own entry record. Raised by the
 cheap size check on ordinary access, and by the scheduled or forced
 re-hash.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The cached copy of taxify/wfo@2026-06 is damaged.</span></span>
 <span><span class="co">#&gt;   path: ~/.cache/R/getaca/taxify/wfo/2026-06/raw/wfo-2026-06.zip</span></span>
@@ -418,7 +471,7 @@ anything would hide a disk developing bad sectors, a sync client
 rewriting files, and a colleague who opened something in the cache
 directory and saved it. The message names the clean-up call, so the
 repair is one line and the user knows it happened.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>,</span>
 <span>  getaca_error_cache_corrupt <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
@@ -438,7 +491,7 @@ make the failure invisible.</p>
 <p>The declaration is malformed or internally inconsistent. Raised at
 <code><a href="../reference/registry.html">registry()</a></code> and <code><a href="../reference/resource.html">resource()</a></code> where possible,
 which puts it on the author’s machine rather than a user’s:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"taxify"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-09"</span>, urls <span class="op">=</span> <span class="st">"https://host.invalid/a"</span>,</span>
 <span>           sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"ab"</span>, <span class="fl">32</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -451,7 +504,7 @@ which puts it on the author’s machine rather than a user’s:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
 <p>Every problem found is listed, rather than the first one:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, <span class="st">"2026-06"</span>, urls <span class="op">=</span> <span class="st">"ftp://host.invalid/a"</span>, sha256 <span class="op">=</span> <span class="st">"abc"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry.</span></span>
@@ -463,7 +516,7 @@ which puts it on the author’s machine rather than a user’s:</p>
 registry, a name the registry does not declare, a remote registry
 declaring a different package, and a pin file that redefines a published
 version.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"no-such-resource"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'taxify'.</span></span>
@@ -472,7 +525,7 @@ version.</p>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
 <p>The message names what is on offer, which is usually enough to spot a
 typo without opening the registry.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"stats"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'stats'.</span></span>
@@ -489,7 +542,7 @@ package to declare resources can see immediately that it does not.</p>
 speak your own domain, and to let the author-actionable and
 upstream-actionable ones through unchanged. A user cannot act on either,
 and the default messages already say who can.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"wfo"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>    <span class="fu">open_backbone</span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="va">name</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -531,14 +584,14 @@ contains the checksums you need.</p>
 </h2>
 <p>Conditions can be constructed by making a resolution fail, which
 needs no network:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">offline_error</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"offline"</span><span class="op">)</span>,</span>
 <span>  getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">offline_error</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "getaca_error_offline"</span></span></code></pre></div>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"a missing backbone gets a taxify-flavoured message"</span>, <span class="op">{</span></span>
 <span>  <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_envvar.html" class="external-link">local_envvar</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>GETACA_OFFLINE <span class="op">=</span> <span class="st">"true"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_options.html" class="external-link">local_options</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>getaca.cache <span class="op">=</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>

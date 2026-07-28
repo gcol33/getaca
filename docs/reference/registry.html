@@ -24,7 +24,7 @@ only its own list of resource records."><script>
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,7 +84,8 @@ only its own list of resource records.</p>
 <span>  remote <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  policy <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bundled"</span>, <span class="st">"current"</span>, <span class="st">"pinned"</span>, <span class="st">"offline"</span><span class="op">)</span>,</span>
 <span>  current <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  keys <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  keys <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  auth <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -130,6 +131,14 @@ registry is then refused rather than used. The keys trusted are the ones in
 the registry the <em>package ships</em>, which reaches a user by a different route
 than the remote does, and that is what a signature rests on. See
 <a href="getaca-signing.html">getaca-signing</a>.</p></dd>
+
+
+<dt id="arg-auth">auth<a class="anchor" aria-label="anchor" href="#arg-auth"></a></dt>
+<dd><p>Optional list of <code><a href="getaca-auth.html">auth_host()</a></code> declarations, naming the
+environment variables a host requires before it will serve a resource.
+Read from the registry the <em>package ships</em>, never from a remote one, for
+the reason <code>keys</code> is: a declaration arriving over the network must not be
+able to say where a credential is sent. See <a href="getaca-auth.html">getaca-auth</a>.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,6 +65,41 @@
       <small>Source: <a href="https://github.com/gcol33/getaca/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.4" id="getaca-014">getaca 0.1.4<a class="anchor" aria-label="anchor" href="#getaca-014"></a></h2>
+<div class="section level3">
+<h3 id="drafting-a-registry-from-where-the-data-is-0-1-4">Drafting a registry from where the data is<a class="anchor" aria-label="anchor" href="#drafting-a-registry-from-where-the-data-is-0-1-4"></a></h3>
+<ul><li>
+<code><a href="../reference/registry_draft.html">registry_draft()</a></code> takes locations and returns a <code><a href="../reference/registry.html">registry()</a></code> with every checksum filled in. It retrieves each file once and hashes it locally, which is the part of authoring that cannot be done by hand.</li>
+<li>A location is a plain <code>https://</code> URL or an identifier for a data archive, and which one it is is read off the string. Zenodo, figshare and Dataverse are covered, along with their landing-page URLs. Zenodo and figshare register their own DOI prefixes and are recognised without a lookup; a bare Dataverse DOI is resolved through <code>doi.org</code>, since instances are self-hosted.</li>
+<li>Each archive supplies the licence, the version and a DOI for the artefact. The checksums they publish are read past: all three report md5, from the same host that serves the file.</li>
+<li>A list element gives the mirrors of one resource, so a drafted record can name several locations. <code>keep = TRUE</code> leaves the drafted bytes in the cache instead of transferring them again on the first <code><a href="../reference/getaca.html">getaca()</a></code> call.</li>
+<li>An archive is consulted when a registry is written and never when a user fetches. A drafted registry names ordinary <code>https://</code> locations.</li>
+<li>
+<code>jsonlite</code> moves no closer than <code>Suggests</code>, where it already was, and is needed only for the archive handlers.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="resources-behind-a-registration-0-1-4">Resources behind a registration<a class="anchor" aria-label="anchor" href="#resources-behind-a-registration-0-1-4"></a></h3>
+<ul><li>A registry may declare the credential a host requires, with <code><a href="../reference/getaca-auth.html">auth_host()</a></code> binding a <code><a href="../reference/getaca-auth.html">bearer()</a></code> or <code><a href="../reference/getaca-auth.html">basic()</a></code> scheme to one host. Both name environment variables: nothing secret enters a registry, a manifest, a digest, a provenance record or an error message. The credential is read at the moment of the request and never stored.</li>
+<li>It travels as an <code>Authorization</code> header, which libcurl withholds from a redirect to another host, and to the declared host only. Hosts match exactly, so a declaration cannot widen where a credential is sent, and credentials are read from the registry the package <em>ships</em>, never from a remote one, for the reason signing keys are.</li>
+<li>A record may list an authenticated mirror beside a public one. The credential goes to the first, and a fetch that falls through to the second succeeds.</li>
+<li>
+<code>getaca_error_credentials</code> is raised when every mirror that failed answered 401 or 403, naming the variable wanted, whether it is set, and where to register. Those failures previously produced <code>getaca_error_unavailable</code>, whose advice is to connect to a network. Where a host refuses and the declaration names no credential for it, there is no variable to set and the condition’s <code>actor</code> is <code>"author"</code> instead.</li>
+<li>
+<code><a href="../reference/getaca_credentials.html">getaca_credentials()</a></code> reports every variable a package’s declaration reads and whether it is set, without touching the network.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="citing-the-bytes-that-were-read-0-1-4">Citing the bytes that were read<a class="anchor" aria-label="anchor" href="#citing-the-bytes-that-were-read-0-1-4"></a></h3>
+<ul><li>
+<code>resource(doi = )</code> records the DOI for an artefact. It renders in the manifest, so a signature covers it, and travels into provenance: <code><a href="../reference/getaca_info.html">getaca_info()</a></code> shows it and <code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> gains a <code>doi</code> column. It routes nothing; locations stay in <code>urls</code>. A <code>https://doi.org/</code> or <code>doi:</code> prefix is accepted and stripped.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="under-the-hood-0-1-4">Under the hood<a class="anchor" aria-label="anchor" href="#under-the-hood-0-1-4"></a></h3>
+<ul><li>
+<code>REGISTRY_SCHEMA</code> goes to 4, since an older getaca would fetch an authenticated host with no credential and report the refusal as an outage. <code>MANIFEST_FORMAT</code> stays at 1: both new fields render nothing when absent, so every digest already recorded still identifies the state that produced it.</li>
+<li>See <code>dev_notes/adr-010-authenticated-transport.md</code> for why authentication was taken up as transport and DOI resolution was not taken up as a resolver, and <code>dev_notes/adr-011-drafting-registries.md</code> for the archives being read at authoring time instead.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.3" id="getaca-013">getaca 0.1.3<a class="anchor" aria-label="anchor" href="#getaca-013"></a></h2>
 <div class="section level3">

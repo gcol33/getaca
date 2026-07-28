@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -199,7 +199,7 @@ issue.</p>
 design. It is the digest of the file as served, which is not always the
 digest of the file you built: if your host recompresses, or you upload a
 re-zipped copy, compute the hash after the upload by downloading it
-back.</p>
+back. <code><a href="../reference/registry_draft.html">registry_draft()</a></code>, below, does exactly that.</p>
 <p><strong><code>size</code></strong> in bytes is optional and cheap. A
 transfer that ends short is detected before a multi-gigabyte hash runs,
 and reported as a truncation rather than as a checksum mismatch, which
@@ -233,9 +233,63 @@ problem named:</p>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="drafting-from-where-the-data-is">Drafting from where the data is<a class="anchor" aria-label="anchor" href="#drafting-from-where-the-data-is"></a>
+</h2>
+<p>Typing a record by hand is fine for everything except the checksum,
+which has to come from the bytes. <code><a href="../reference/registry_draft.html">registry_draft()</a></code> takes
+the locations, retrieves each file once, hashes it locally and returns a
+registry:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>wfo <span class="op">=</span> <span class="st">"https://zenodo.org/records/1234567/files/wfo-2026-06.zip"</span><span class="op">)</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
+<span>  version <span class="op">=</span> <span class="st">"2026-06"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>A location is a plain URL, or an identifier for an archive holding
+several files. Which one it is, and which archive, is read off the
+string:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="st">"10.5281/zenodo.4924875"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="st">"10.6084/m9.figshare.14763051.v1"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="st">"10.11588/data/TKCFEF"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span></code></pre></div>
+<p>Zenodo and figshare register their own DOI prefixes, so those are
+recognised from the string with no lookup. A Dataverse instance is
+self-hosted under its own prefix, so a bare DOI is resolved through
+<code>doi.org</code> to find which host to ask. Each archive supplies
+what it knows: the licence, the version, and a DOI for the artefact.
+Zenodo mints a record id per version and that becomes the version label;
+figshare and Dataverse carry their own version numbers. For a plain URL
+there is nothing to infer, so <code>version =</code> is required.</p>
+<p>Checksums the archive reports are read past. All three publish md5,
+and all three publish it from the host that serves the file, so it says
+nothing the transfer has not already said. What ends up in the record is
+a SHA-256 computed here, from the bytes that arrived.</p>
+<p>A draft is a starting point. Resources are named after their files,
+which is rarely the name you want a user to type, and
+<code>description</code> is empty. Both are ordinary
+<code><a href="../reference/resource.html">resource()</a></code> arguments: edit the returned registry, or write
+the <code><a href="../reference/registry_draft.html">registry_draft()</a></code> call into <code>data-raw/</code> and
+edit around it. Give a name in the call where a location is one
+file:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>wfo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://zenodo.org/records/1234567/files/wfo-2026-06.zip"</span>,</span>
+<span>               <span class="st">"https://mirror.invalid/wfo-2026-06.zip"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
+<span>  version <span class="op">=</span> <span class="st">"2026-06"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg</span>, <span class="st">"inst/getaca/registry.rds"</span><span class="op">)</span></span></code></pre></div>
+<p>A list element is the mirrors of one resource. The first is retrieved
+and hashed; the rest are recorded and walked at fetch time like any
+other mirror list.</p>
+<p>Drafting a large record downloads it. Pass <code>keep = TRUE</code>
+to leave the bytes in the cache, so the first <code><a href="../reference/getaca.html">getaca()</a></code> call
+for the drafted resource finds them already there.</p>
+</div>
+<div class="section level2">
 <h2 id="assembling-the-registry">Assembling the registry<a class="anchor" aria-label="anchor" href="#assembling-the-registry"></a>
 </h2>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package   <span class="op">=</span> <span class="st">"taxify"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
@@ -250,13 +304,13 @@ step: change a checksum, add a mirror or move a channel head and the
 digest follows. It is recorded in the provenance of everything resolved
 through this registry, so a bug report can name the exact declaration
 that chose the bytes.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_digest.html">registry_digest</a></span><span class="op">(</span><span class="va">reg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "sha256:386d0c749d78fbabc97a0bec7eee85fbeee37d89ff888a29af343aa01acf9d58"</span></span></code></pre></div>
 <p><code><a href="../reference/registry_manifest.html">registry_manifest()</a></code> shows the text that digest is taken
 over, which is what makes two registries diffable when they
 disagree:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_manifest.html">registry_manifest</a></span><span class="op">(</span><span class="va">reg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; getaca-manifest 1</span></span>
 <span><span class="co">#&gt; package taxify</span></span>
@@ -268,14 +322,14 @@ disagree:</p>
 <span><span class="co">#&gt;   url https://mirror.invalid/wfo-2026-06.zip</span></span></code></pre></div>
 <p>Write it into the source tree from a <code>data-raw/</code> script,
 so the registry is generated rather than hand-maintained:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># data-raw/registry.R</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg</span>, <span class="st">"inst/getaca/registry.rds"</span><span class="op">)</span></span></code></pre></div>
 <p>Add <code>^data-raw$</code> to <code>.Rbuildignore</code> and the
 script stays out of the built package while the object it produces
 ships.</p>
 <p>Reading it back is symmetric, and validates:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"registry.rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg</span>, <span class="va">path</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="../reference/registry_digest.html">registry_digest</a></span><span class="op">(</span><span class="fu"><a href="../reference/registry_write.html">registry_read</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="../reference/registry_digest.html">registry_digest</a></span><span class="op">(</span><span class="va">reg</span><span class="op">)</span><span class="op">)</span></span>
@@ -287,16 +341,16 @@ digest cannot do: a digest says whether two registries are the same, and
 so writing an unchanged registry out again leaves its identity alone.
 Pass a fixed <code>created</code> when a build has to be
 byte-reproducible.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_write.html">registry_read</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span><span class="op">$</span><span class="va">created</span></span>
-<span><span class="co">#&gt; [1] "2026-07-28 18:47:06 CEST"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "2026-07-28 22:00:27 CEST"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="naming-the-channel-head">Naming the channel head<a class="anchor" aria-label="anchor" href="#naming-the-channel-head"></a>
 </h2>
 <p>A registry that offers one version per name has nothing to decide.
 One that offers several has to say which one a bare request returns:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
 <span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>wfo <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
@@ -314,7 +368,7 @@ One that offers several has to say which one a bare request returns:</p>
 <span><span class="co">#&gt;   - wfo@2026-09  abababababab  [CC-BY-4.0]  (current)</span></span></code></pre></div>
 <p>The head is marked when the registry prints, and appears as a column
 in the catalogue:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span>registry <span class="op">=</span> <span class="va">reg2</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"version"</span>, <span class="st">"current"</span>, <span class="st">"declared"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   name version current declared</span></span>
 <span><span class="co">#&gt; 1  wfo 2026-06   FALSE     TRUE</span></span>
@@ -323,7 +377,7 @@ in the catalogue:</p>
 it prevents is silent. A registry appending <code>2026-03</code> after
 <code>2026-09</code> under a declaration-order rule moves every user
 backwards without any of them noticing:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -350,7 +404,7 @@ window.</p>
 </h2>
 <p>Set it once, in the registry, if your data genuinely release on their
 own schedule:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">remote_reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
 <span>  policy  <span class="op">=</span> <span class="st">"current"</span>,</span>
@@ -379,7 +433,7 @@ silently redefine published bytes would undo the guarantee the whole
 design exists to provide.</p>
 <p>Publishing a remote registry is the same call with a different
 destination:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># In a release script, after adding the new record</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg2</span>, <span class="st">"docs/getaca-registry.rds"</span><span class="op">)</span>   <span class="co"># served by GitHub Pages</span></span></code></pre></div>
 <p>Users on <code>bundled</code> are unaffected until they reinstall;
@@ -392,7 +446,7 @@ immediately after <code><a href="../reference/getaca_refresh.html">getaca_refres
 <p>Publishing a prepared database rather than the raw upstream release
 is often the better deal for users, who then skip the expensive
 preprocessing. Record both identities so provenance keeps them:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name    <span class="op">=</span> <span class="st">"wfo-db"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"source-2026-06_build-3"</span>,</span>
@@ -436,7 +490,7 @@ against it, because each delta is a hundredth of the size of the thing
 it updates.</p>
 <p>Declare the pieces with <code><a href="../reference/part.html">part()</a></code> and the artefact they
 compose with <code>sha256</code>, as usual:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">series</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name    <span class="op">=</span> <span class="st">"wfo"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"2026-09"</span>,</span>
@@ -487,7 +541,7 @@ re-splitting a file at different boundaries, adding a mirror for one
 piece, or moving the series to a new host are all changes of route. Your
 users are held to the artefact either way, and a series that does not
 produce it is reported against the declaration:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"wfo"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The parts declared for taxify/wfo@2026-09 do not produce the declared bytes.</span></span>
 <span><span class="co">#&gt;   3 parts, each matching its own checksum, combined by 'concat'</span></span>
@@ -502,7 +556,7 @@ produce it is reported against the declaration:</p>
 split for an upload limit needs. A delta format needs
 <code><a href="../reference/combiner.html">combiner()</a></code>, since applying a patch is knowledge about a
 file format and <code>getaca</code> has none:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">apply_deltas</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/combiner.html">combiner</a></span><span class="op">(</span><span class="st">"bsdiff"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">parts</span>, <span class="va">output</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">current</span> <span class="op">&lt;-</span> <span class="va">parts</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span>  <span class="kw">for</span> <span class="op">(</span><span class="va">delta</span> <span class="kw">in</span> <span class="va">parts</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span> <span class="op">{</span></span>
@@ -541,7 +595,7 @@ for most formats it is the cheaper of the two by a wide margin.</p>
 <p>When the chain gets long enough that reapplying it stops being cheap,
 publish the composed artefact of each version alongside its deltas and
 anchor the next version on it:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name    <span class="op">=</span> <span class="st">"wfo"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"2026-12"</span>,</span>
@@ -573,7 +627,7 @@ rather than being confused with the archive it came from.</p>
 <p>Most declarations of an archive want the same transformation, so it
 is shipped. <code><a href="../reference/unpack.html">unpack()</a></code> reads the format from the cached
 file’s name:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">archive</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"wfo"</span>,</span>
 <span>  version   <span class="op">=</span> <span class="st">"2026-06"</span>,</span>
@@ -598,13 +652,13 @@ file’s name:</p>
 <code>.bz2</code>, <code>.xz</code>), which is decompressed under its
 own name with the extension dropped. Name the format for a file whose
 name does not carry one:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/unpack.html">unpack</a></span><span class="op">(</span><span class="st">"gzip"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
 <span><span class="co">#&gt; [1] "unpack-gzip"</span></span></code></pre></div>
 <p>A large archive holding one subtree you need takes
 <code>members</code>, which names a file, or a directory and everything
 under it:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/unpack.html">unpack</a></span><span class="op">(</span>members <span class="op">=</span> <span class="st">"tables"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
 <span><span class="co">#&gt; [1] "unpack-d98a034f"</span></span></code></pre></div>
 <p>The id encodes the settings for a reason. It is what the cache slot
@@ -617,7 +671,7 @@ of it: an empty slot would pass every later check.</p>
 <h3 id="writing-your-own">Writing your own<a class="anchor" aria-label="anchor" href="#writing-your-own"></a>
 </h3>
 <p>Anything else is a function of two arguments:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">index</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/processor.html">processor</a></span><span class="op">(</span><span class="st">"index-v1"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output_dir</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">output_dir</span>, <span class="st">"wfo.tsv"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">input</span><span class="op">)</span>, <span class="va">out</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -650,25 +704,25 @@ trade.</p>
 <p>The stored form is an R object, so no parser is ever a hard
 dependency. YAML and JSON are accepted at authoring time and gated at
 call time:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_registry.html">as_registry</a></span><span class="op">(</span><span class="st">"data-raw/resources.yml"</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg</span>, <span class="st">"inst/getaca/registry.rds"</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb25"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="fu">wfo</span><span class="kw">:</span></span>
-<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">"2026-06"</span></span>
-<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a><span class="at">  </span><span class="fu">urls</span><span class="kw">:</span></span>
-<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> https://primary.invalid/wfo-2026-06.zip</span></span>
-<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a></span>
-<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> https://mirror.invalid/wfo-2026-06.zip</span></span>
-<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a><span class="at">  </span><span class="fu">sha256</span><span class="kw">:</span><span class="at"> </span><span class="st">"9f9f..."</span></span>
-<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a><span class="at">  </span><span class="fu">size</span><span class="kw">:</span><span class="at"> </span><span class="dv">797000000</span></span>
-<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a><span class="at">  </span><span class="fu">license</span><span class="kw">:</span><span class="at"> CC-BY-4.0</span></span>
-<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a><span class="at">  </span><span class="fu">description</span><span class="kw">:</span><span class="at"> World Flora Online backbone, June 2026</span></span>
-<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a></span>
-<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a><span class="fu">col</span><span class="kw">:</span></span>
-<span id="cb25-13"><a href="#cb25-13" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">"2026-06"</span></span>
-<span id="cb25-14"><a href="#cb25-14" tabindex="-1"></a><span class="at">  </span><span class="fu">url</span><span class="kw">:</span><span class="at"> https://primary.invalid/col-2026-06.zip</span></span>
-<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a><span class="at">  </span><span class="fu">sha256</span><span class="kw">:</span><span class="at"> </span><span class="st">"ab12..."</span></span>
-<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a><span class="at">  </span><span class="fu">license</span><span class="kw">:</span><span class="at"> CC-BY-4.0</span></span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="fu">wfo</span><span class="kw">:</span></span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">"2026-06"</span></span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a><span class="at">  </span><span class="fu">urls</span><span class="kw">:</span></span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> https://primary.invalid/wfo-2026-06.zip</span></span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a></span>
+<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> https://mirror.invalid/wfo-2026-06.zip</span></span>
+<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a><span class="at">  </span><span class="fu">sha256</span><span class="kw">:</span><span class="at"> </span><span class="st">"9f9f..."</span></span>
+<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a><span class="at">  </span><span class="fu">size</span><span class="kw">:</span><span class="at"> </span><span class="dv">797000000</span></span>
+<span id="cb28-9"><a href="#cb28-9" tabindex="-1"></a><span class="at">  </span><span class="fu">license</span><span class="kw">:</span><span class="at"> CC-BY-4.0</span></span>
+<span id="cb28-10"><a href="#cb28-10" tabindex="-1"></a><span class="at">  </span><span class="fu">description</span><span class="kw">:</span><span class="at"> World Flora Online backbone, June 2026</span></span>
+<span id="cb28-11"><a href="#cb28-11" tabindex="-1"></a></span>
+<span id="cb28-12"><a href="#cb28-12" tabindex="-1"></a><span class="fu">col</span><span class="kw">:</span></span>
+<span id="cb28-13"><a href="#cb28-13" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="st">"2026-06"</span></span>
+<span id="cb28-14"><a href="#cb28-14" tabindex="-1"></a><span class="at">  </span><span class="fu">url</span><span class="kw">:</span><span class="at"> https://primary.invalid/col-2026-06.zip</span></span>
+<span id="cb28-15"><a href="#cb28-15" tabindex="-1"></a><span class="at">  </span><span class="fu">sha256</span><span class="kw">:</span><span class="at"> </span><span class="st">"ab12..."</span></span>
+<span id="cb28-16"><a href="#cb28-16" tabindex="-1"></a><span class="at">  </span><span class="fu">license</span><span class="kw">:</span><span class="at"> CC-BY-4.0</span></span></code></pre></div>
 <p>Either <code>urls</code> or <code>url</code> is accepted, and either
 <code>license</code> or <code>licence</code>, since a YAML file is input
 rather than API. The model has one spelling for each.</p>
@@ -677,7 +731,7 @@ version per name. A registry that offers several versions of a name is
 built in R, where the list is a list and <code>current</code> sits
 beside it. Arguments passed to <code><a href="../reference/as_registry.html">as_registry()</a></code> reach
 <code><a href="../reference/registry.html">registry()</a></code>:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_registry.html">as_registry</a></span><span class="op">(</span><span class="st">"data-raw/resources.yml"</span>, package <span class="op">=</span> <span class="st">"taxify"</span>,</span>
 <span>            policy <span class="op">=</span> <span class="st">"current"</span>,</span>
 <span>            remote <span class="op">=</span> <span class="st">"https://taxify.invalid/getaca-registry.rds"</span><span class="op">)</span></span></code></pre></div>
@@ -691,7 +745,7 @@ produces an install instruction rather than a missing-object error.</p>
 <p>Every failure is classed, and carries an <code>actor</code> field
 naming who can act. Catch the ones your users will meet and say
 something domain-specific:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"wfo"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="va">name</span>, package <span class="op">=</span> <span class="st">"taxify"</span><span class="op">)</span>,</span>
@@ -726,15 +780,81 @@ stops being possible for the copy you control.</p>
 <p>GitHub Releases work as a second mirror. Release assets are stable
 once uploaded, they are served from a CDN, and the tag names a version
 in a way that reads well beside the record’s own label.</p>
-<p><code>getaca</code> has no Zenodo client and will not grow one. It is
-a recommendation about where to put files, not a feature.</p>
+<p>An archive is consulted when a registry is written and never when a
+user fetches. <code><a href="../reference/registry_draft.html">registry_draft()</a></code> is the whole of it, and what
+it produces is a list of <code>https://</code> locations, which are what
+ship. A Zenodo file URL is derivable from the record anyway:
+<code>10.5281/zenodo.1234567</code> and a file name give
+<code>https://zenodo.org/records/1234567/files/&lt;name&gt;</code>,
+which is a <code>urls</code> entry like any other. Record the identifier
+itself in <code>doi =</code>, where it is cited from rather than fetched
+from:</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
+<span>  <span class="st">"wfo"</span>, <span class="st">"2026-06"</span>,</span>
+<span>  urls <span class="op">=</span> <span class="st">"https://zenodo.org/records/1234567/files/wfo-2026-06.zip"</span>,</span>
+<span>  doi <span class="op">=</span> <span class="st">"10.5281/zenodo.1234567"</span>,</span>
+<span>  sha256 <span class="op">=</span> <span class="st">"..."</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The DOI travels into provenance and appears in
+<code><a href="../reference/getaca_info.html">getaca_info()</a></code> and <code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code>, so an
+analysis can report the identifier for the exact bytes it read.</p>
+</div>
+<div class="section level2">
+<h2 id="data-behind-a-registration">Data behind a registration<a class="anchor" aria-label="anchor" href="#data-behind-a-registration"></a>
+</h2>
+<p>Some archives serve their files only to a registered account. A
+declaration says which credential a host requires; it never carries one.
+<code><a href="../reference/getaca-auth.html">bearer()</a></code> and <code><a href="../reference/getaca-auth.html">basic()</a></code> name environment
+variables, and <code><a href="../reference/getaca-auth.html">auth_host()</a></code> binds a scheme to the host it
+applies to:</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
+<span>  package <span class="op">=</span> <span class="st">"canopy"</span>,</span>
+<span>  auth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/getaca-auth.html">auth_host</a></span><span class="op">(</span><span class="st">"data.ornldaac.earthdata.nasa.gov"</span>,</span>
+<span>              <span class="fu"><a href="../reference/getaca-auth.html">bearer</a></span><span class="op">(</span><span class="st">"EARTHDATA_TOKEN"</span><span class="op">)</span>,</span>
+<span>              register <span class="op">=</span> <span class="st">"https://urs.earthdata.nasa.gov/users/new"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"gedi-l4a"</span>, <span class="st">"2026-06"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://data.ornldaac.earthdata.nasa.gov/gedi/l4a-2026-06.h5"</span>,</span>
+<span>             sha256 <span class="op">=</span> <span class="st">"..."</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The credential is read from the environment at the moment of the
+request. It is never stored, never written to the cache, never recorded
+in provenance and never printed. It travels as an
+<code>Authorization</code> header, which libcurl withholds from a
+redirect to another host, and these archives redirect to object storage
+routinely. A token carried in a query string would have neither
+protection and would appear in every error message listing the URLs that
+were tried, so one is not accepted.</p>
+<p>A credential belongs to a host rather than to a file, so the
+declaration is matched by host: a record listing an authenticated mirror
+beside a public one presents the credential to the first and not to the
+second, and a record that falls through to the public mirror simply
+succeeds. Hosts match exactly, without wildcards.</p>
+<p>Credentials are read from the registry the package <em>ships</em>,
+never from a remote one, for the reason signing keys are. A declaration
+arriving over the network that could name the hosts a credential is sent
+to would be able to nominate its own.</p>
+<p>Say plainly in your documentation which variable a user sets and
+where they register. <code><a href="../reference/getaca_credentials.html">getaca_credentials()</a></code> reports both, and
+whether the variable is set, without touching the network:</p>
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_credentials.html">getaca_credentials</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"canopy"</span><span class="op">)</span></span></code></pre></div>
+<p>The reproducibility promise narrows for these resources, from every
+machine getting the same bytes to every machine holding the credential
+getting the same bytes. Weigh that against a public mirror before
+declaring one.</p>
 </div>
 <div class="section level2">
 <h2 id="testing-your-declaration">Testing your declaration<a class="anchor" aria-label="anchor" href="#testing-your-declaration"></a>
 </h2>
 <p>The registry is an ordinary object, so the parts worth testing are
 testable without a network:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the shipped registry is valid and names a head"</span>, <span class="op">{</span></span>
 <span>  <span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_for.html">registry_for</a></span><span class="op">(</span><span class="st">"taxify"</span><span class="op">)</span></span>
 <span>  <span class="fu">expect_s3_class</span><span class="op">(</span><span class="va">reg</span>, <span class="st">"getaca_registry"</span><span class="op">)</span></span>

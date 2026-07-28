@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -315,7 +315,7 @@ tree:</p>
 <code class="sourceCode R"><span><span class="va">secret</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"taxify-signing.key"</span><span class="op">)</span></span>
 <span><span class="va">public</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_keygen.html">registry_keygen</a></span><span class="op">(</span><span class="va">secret</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">public</span>, <span class="fl">1</span>, <span class="fl">24</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "ed25519:0af0fd57bdf4645a"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "ed25519:346fa630412c05c8"</span></span></code></pre></div>
 <p>Declare the public half in the registry the package ships:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">signed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
@@ -336,9 +336,9 @@ is what stamps the publication time, and the signature binds it.</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">".sig"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; getaca-signature 1</span></span>
-<span><span class="co">#&gt; digest sha256:59c0a1d2c3496252584f12d7ecf084d79e932e121a5d8d5a67d40506af65d9ff</span></span>
-<span><span class="co">#&gt; created 2026-07-28T16:47:14Z</span></span>
-<span><span class="co">#&gt; expires 2026-10-26T16:47:14Z</span></span></code></pre></div>
+<span><span class="co">#&gt; digest sha256:b7a64028e1bc410fb7fe764072b028acfb19db57feca56f0b2329e2c44ddf32f</span></span>
+<span><span class="co">#&gt; created 2026-07-28T20:00:35Z</span></span>
+<span><span class="co">#&gt; expires 2026-10-26T20:00:35Z</span></span></code></pre></div>
 <p>Upload the <code>.sig</code> beside the registry; getaca fetches it
 from the registry’s own URL with <code>.sig</code> appended.
 <code><a href="../reference/registry_verify.html">registry_verify()</a></code> runs the same check a user’s session
@@ -354,7 +354,7 @@ whole point:</p>
 <span><span class="fu"><a href="../reference/registry_verify.html">registry_verify</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> The registry for 'taxify' could not be established as authentic.</span></span>
-<span><span class="co">#&gt;   the signature covers sha256:59c0a1d2c349 but this registry is sha256:c3e13f0372e3</span></span>
+<span><span class="co">#&gt;   the signature covers sha256:b7a64028e1bc but this registry is sha256:bf180ed18523</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; This package declares signing keys, so a remote registry that cannot be</span></span>
 <span><span class="co">#&gt; checked against one is refused rather than used. The bundled declaration</span></span>

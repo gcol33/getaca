@@ -26,7 +26,7 @@ message text.'><script>
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,6 +90,12 @@ message text.</p>
 <dt><code>getaca_error_incomplete</code></dt>
 <dd><p>Transfer ended short of the expected
 size. actor: user.</p></dd>
+
+<dt><code>getaca_error_credentials</code></dt>
+<dd><p>Every source that answered refused to
+serve the resource, so the missing thing is a permission rather than a
+network. actor: user where the declaration names a credential, author
+where it does not.</p></dd>
 
 <dt><code>getaca_error_upstream_changed</code></dt>
 <dd><p>A complete download hashed to
