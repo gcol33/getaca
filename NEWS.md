@@ -1,3 +1,52 @@
+# getaca 0.1.2
+
+## Transfers report themselves
+* `getaca_progress()` chooses what a transfer looks like: `"bar"` redraws a
+  line with the share, the rate and what is left, `"line"` writes one line to
+  start and one to finish for a log, `"none"` says nothing, and `"auto"` picks
+  between the first and the third by whether the session is interactive. Also
+  readable from `getaca.progress` and `GETACA_PROGRESS`, and `quiet = TRUE` on
+  a single `getaca()` call still overrides all of it.
+* `reporter()` builds your own out of a function of one argument, so a
+  declaring package can report a download in its own voice, or into a Shiny
+  session, or as a row in a log. No dependency: `Imports` is still `curl` plus
+  three base packages.
+* The events carry what the registry knows and a transfer library cannot: the
+  resource identity, which renders as `taxify/wfo@2026-09 (part 2 of 3)` for a
+  series, the size the declaration states rather than whatever content length
+  the mirror sent, which mirror is being tried, and how much was already on
+  disk when an interrupted transfer resumed. The share a bar shows is therefore
+  right before the first byte arrives and stays right for a host that sends no
+  content length at all.
+* A reporter that raises is caught, warned about once and switched off.
+  Reporting is cosmetic and a retrieval is not.
+
+## The transfer loop
+* getaca drives the transfer over the curl multi interface rather than handing
+  a URL to `curl::multi_download()`, which is what makes the byte counts
+  reachable at all: `multi_download()` sets `noprogress` on the handle after
+  the caller's options, so a progress callback attached to it never runs. See
+  `dev_notes/adr-008-own-transfer-loop.md`.
+* Resumed transfers now ask for `identity` encoding. A range request counts
+  bytes of the decoded stream and a compressing server counts encoded ones, and
+  libcurl reports the combination as an error rather than as bytes: against
+  `raw.githubusercontent.com` a resumed request failed with
+  `curl_error_bad_content_encoding` and transferred nothing. Every resume from
+  a compressing mirror was silently starting the download over.
+* The response status is read before the first byte is written, so the body of
+  a failed request is never written to the partial file. It was previously
+  written and then removed.
+* `HTTP 416` is distinguished from other refusals. It says the offset asked for
+  is past the end of the file the server holds, so the partial disagrees with
+  upstream and is dropped; any other refusal leaves the bytes an earlier
+  attempt did get.
+* A mirror that answers a resume request with the whole file is now detected
+  from the status and written from zero. It previously appended, and cost a
+  full retry once the checksum failed.
+* Transfers now send getaca's user agent. `new_handle_for()` never set the URL
+  or reached the transfer path at all; the multi interface takes both from the
+  handle.
+
 # getaca 0.1.1
 
 ## Resources that arrive in pieces
