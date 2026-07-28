@@ -1,3 +1,64 @@
+# getaca 0.1.4
+
+## Drafting a registry from where the data is
+* `registry_draft()` takes locations and returns a `registry()` with every
+  checksum filled in. It retrieves each file once and hashes it locally, which
+  is the part of authoring that cannot be done by hand.
+* A location is a plain `https://` URL or an identifier for a data archive, and
+  which one it is is read off the string. Zenodo, figshare and Dataverse are
+  covered, along with their landing-page URLs. Zenodo and figshare register
+  their own DOI prefixes and are recognised without a lookup; a bare Dataverse
+  DOI is resolved through `doi.org`, since instances are self-hosted.
+* Each archive supplies the licence, the version and a DOI for the artefact.
+  The checksums they publish are read past: all three report md5, from the same
+  host that serves the file.
+* A list element gives the mirrors of one resource, so a drafted record can
+  name several locations. `keep = TRUE` leaves the drafted bytes in the cache
+  instead of transferring them again on the first `getaca()` call.
+* An archive is consulted when a registry is written and never when a user
+  fetches. A drafted registry names ordinary `https://` locations.
+* `jsonlite` moves no closer than `Suggests`, where it already was, and is
+  needed only for the archive handlers.
+
+## Resources behind a registration
+* A registry may declare the credential a host requires, with `auth_host()`
+  binding a `bearer()` or `basic()` scheme to one host. Both name environment
+  variables: nothing secret enters a registry, a manifest, a digest, a
+  provenance record or an error message. The credential is read at the moment
+  of the request and never stored.
+* It travels as an `Authorization` header, which libcurl withholds from a
+  redirect to another host, and to the declared host only. Hosts match exactly,
+  so a declaration cannot widen where a credential is sent, and credentials are
+  read from the registry the package *ships*, never from a remote one, for the
+  reason signing keys are.
+* A record may list an authenticated mirror beside a public one. The credential
+  goes to the first, and a fetch that falls through to the second succeeds.
+* `getaca_error_credentials` is raised when every mirror that failed answered
+  401 or 403, naming the variable wanted, whether it is set, and where to
+  register. Those failures previously produced `getaca_error_unavailable`,
+  whose advice is to connect to a network. Where a host refuses and the
+  declaration names no credential for it, there is no variable to set and the
+  condition's `actor` is `"author"` instead.
+* `getaca_credentials()` reports every variable a package's declaration reads
+  and whether it is set, without touching the network.
+
+## Citing the bytes that were read
+* `resource(doi = )` records the DOI for an artefact. It renders in the
+  manifest, so a signature covers it, and travels into provenance:
+  `getaca_info()` shows it and `getaca_catalogue()` gains a `doi` column. It
+  routes nothing; locations stay in `urls`. A `https://doi.org/` or `doi:`
+  prefix is accepted and stripped.
+
+## Under the hood
+* `REGISTRY_SCHEMA` goes to 4, since an older getaca would fetch an
+  authenticated host with no credential and report the refusal as an outage.
+  `MANIFEST_FORMAT` stays at 1: both new fields render nothing when absent, so
+  every digest already recorded still identifies the state that produced it.
+* See `dev_notes/adr-010-authenticated-transport.md` for why authentication was
+  taken up as transport and DOI resolution was not taken up as a resolver, and
+  `dev_notes/adr-011-drafting-registries.md` for the archives being read at
+  authoring time instead.
+
 # getaca 0.1.3
 
 ## Archives unpack themselves
