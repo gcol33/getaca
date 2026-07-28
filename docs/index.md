@@ -11,8 +11,9 @@ MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.or
 **One engine that retrieves, verifies, caches and garbage-collects the
 large data files your package declares it needs.**
 
-Your package needs a 4 GB reference file it has no way to ship. Declare
-it in a few kilobytes, and retrieving it is one call:
+A taxonomic backbone runs to 800 MB, a global climate grid to several
+GB, a pretrained model to more. Files that size stay outside the
+package. Declare one in a few kilobytes, and retrieving it is one call:
 
 ``` r
 
@@ -39,16 +40,31 @@ path <- getaca("atlas", package = "yourpkg")
 `getaca` resolves the declaration through an explicit policy, verifies
 what arrives against the checksum, records where it came from, and
 returns an ordinary local path. The same installed package resolves the
-same bytes on every machine and in every rerun, and `R CMD check` passes
-with no network at all.
+same bytes on every machine and in every rerun.
 
-## Why a declaration
+## What the declaration is for
 
-Reference data outgrows a package quickly. A taxonomic backbone runs to
-800 MB, a global climate grid to several GB, a pretrained model to more,
-and each is republished on its own schedule. Sizes like that rule out
-shipping the data inside the package. A check run has no network. And an
-analysis rerun next year still has to see the bytes it saw today.
+Downloading a file into a cache directory and checking its hash is a few
+dozen lines, and for one file that never moves that is the right amount
+of code. Two things come after it, and they are what the declaration
+carries.
+
+**The data are republished on their own schedule.** A checksum written
+into your sources holds until your next release, so a dead mirror or a
+fresh upstream cut waits for CRAN. A declaration can name a remote
+registry you keep: mirrors get repaired, `2026-09` gets published, and
+installed copies follow. A version that has been published still names
+the bytes it always named, since a registry redefining one is refused,
+and the registry can be signed so a user’s session can tell your
+declaration from anything else that host might one day serve.
+
+**`R CMD check` has no network, and CRAN reads
+[`tools::R_user_dir()`](https://rdrr.io/r/tools/userdir.html) as a cache
+you are expected to manage.** Resolution collapses to `offline` under
+check whatever the policy says, three helpers cover tests, examples and
+vignettes, and the retention sweeps run after every retrieval. That is
+the part that turns a few dozen lines into a few hundred, in every
+package that depends on external data.
 
 So the package ships the declaration and `getaca` does the rest. There
 is one engine and many declarations, the way there is one `renv` and
@@ -394,8 +410,8 @@ first recommendation: it moves the complexity one step along.
 
 ## Related work
 
-Two established packages solve neighbouring problems, and either may be
-the better fit depending on which problem you have.
+Several established packages solve neighbouring problems, and one of
+them may be the better fit depending on which problem you have.
 
 [**pins**](https://cran.r-project.org/package=pins) publishes “data
 sets, models, and other R objects, making it easy to share them across
@@ -408,10 +424,18 @@ an artefact and the board it lives on.
 update, and retrieve”, for resources that are costly to create or
 fetched from the web, backed by an SQLite metadata database.
 
-`getaca` is built around a package declaring what it needs: identity is
-`package / name / version`, the declaration ships inside the installed
-package, and resolution, verification, offline behaviour and retention
-are the same for every declaring package because there is one engine.
+[**pooch**](https://www.fatiando.org/pooch/) is where Python puts this
+problem, “a friend to fetch your data files”: a registry of file names
+and hashes shipped as package data, a cache folder, one URL per file,
+and a `version` documented as “the version string for your project”,
+which names the subfolder the cache uses.
+
+`getaca` is built around a package declaring what it needs. Identity is
+`package / name / version`, where the version labels the data rather
+than the code, so a channel can move a name onto new bytes between
+releases. The declaration ships inside the installed package, and
+resolution, verification, offline behaviour and retention are the same
+for every declaring package because there is one engine.
 
 ## Dependencies
 

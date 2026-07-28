@@ -239,6 +239,35 @@ ones a publisher versions, or when you want the cache under your own
 control.</p>
 </div>
 <div class="section level2">
+<h2 id="pooch">pooch<a class="anchor" aria-label="anchor" href="#pooch"></a>
+</h2>
+<p>The nearest equivalent outside R, and the one a reader arriving from
+Python will already know. <a href="https://www.fatiando.org/pooch/" class="external-link">pooch</a>, “a friend to fetch
+your data files”, is where a Python package puts this problem: a
+registry of file names and hashes, a cache folder under the OS
+convention, downloaders and processors around them.</p>
+<p>The overlap is the middle of the problem, fetch and hash and cache.
+The two ends differ, and both differences are about where the
+constraints come from.</p>
+<p>At the front, a pooch registry is a <code>registry.txt</code> shipped
+as package data, and <code>version</code> is documented as “the version
+string for your project”, naming the subfolder the cache uses. Data
+identity is the declaring project’s identity, so a repaired mirror or a
+fresh upstream cut reaches users when the code does. A
+<code>getaca</code> declaration versions the data separately, holds
+several versions at once, names the head, and can resolve through a
+remote registry the author keeps, which is what lets
+<code>2026-09</code> reach an installed copy between releases.
+<code>urls</code> in pooch sets one URL per file; a <code>getaca</code>
+record takes a list of mirrors and walks it until one answers.</p>
+<p>At the back, the constraints are CRAN’s. <code>R CMD check</code>
+runs the tests, examples and vignettes of every package on machines with
+no network, and <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> is permitted on
+condition its contents are actively managed. The check clamp, the three
+access helpers and the retention sweeps exist for those two
+sentences.</p>
+</div>
+<div class="section level2">
 <h2 id="a-downloader-and-a-cache-directory">A downloader and a cache directory<a class="anchor" aria-label="anchor" href="#a-downloader-and-a-cache-directory"></a>
 </h2>
 <p>The common alternative in practice: <code><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file()</a></code> or

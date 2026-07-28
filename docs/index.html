@@ -93,7 +93,7 @@
 <p><em>external data your package depends on, pinned to exact bytes</em></p>
 <p><a href="https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/gcol33/getaca" class="external-link"><img src="https://codecov.io/gh/gcol33/getaca/graph/badge.svg" alt="Codecov test coverage"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
 <p><strong>One engine that retrieves, verifies, caches and garbage-collects the large data files your package declares it needs.</strong></p>
-<p>Your package needs a 4 GB reference file it has no way to ship. Declare it in a few kilobytes, and retrieving it is one call:</p>
+<p>A taxonomic backbone runs to 800 MB, a global climate grid to several GB, a pretrained model to more. Files that size stay outside the package. Declare one in a few kilobytes, and retrieving it is one call:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/getaca/">getaca</a></span><span class="op">)</span></span>
 <span></span>
@@ -108,11 +108,13 @@
 <p>Write that registry to <code>inst/getaca/registry.rds</code> and every later call reaches it from anywhere, with the package name alone:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
-<p><code>getaca</code> resolves the declaration through an explicit policy, verifies what arrives against the checksum, records where it came from, and returns an ordinary local path. The same installed package resolves the same bytes on every machine and in every rerun, and <code>R CMD check</code> passes with no network at all.</p>
+<p><code>getaca</code> resolves the declaration through an explicit policy, verifies what arrives against the checksum, records where it came from, and returns an ordinary local path. The same installed package resolves the same bytes on every machine and in every rerun.</p>
 <div class="section level2">
-<h2 id="why-a-declaration">Why a declaration<a class="anchor" aria-label="anchor" href="#why-a-declaration"></a>
+<h2 id="what-the-declaration-is-for">What the declaration is for<a class="anchor" aria-label="anchor" href="#what-the-declaration-is-for"></a>
 </h2>
-<p>Reference data outgrows a package quickly. A taxonomic backbone runs to 800 MB, a global climate grid to several GB, a pretrained model to more, and each is republished on its own schedule. Sizes like that rule out shipping the data inside the package. A check run has no network. And an analysis rerun next year still has to see the bytes it saw today.</p>
+<p>Downloading a file into a cache directory and checking its hash is a few dozen lines, and for one file that never moves that is the right amount of code. Two things come after it, and they are what the declaration carries.</p>
+<p><strong>The data are republished on their own schedule.</strong> A checksum written into your sources holds until your next release, so a dead mirror or a fresh upstream cut waits for CRAN. A declaration can name a remote registry you keep: mirrors get repaired, <code>2026-09</code> gets published, and installed copies follow. A version that has been published still names the bytes it always named, since a registry redefining one is refused, and the registry can be signed so a user’s session can tell your declaration from anything else that host might one day serve.</p>
+<p><strong><code>R CMD check</code> has no network, and CRAN reads <code><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">tools::R_user_dir()</a></code> as a cache you are expected to manage.</strong> Resolution collapses to <code>offline</code> under check whatever the policy says, three helpers cover tests, examples and vignettes, and the retention sweeps run after every retrieval. That is the part that turns a few dozen lines into a few hundred, in every package that depends on external data.</p>
 <p>So the package ships the declaration and <code>getaca</code> does the rest. There is one engine and many declarations, the way there is one <code>renv</code> and many lockfiles.</p>
 </div>
 <div class="section level2">
@@ -452,10 +454,11 @@
 <div class="section level2">
 <h2 id="related-work">Related work<a class="anchor" aria-label="anchor" href="#related-work"></a>
 </h2>
-<p>Two established packages solve neighbouring problems, and either may be the better fit depending on which problem you have.</p>
+<p>Several established packages solve neighbouring problems, and one of them may be the better fit depending on which problem you have.</p>
 <p><a href="https://cran.r-project.org/package=pins" class="external-link"><strong>pins</strong></a> publishes “data sets, models, and other R objects, making it easy to share them across projects and with your colleagues”, across boards including local folders, Posit Connect and AWS S3. It is built around the person sharing an artefact and the board it lives on.</p>
 <p><a href="https://bioconductor.org/packages/BiocFileCache" class="external-link"><strong>BiocFileCache</strong></a> “creates a persistent on-disk cache of files that the user can add, update, and retrieve”, for resources that are costly to create or fetched from the web, backed by an SQLite metadata database.</p>
-<p><code>getaca</code> is built around a package declaring what it needs: identity is <code>package / name / version</code>, the declaration ships inside the installed package, and resolution, verification, offline behaviour and retention are the same for every declaring package because there is one engine.</p>
+<p><a href="https://www.fatiando.org/pooch/" class="external-link"><strong>pooch</strong></a> is where Python puts this problem, “a friend to fetch your data files”: a registry of file names and hashes shipped as package data, a cache folder, one URL per file, and a <code>version</code> documented as “the version string for your project”, which names the subfolder the cache uses.</p>
+<p><code>getaca</code> is built around a package declaring what it needs. Identity is <code>package / name / version</code>, where the version labels the data rather than the code, so a channel can move a name onto new bytes between releases. The declaration ships inside the installed package, and resolution, verification, offline behaviour and retention are the same for every declaring package because there is one engine.</p>
 </div>
 <div class="section level2">
 <h2 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a>

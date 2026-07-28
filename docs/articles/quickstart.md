@@ -370,7 +370,7 @@ sweeps reclaim first.
 ``` r
 
 getaca_cache_dir()
-#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\Rtmp4OfubD/getaca-quickstart"
+#> [1] "C:\\Users\\GILLES~1\\AppData\\Local\\Temp\\Rtmpmg5SEw/getaca-quickstart"
 ```
 
 That is the temporary directory this vignette is sandboxed in. The

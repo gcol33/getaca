@@ -106,6 +106,36 @@ Reach for `BiocFileCache` when you are in the Bioconductor ecosystem,
 when the resources are ones your code creates rather than ones a
 publisher versions, or when you want the cache under your own control.
 
+## pooch
+
+The nearest equivalent outside R, and the one a reader arriving from
+Python will already know. [pooch](https://www.fatiando.org/pooch/), “a
+friend to fetch your data files”, is where a Python package puts this
+problem: a registry of file names and hashes, a cache folder under the
+OS convention, downloaders and processors around them.
+
+The overlap is the middle of the problem, fetch and hash and cache. The
+two ends differ, and both differences are about where the constraints
+come from.
+
+At the front, a pooch registry is a `registry.txt` shipped as package
+data, and `version` is documented as “the version string for your
+project”, naming the subfolder the cache uses. Data identity is the
+declaring project’s identity, so a repaired mirror or a fresh upstream
+cut reaches users when the code does. A `getaca` declaration versions
+the data separately, holds several versions at once, names the head, and
+can resolve through a remote registry the author keeps, which is what
+lets `2026-09` reach an installed copy between releases. `urls` in pooch
+sets one URL per file; a `getaca` record takes a list of mirrors and
+walks it until one answers.
+
+At the back, the constraints are CRAN’s. `R CMD check` runs the tests,
+examples and vignettes of every package on machines with no network, and
+[`tools::R_user_dir()`](https://rdrr.io/r/tools/userdir.html) is
+permitted on condition its contents are actively managed. The check
+clamp, the three access helpers and the retention sweeps exist for those
+two sentences.
+
 ## A downloader and a cache directory
 
 The common alternative in practice:
