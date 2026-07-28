@@ -99,17 +99,17 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gillescolling.com/getaca/">getaca</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">atlas</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span></span>
-<span>  <span class="st">"atlas"</span>, <span class="st">"2026-06"</span>,</span>
-<span>  urls   <span class="op">=</span> <span class="st">"https://primary.invalid/atlas-2026-06.zip"</span>,</span>
+<span><span class="va">backbone</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span></span>
+<span>  <span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
+<span>  urls   <span class="op">=</span> <span class="st">"https://primary.invalid/backbone-2026-06.zip"</span>,</span>
 <span>  sha256 <span class="op">=</span> <span class="st">"97f28a53a7912a80c12cc8f26e0c422d9212e067e11479ae61ef0a91b456b53a"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">reg</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/registry.html">registry</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"yourpkg"</span>, resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">atlas</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"atlas"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">reg</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/registry.html">registry</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"yourpkg"</span>, resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">backbone</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span></code></pre></div>
 <p>Write that registry to <code>inst/getaca/registry.rds</code> and every later call reaches it from anywhere, with the package name alone:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
 <p><code>getaca</code> resolves the declaration through an explicit policy, verifies what arrives against the checksum, records where it came from, and returns an ordinary local path. The same installed package resolves the same bytes on every machine and in every rerun.</p>
 <div class="section level2">
 <h2 id="what-the-declaration-is-for">What the declaration is for<a class="anchor" aria-label="anchor" href="#what-the-declaration-is-for"></a>
@@ -175,15 +175,15 @@
 <p>When several independent mirrors return identical bytes and none of them match the declared checksum, the registry is the likely error, and <code>getaca_error_declaration</code> says so.</p>
 <p>Each condition carries an <code>actor</code> field, so a declaring package can catch the ones its users will meet and answer in its own vocabulary:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">install_atlas</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"atlas"</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"backbone"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="va">name</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>,</span>
 <span>    getaca_error_unavailable <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"The atlas is not installed and no network is available.\n"</span>,</span>
-<span>           <span class="st">"Connect, then run: yourpkg::install_atlas()"</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>      <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"The backbone is not installed and no network is available.\n"</span>,</span>
+<span>           <span class="st">"Connect, then run: yourpkg::install_backbone()"</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>    <span class="op">}</span></span>
 <span>  <span class="op">)</span></span>
-<span>  <span class="fu">open_atlas</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span>  <span class="fu">open_backbone</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -192,17 +192,17 @@
 <p>Resolution collapses to <code>offline</code> under <code>R CMD check</code>, whatever policy is set. Three helpers cover the three contexts CRAN cares about:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># in tests</span></span>
-<span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the atlas parses"</span>, <span class="op">{</span></span>
-<span>  <span class="fu"><a href="reference/getaca-checks.html">getaca_skip_if_unavailable</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
-<span>  <span class="fu">expect_s3_class</span><span class="op">(</span><span class="fu">read_atlas</span><span class="op">(</span><span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span>, <span class="st">"atlas"</span><span class="op">)</span></span>
+<span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the backbone parses"</span>, <span class="op">{</span></span>
+<span>  <span class="fu"><a href="reference/getaca-checks.html">getaca_skip_if_unavailable</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span>  <span class="fu">expect_s3_class</span><span class="op">(</span><span class="fu">read_backbone</span><span class="op">(</span><span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span>, <span class="st">"backbone"</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># in examples and vignettes</span></span>
-<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca-checks.html">getaca_optional</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span><span class="op">)</span> <span class="fu">summarise_atlas</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca-checks.html">getaca_optional</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span><span class="op">)</span> <span class="fu">summarise_backbone</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># anywhere a plain logical is easier</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="reference/getaca-checks.html">getaca_available</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span> <span class="op">}</span></span></code></pre></div>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="reference/getaca-checks.html">getaca_available</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span> <span class="op">}</span></span></code></pre></div>
 <p>Point <code>GETACA_CACHE</code> at a pre-seeded directory and a CI job finds everything already there. The cache is a plain directory tree, so the usual actions cache it by key:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/cache@v4</span></span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="at">  </span><span class="fu">with</span><span class="kw">:</span></span>
@@ -216,7 +216,7 @@
 <div class="section level2">
 <h2 id="records-and-channels">Records and channels<a class="anchor" aria-label="anchor" href="#records-and-channels"></a>
 </h2>
-<p>A <strong>resource record</strong> is immutable: <code>yourpkg / atlas / 2026-06</code> names exact bytes forever. A <strong>channel</strong> maps the logical name onto one record, and channels move.</p>
+<p>A <strong>resource record</strong> is immutable: <code>yourpkg / backbone / 2026-06</code> names exact bytes forever. A <strong>channel</strong> maps the logical name onto one record, and channels move.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -256,10 +256,10 @@
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
-<span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>atlas <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
+<span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"atlas"</span>, <span class="st">"2026-06"</span>, urls <span class="op">=</span> <span class="st">"..."</span>, sha256 <span class="op">=</span> <span class="st">"..."</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"atlas"</span>, <span class="st">"2026-09"</span>, urls <span class="op">=</span> <span class="st">"..."</span>, sha256 <span class="op">=</span> <span class="st">"..."</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>, urls <span class="op">=</span> <span class="st">"..."</span>, sha256 <span class="op">=</span> <span class="st">"..."</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-09"</span>, urls <span class="op">=</span> <span class="st">"..."</span>, sha256 <span class="op">=</span> <span class="st">"..."</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>A name offering several versions and naming no head is refused as an invalid registry. The one mistake this design is exposed to, appending <code>2026-03</code> below <code>2026-09</code> and moving every user backwards, becomes an error at <code><a href="reference/registry.html">registry()</a></code> on the author’s machine.</p>
@@ -290,11 +290,11 @@
 <span>    package  <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>    policy   <span class="op">=</span> <span class="st">"current"</span>,</span>
 <span>    remote   <span class="op">=</span> <span class="st">"https://yourpkg.invalid/getaca-registry.rds"</span>,</span>
-<span>    current  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>atlas <span class="op">=</span> <span class="st">"2026-06"</span><span class="op">)</span>,</span>
+<span>    current  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"2026-06"</span><span class="op">)</span>,</span>
 <span>    resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"atlas"</span>, <span class="st">"2026-06"</span>,</span>
-<span>               urls <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://zenodo.invalid/records/1234567/files/atlas-2026-06.zip"</span>,</span>
-<span>                        <span class="st">"https://releases.invalid/atlas/2026.06/atlas.zip"</span><span class="op">)</span>,</span>
+<span>      <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
+<span>               urls <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://zenodo.invalid/records/1234567/files/backbone-2026-06.zip"</span>,</span>
+<span>                        <span class="st">"https://releases.invalid/backbone/2026.06/backbone.zip"</span><span class="op">)</span>,</span>
 <span>               sha256 <span class="op">=</span> <span class="st">"9f2c..."</span>,</span>
 <span>               size   <span class="op">=</span> <span class="fl">4.1e9</span>,</span>
 <span>               license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span>,</span>
@@ -305,7 +305,7 @@
 <span><span class="op">)</span></span></code></pre></div>
 <p>Installing the package copies a few kilobytes. The first real call retrieves, verifies and caches:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
 <p>Zenodo and GitHub releases both host files this size for free, and listing one of each is what makes an outage at either survivable. What the rest of the declaration buys:</p>
 <ul>
 <li>
@@ -317,7 +317,7 @@
 <li>
 <strong><code>policy = "current"</code></strong> lets a dead mirror be repaired, or <code>2026-09</code> published, without a CRAN release</li>
 <li>
-<strong><code>current</code></strong> states which of the published versions a bare <code>getaca("atlas")</code> returns</li>
+<strong><code>current</code></strong> states which of the published versions a bare <code>getaca("backbone")</code> returns</li>
 </ul>
 <p>When the publisher issues <code>2026-09</code>, the remote registry adds the record and moves the head. When the publisher replaces <code>2026-06</code> in place, the checksum stops matching, the cached copy is left alone, and the error names the publisher as the party who changed something.</p>
 </div>
@@ -365,9 +365,9 @@
 <h2 id="provenance-and-what-is-cached">Provenance, and what is cached<a class="anchor" aria-label="anchor" href="#provenance-and-what-is-cached"></a>
 </h2>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;getaca cache entry&gt; yourpkg/atlas@2026-06</span></span>
-<span><span class="co">#&gt;   path        ~/.cache/R/getaca/yourpkg/atlas/2026-06/raw/atlas-2026-06.zip</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;getaca cache entry&gt; yourpkg/backbone@2026-06</span></span>
+<span><span class="co">#&gt;   path        ~/.cache/R/getaca/yourpkg/backbone/2026-06/raw/backbone-2026-06.zip</span></span>
 <span><span class="co">#&gt;   store       hardlink to blobs/sha256/9f/9f2c8d1e5a3b</span></span>
 <span><span class="co">#&gt;   sha256      9f2c8d1e...</span></span>
 <span><span class="co">#&gt;   size        4,100,000,000 bytes</span></span>
@@ -375,7 +375,7 @@
 <span><span class="co">#&gt;   built from  source_release: 2026-06</span></span>
 <span><span class="co">#&gt;   built from  build: 3</span></span>
 <span><span class="co">#&gt;   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)</span></span>
-<span><span class="co">#&gt;   source url  https://zenodo.invalid/records/1234567/files/atlas-2026-06.zip</span></span>
+<span><span class="co">#&gt;   source url  https://zenodo.invalid/records/1234567/files/backbone-2026-06.zip</span></span>
 <span><span class="co">#&gt;   getaca      0.1.0</span></span>
 <span><span class="co">#&gt;   fetched     2026-07-26 11:02:13</span></span>
 <span><span class="co">#&gt;   verified    2026-07-26 11:09:44 (full re-hash)</span></span>
@@ -385,8 +385,8 @@
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"package"</span>, <span class="st">"name"</span>, <span class="st">"version"</span>, <span class="st">"current"</span>, <span class="st">"declared"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   package  name version current declared cached</span></span>
-<span><span class="co">#&gt; 1 yourpkg atlas 2026-06    TRUE     TRUE   TRUE</span></span>
-<span><span class="co">#&gt; 2 yourpkg atlas 2026-03   FALSE    FALSE   TRUE</span></span>
+<span><span class="co">#&gt; 1 yourpkg backbone 2026-06    TRUE     TRUE   TRUE</span></span>
+<span><span class="co">#&gt; 2 yourpkg backbone 2026-03   FALSE    FALSE   TRUE</span></span>
 <span><span class="co">#&gt; 3 yourpkg  grid 2026-06    TRUE     TRUE  FALSE</span></span></code></pre></div>
 <p>Row 2 is a copy of a version nothing asks for any more, which is what the retention sweeps reclaim first. Row 3 is work still to do on this machine.</p>
 </div>
@@ -395,8 +395,8 @@
 </h2>
 <p>A processor turns one verified path into another: unpacking an archive, or preparing a package-specific layout. It carries an id, so the processed result gets its own cache slot and its own provenance.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"atlas"</span>, <span class="st">"2026-06"</span>,</span>
-<span>         urls <span class="op">=</span> <span class="st">"https://primary.invalid/atlas-2026-06.zip"</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
+<span>         urls <span class="op">=</span> <span class="st">"https://primary.invalid/backbone-2026-06.zip"</span>,</span>
 <span>         sha256 <span class="op">=</span> <span class="st">"9f2c..."</span>,</span>
 <span>         processor <span class="op">=</span> <span class="fu"><a href="reference/processor.html">processor</a></span><span class="op">(</span><span class="st">"unzip"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output_dir</span><span class="op">)</span> <span class="op">{</span></span>
 <span>           <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/unzip.html" class="external-link">unzip</a></span><span class="op">(</span><span class="va">input</span>, exdir <span class="op">=</span> <span class="va">output_dir</span><span class="op">)</span></span>
@@ -409,12 +409,12 @@
 </h2>
 <p>A host that caps file size, or a publisher issuing deltas against a base release, gives you a resource that arrives as a series. Declare the pieces, and <code>sha256</code> describes the artefact they compose:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"atlas"</span>, <span class="st">"2026-09"</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-09"</span>,</span>
 <span>         sha256 <span class="op">=</span> <span class="st">"b104..."</span>,</span>
-<span>         file   <span class="op">=</span> <span class="st">"atlas.parquet"</span>,</span>
+<span>         file   <span class="op">=</span> <span class="st">"backbone.parquet"</span>,</span>
 <span>         parts  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>           <span class="fu"><a href="reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://primary.invalid/atlas-base.bin"</span>,    sha256 <span class="op">=</span> <span class="st">"91cc..."</span><span class="op">)</span>,</span>
-<span>           <span class="fu"><a href="reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://primary.invalid/atlas-2026-09.bin"</span>, sha256 <span class="op">=</span> <span class="st">"4e77..."</span><span class="op">)</span></span>
+<span>           <span class="fu"><a href="reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://primary.invalid/backbone-base.bin"</span>,    sha256 <span class="op">=</span> <span class="st">"91cc..."</span><span class="op">)</span>,</span>
+<span>           <span class="fu"><a href="reference/part.html">part</a></span><span class="op">(</span><span class="st">"https://primary.invalid/backbone-2026-09.bin"</span>, sha256 <span class="op">=</span> <span class="st">"4e77..."</span><span class="op">)</span></span>
 <span>         <span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Each part is verified and stored under its own digest, so the base is transferred once however many versions declare it, and publishing a version costs your users the delta. The composed result is hashed against the record’s own checksum before anyone sees it, then joins the store exactly as a downloaded file does.</p>
 <p>Parts are concatenated unless the record declares a <code><a href="reference/combiner.html">combiner()</a></code>, which is what a delta format needs. Either way the artefact is the identity: re-splitting a file or moving a piece to a new host changes the route, and what a version means is fixed by the checksum at the end of it.</p>
@@ -444,7 +444,7 @@
 <p>Removal runs cheapest and safest first: broken material, abandoned transfers, superseded versions past their retention window, least-recently-used entries once over the size ceiling, and finally bytes that no declaration references any more. Superseded and not-recently-used age on separate clocks, so an expensive resource is never dropped merely for being old. Pinned entries, the version the bundled registry names, and anything under an active lock are never touched.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>      <span class="co"># what would go, and why</span></span>
-<span><span class="fu"><a href="reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"atlas"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>  <span class="co"># exempt this one permanently</span></span>
+<span><span class="fu"><a href="reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>  <span class="co"># exempt this one permanently</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.max_bytes <span class="op">=</span> <span class="fl">50</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span><span class="op">)</span>  <span class="co"># raise the ceiling</span></span></code></pre></div>
 </div>
 <div class="section level2">

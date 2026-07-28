@@ -23,14 +23,14 @@ package. Declare one in a few kilobytes, and retrieving it is one call:
 
 library(getaca)
 
-atlas <- resource(
-  "atlas", "2026-06",
-  urls   = "https://primary.invalid/atlas-2026-06.zip",
+backbone <- resource(
+  "backbone", "2026-06",
+  urls   = "https://primary.invalid/backbone-2026-06.zip",
   sha256 = "97f28a53a7912a80c12cc8f26e0c422d9212e067e11479ae61ef0a91b456b53a"
 )
 
-reg  <- registry(package = "yourpkg", resources = list(atlas))
-path <- getaca("atlas", registry = reg)
+reg  <- registry(package = "yourpkg", resources = list(backbone))
+path <- getaca("backbone", registry = reg)
 ```
 
 Write that registry to `inst/getaca/registry.rds` and every later call
@@ -38,7 +38,7 @@ reaches it from anywhere, with the package name alone:
 
 ``` r
 
-path <- getaca("atlas", package = "yourpkg")
+path <- getaca("backbone", package = "yourpkg")
 ```
 
 `getaca` resolves the declaration through an explicit policy, verifies
@@ -99,15 +99,15 @@ catch the ones its users will meet and answer in its own vocabulary:
 
 ``` r
 
-install_atlas <- function(name = "atlas") {
+install_backbone <- function(name = "backbone") {
   path <- tryCatch(
     getaca(name, package = "yourpkg"),
     getaca_error_unavailable = function(e) {
-      stop("The atlas is not installed and no network is available.\n",
-           "Connect, then run: yourpkg::install_atlas()", call. = FALSE)
+      stop("The backbone is not installed and no network is available.\n",
+           "Connect, then run: yourpkg::install_backbone()", call. = FALSE)
     }
   )
-  open_atlas(path)
+  open_backbone(path)
 }
 ```
 
@@ -119,17 +119,17 @@ is set. Three helpers cover the three contexts CRAN cares about:
 ``` r
 
 # in tests
-test_that("the atlas parses", {
-  getaca_skip_if_unavailable("atlas", package = "yourpkg")
-  expect_s3_class(read_atlas(getaca("atlas", package = "yourpkg")), "atlas")
+test_that("the backbone parses", {
+  getaca_skip_if_unavailable("backbone", package = "yourpkg")
+  expect_s3_class(read_backbone(getaca("backbone", package = "yourpkg")), "backbone")
 })
 
 # in examples and vignettes
-path <- getaca_optional("atlas", package = "yourpkg")
-if (!is.null(path)) summarise_atlas(path)
+path <- getaca_optional("backbone", package = "yourpkg")
+if (!is.null(path)) summarise_backbone(path)
 
 # anywhere a plain logical is easier
-if (getaca_available("atlas", package = "yourpkg")) { }
+if (getaca_available("backbone", package = "yourpkg")) { }
 ```
 
 Point `GETACA_CACHE` at a pre-seeded directory and a CI job finds
@@ -151,7 +151,7 @@ once and every later job reuses it.
 
 ## Records and channels
 
-A **resource record** is immutable: `yourpkg / atlas / 2026-06` names
+A **resource record** is immutable: `yourpkg / backbone / 2026-06` names
 exact bytes forever. A **channel** maps the logical name onto one
 record, and channels move.
 
@@ -174,10 +174,10 @@ ordering, so declaration order cannot stand in for one:
 
 registry(
   package = "yourpkg",
-  current = c(atlas = "2026-09"),
+  current = c(backbone = "2026-09"),
   resources = list(
-    resource("atlas", "2026-06", urls = "...", sha256 = "..."),
-    resource("atlas", "2026-09", urls = "...", sha256 = "...")
+    resource("backbone", "2026-06", urls = "...", sha256 = "..."),
+    resource("backbone", "2026-09", urls = "...", sha256 = "...")
   )
 )
 ```
@@ -228,11 +228,11 @@ registry_write(
     package  = "yourpkg",
     policy   = "current",
     remote   = "https://yourpkg.invalid/getaca-registry.rds",
-    current  = c(atlas = "2026-06"),
+    current  = c(backbone = "2026-06"),
     resources = list(
-      resource("atlas", "2026-06",
-               urls = c("https://zenodo.invalid/records/1234567/files/atlas-2026-06.zip",
-                        "https://releases.invalid/atlas/2026.06/atlas.zip"),
+      resource("backbone", "2026-06",
+               urls = c("https://zenodo.invalid/records/1234567/files/backbone-2026-06.zip",
+                        "https://releases.invalid/backbone/2026.06/backbone.zip"),
                sha256 = "9f2c...",
                size   = 4.1e9,
                license = "CC-BY-4.0",
@@ -248,7 +248,7 @@ retrieves, verifies and caches:
 
 ``` r
 
-path <- getaca("atlas", package = "yourpkg")
+path <- getaca("backbone", package = "yourpkg")
 ```
 
 Zenodo and GitHub releases both host files this size for free, and
@@ -265,7 +265,7 @@ the rest of the declaration buys:
 - **`policy = "current"`** lets a dead mirror be repaired, or `2026-09`
   published, without a CRAN release
 - **`current`** states which of the published versions a bare
-  `getaca("atlas")` returns
+  `getaca("backbone")` returns
 
 When the publisher issues `2026-09`, the remote registry adds the record
 and moves the head. When the publisher replaces `2026-06` in place, the
@@ -315,9 +315,9 @@ success. A lock whose holder died goes stale and is taken over.
 
 ``` r
 
-getaca_info("atlas", package = "yourpkg")
-#> <getaca cache entry> yourpkg/atlas@2026-06
-#>   path        ~/.cache/R/getaca/yourpkg/atlas/2026-06/raw/atlas-2026-06.zip
+getaca_info("backbone", package = "yourpkg")
+#> <getaca cache entry> yourpkg/backbone@2026-06
+#>   path        ~/.cache/R/getaca/yourpkg/backbone/2026-06/raw/backbone-2026-06.zip
 #>   store       hardlink to blobs/sha256/9f/9f2c8d1e5a3b
 #>   sha256      9f2c8d1e...
 #>   size        4,100,000,000 bytes
@@ -325,7 +325,7 @@ getaca_info("atlas", package = "yourpkg")
 #>   built from  source_release: 2026-06
 #>   built from  build: 3
 #>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
-#>   source url  https://zenodo.invalid/records/1234567/files/atlas-2026-06.zip
+#>   source url  https://zenodo.invalid/records/1234567/files/backbone-2026-06.zip
 #>   getaca      0.1.0
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
@@ -345,8 +345,8 @@ installed packages declare and every copy the cache holds:
 
 getaca_catalogue()[, c("package", "name", "version", "current", "declared", "cached")]
 #>   package  name version current declared cached
-#> 1 yourpkg atlas 2026-06    TRUE     TRUE   TRUE
-#> 2 yourpkg atlas 2026-03   FALSE    FALSE   TRUE
+#> 1 yourpkg backbone 2026-06    TRUE     TRUE   TRUE
+#> 2 yourpkg backbone 2026-03   FALSE    FALSE   TRUE
 #> 3 yourpkg  grid 2026-06    TRUE     TRUE  FALSE
 ```
 
@@ -362,8 +362,8 @@ processed result gets its own cache slot and its own provenance.
 
 ``` r
 
-resource("atlas", "2026-06",
-         urls = "https://primary.invalid/atlas-2026-06.zip",
+resource("backbone", "2026-06",
+         urls = "https://primary.invalid/backbone-2026-06.zip",
          sha256 = "9f2c...",
          processor = processor("unzip", function(input, output_dir) {
            utils::unzip(input, exdir = output_dir)
@@ -384,12 +384,12 @@ pieces, and `sha256` describes the artefact they compose:
 
 ``` r
 
-resource("atlas", "2026-09",
+resource("backbone", "2026-09",
          sha256 = "b104...",
-         file   = "atlas.parquet",
+         file   = "backbone.parquet",
          parts  = list(
-           part("https://primary.invalid/atlas-base.bin",    sha256 = "91cc..."),
-           part("https://primary.invalid/atlas-2026-09.bin", sha256 = "4e77...")
+           part("https://primary.invalid/backbone-base.bin",    sha256 = "91cc..."),
+           part("https://primary.invalid/backbone-2026-09.bin", sha256 = "4e77...")
          ))
 ```
 
@@ -460,7 +460,7 @@ touched.
 ``` r
 
 getaca_clean(dry_run = TRUE)      # what would go, and why
-getaca_keep("atlas", package = "yourpkg")  # exempt this one permanently
+getaca_keep("backbone", package = "yourpkg")  # exempt this one permanently
 options(getaca.max_bytes = 50 * 1024^3)  # raise the ceiling
 ```
 

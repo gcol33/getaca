@@ -197,7 +197,7 @@ when a build has to be byte-reproducible.
 ``` r
 
 registry_read(path)$created
-#> [1] "2026-07-28 18:17:16 CEST"
+#> [1] "2026-07-28 18:20:44 CEST"
 ```
 
 ## Naming the channel head
