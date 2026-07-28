@@ -265,6 +265,17 @@ draw_bar <- function(con, text) {
   invisible(NULL)
 }
 
+# A number that moves is right-aligned in the width of the widest value it can
+# take, so a transfer crossing 9.9 MB to 10 MB to 105 MB leaves the fields to
+# its right where they were. Below an exabyte human_bytes() renders no wider
+# than "999 kB", and human_seconds() no wider than "9:59:59" until an estimate
+# passes ten hours. Past either the field is outgrown rather than enforced, and
+# the line reflows the way it does whenever it runs out of room.
+BYTES_FIELD <- 6L
+CLOCK_FIELD <- 7L
+
+pad_field <- function(text, width) formatC(text, width = width)
+
 # Everything the bar knows how to say. The numbers are what the line is for, so
 # they are laid out first and the glyph takes what is left; a declaration
 # without a size still gets bytes and a rate, since a share and an estimate are
@@ -275,10 +286,12 @@ bar_line <- function(st, at, done = FALSE, width = getOption("width", 80L),
   moved <- st$bytes - st$offset
   rate <- if (is.finite(elapsed) && elapsed > 0) moved / elapsed else NA_real_
 
-  size <- human_bytes(st$bytes)
+  size <- pad_field(human_bytes(st$bytes), BYTES_FIELD)
   if (!is.na(st$total)) size <- paste0(size, " / ", human_bytes(st$total))
   if (done) size <- paste0(size, " in ", human_seconds(elapsed))
-  rate_text <- if (!is.na(rate) && !done) paste0("  ", human_bytes(rate), "/s") else ""
+  rate_text <- if (!is.na(rate) && !done) {
+    paste0("  ", pad_field(human_bytes(rate), BYTES_FIELD), "/s")
+  } else ""
 
   if (is.na(st$total) || st$total <= 0) {
     return(paste0(st$label, "  ", size, rate_text))
@@ -324,13 +337,15 @@ bar_glyph <- function(share, cells) {
 # How wide the bar is, decided once when a transfer starts and from the widest
 # line it will ever draw. The rate and the estimate leave the line when a
 # transfer finishes, and a bar that grew into the room they freed would jump at
-# the moment it stopped moving.
+# the moment it stopped moving. The budget is the width of each field rather
+# than the width of the total, since a transfer at 1.5 MB renders wider than
+# one whose declaration says 10 MB.
 plan_cells <- function(label, total, width = getOption("width", 80L)) {
   if (is.null(total) || is.na(total) || total <= 0) return(0L)
-  widest <- paste0(human_bytes(total), " / ", human_bytes(total),
-                   "  000 MB/s  ETA 00:00")
+  widest <- BYTES_FIELD + nchar(" / ") + nchar(human_bytes(total)) +
+    2L + BYTES_FIELD + nchar("/s") + nchar("  ETA ") + CLOCK_FIELD
   glyph_cells(as.integer(width) - 1L - nchar(label) - 2L -
-                nchar(" 100%  ") - nchar(widest))
+                nchar(" 100%  ") - widest)
 }
 
 BYTE_UNITS <- c("B", "kB", "MB", "GB", "TB", "PB")
@@ -340,7 +355,16 @@ human_bytes <- function(x) {
   if (x < 1000) return(sprintf("%.0f B", x))
   i <- min(length(BYTE_UNITS), 1L + as.integer(floor(log(x, 1000))))
   scaled <- x / 1000^(i - 1L)
-  sprintf(if (scaled < 10) "%.1f %s" else "%.0f %s", scaled, BYTE_UNITS[i])
+  # Both boundaries are decided on the value as it will be rounded rather than
+  # as it arrives, since sprintf rounds after the unit and the decimal are
+  # chosen: 9.99 kB would otherwise render "10.0 kB" where 10 kB renders
+  # "10 kB", and 999.6 kB would render "1000 kB" rather than the megabyte it
+  # rounds to.
+  if (scaled >= 999.5 && i < length(BYTE_UNITS)) {
+    i <- i + 1L
+    scaled <- x / 1000^(i - 1L)
+  }
+  sprintf(if (scaled < 9.95) "%.1f %s" else "%.0f %s", scaled, BYTE_UNITS[i])
 }
 
 human_seconds <- function(x) {

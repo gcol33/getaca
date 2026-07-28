@@ -378,6 +378,22 @@ test_that("sizes and durations read the way a human writes them", {
   expect_equal(getaca:::human_seconds(Inf), "--:--")
 })
 
+test_that("a size at a boundary rounds into the form it belongs in", {
+  # The unit and the decimal are chosen before sprintf rounds, so a value just
+  # under either boundary has to be read as what it rounds to rather than as
+  # what it is.
+  expect_equal(getaca:::human_bytes(9.94e3), "9.9 kB")
+  expect_equal(getaca:::human_bytes(9.99e3), "10 kB")
+  expect_equal(getaca:::human_bytes(999.4e3), "999 kB")
+  expect_equal(getaca:::human_bytes(999.6e3), "1.0 MB")
+  expect_equal(getaca:::human_bytes(999.9e6), "1.0 GB")
+
+  # Which is what lets the field hold a steady width for any real transfer.
+  sizes <- c(0, 1, 999, 1000, 9.94e3, 9.99e3, 999.6e3, 1e6, 1.5e9, 999.9e12)
+  widths <- vapply(sizes, function(s) nchar(getaca:::human_bytes(s)), integer(1))
+  expect_true(all(widths <= getaca:::BYTES_FIELD))
+})
+
 test_that("the glyph draws the cells it is given", {
   expect_match(getaca:::bar_glyph(0.5, 10), "^\\[={5}-{5}\\]$")
   expect_match(getaca:::bar_glyph(1, 30), "^\\[={30}\\]$")
@@ -409,6 +425,42 @@ test_that("the bar keeps the width it started with when it finishes", {
   expect_equal(nchar(glyph_of(running)), nchar(glyph_of(done)))
   expect_lte(nchar(running), 95L)
   expect_lte(nchar(done), 95L)
+})
+
+test_that("a number that grows does not shift the numbers after it", {
+  # 9.9 MB renders a column wider than 10 MB, so a field that is not padded
+  # walks the total, the rate and the estimate left and back as a transfer
+  # crosses each boundary.
+  label <- "demopkg/backbone@2026-09"
+  cells <- getaca:::plan_cells(label, 812e6, width = 96)
+  started <- as.POSIXct("2026-01-01", tz = "UTC")
+
+  lines <- vapply(c(5e5, 9.9e6, 1.05e7, 9.9e7, 1.05e8, 5e8), function(b) {
+    st <- list(label = label, total = 812e6, offset = 0, bytes = b,
+               started = started)
+    getaca:::bar_line(st, started + b / 4.2e6, width = 96, cells = cells)
+  }, character(1))
+
+  column_of <- function(what) unique(as.integer(regexpr(what, lines, fixed = TRUE)))
+  expect_length(column_of(" / "), 1L)
+  expect_length(column_of("/s"), 1L)
+  expect_length(column_of("ETA"), 1L)
+  expect_true(all(nchar(lines) <= 95L))
+})
+
+test_that("an estimate in hours is planned for rather than dropped", {
+  # The estimate is the last thing on the line, so a budget that reserves
+  # 00:00 for it and then meets 4:37:05 loses it entirely.
+  label <- "demopkg/backbone@2026-09"
+  cells <- getaca:::plan_cells(label, 40e9, width = 96)
+  started <- as.POSIXct("2026-01-01", tz = "UTC")
+  st <- list(label = label, total = 40e9, offset = 0, bytes = 1e8,
+             started = started)
+
+  line <- getaca:::bar_line(st, started + 1e8 / 2.4e6, width = 96, cells = cells)
+
+  expect_match(line, "ETA 4:37:05", fixed = TRUE)
+  expect_lte(nchar(line), 95L)
 })
 
 test_that("a declaration with no size plans no bar at all", {
