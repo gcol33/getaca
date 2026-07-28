@@ -34,6 +34,8 @@ What a package says it needs
   : Declare how parts are combined
 - [`processor()`](https://gillescolling.com/getaca/reference/processor.md)
   : Declare a post-download processor
+- [`unpack()`](https://gillescolling.com/getaca/reference/unpack.md) :
+  Unpack an archive or a compressed file
 - [`registry()`](https://gillescolling.com/getaca/reference/registry.md)
   : Declare a package's external resources
 - [`registry_write()`](https://gillescolling.com/getaca/reference/registry_write.md)

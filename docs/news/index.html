@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,6 +65,21 @@
       <small>Source: <a href="https://github.com/gcol33/getaca/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.3" id="getaca-013">getaca 0.1.3<a class="anchor" aria-label="anchor" href="#getaca-013"></a></h2>
+<div class="section level3">
+<h3 id="archives-unpack-themselves-0-1-3">Archives unpack themselves<a class="anchor" aria-label="anchor" href="#archives-unpack-themselves-0-1-3"></a></h3>
+<ul><li>
+<code><a href="../reference/unpack.html">unpack()</a></code> is a stock <code><a href="../reference/processor.html">processor()</a></code> for the transformation nearly every declaration of an archive was writing by hand. Attach it with <code>processor = unpack()</code> and <code><a href="../reference/getaca.html">getaca()</a></code> returns the unpacked directory; <code>processed = FALSE</code> still returns the archive it was built from.</li>
+<li>
+<code>format = "auto"</code> reads the format from the cached file’s name and covers <code>.zip</code>, the tarballs under any compression (<code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code>, <code>.tar.bz2</code>, <code>.tbz2</code>, <code>.tar.xz</code>, <code>.txz</code>) and a single compressed file (<code>.gz</code>, <code>.bz2</code>, <code>.xz</code>). A compressed file is written under its own name with the extension dropped, so <code>backbone-2026-06.csv.gz</code> unpacks to <code>backbone-2026-06.csv</code>. Name the format for a file whose name does not carry one: <code>unpack("gzip")</code>.</li>
+<li>
+<code>unpack(members = "tables")</code> takes one subtree of a large archive. A member names a file, or a directory and everything under it. A member matching nothing in the archive is an error: getaca hashes the archive and never reads what came out of it, so an empty processed slot would pass every later check.</li>
+<li>The id encodes the settings, because the id is what the cache slot and the registry manifest are keyed on. <code><a href="../reference/unpack.html">unpack()</a></code> is <code>"unpack"</code>, <code>unpack("zip")</code> is <code>"unpack-zip"</code>, and naming <code>members</code> appends a digest of them, so two records asking for different subsets of one archive cannot resolve to one slot.</li>
+<li>Zero new dependencies. <code><a href="https://rdrr.io/r/utils/unzip.html" class="external-link">utils::unzip()</a></code>, <code><a href="https://rdrr.io/r/utils/untar.html" class="external-link">utils::untar()</a></code> and the <code><a href="https://rdrr.io/r/base/connections.html" class="external-link">gzfile()</a></code>/<code><a href="https://rdrr.io/r/base/connections.html" class="external-link">bzfile()</a></code>/<code><a href="https://rdrr.io/r/base/connections.html" class="external-link">xzfile()</a></code> connections are all base R, so <code>Imports</code> is still <code>curl</code> plus three base packages.</li>
+<li>See <code>dev_notes/adr-009-stock-processors.md</code>, which also records what was left out of the equivalent Python API and why.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.2" id="getaca-012">getaca 0.1.2<a class="anchor" aria-label="anchor" href="#getaca-012"></a></h2>
 <div class="section level3">
