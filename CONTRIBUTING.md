@@ -74,8 +74,9 @@ R. A pull request adding an `Imports` entry needs the recursive footprint
 requires it. Optional features go in `Suggests` and are gated with
 `need_suggested()`.
 
-Hashing goes through `sha256_file()` and `sha256_bytes()`, both of which reach
-one C implementation in `src/sha256.c`. A change there is held against the FIPS
+Hashing goes through `sha256_file()`, `sha256_bytes()` and the streaming triple
+`sha256_stream()` / `_update()` / `_final()`, all of which reach one C
+implementation in `src/sha256.c`. A change there is held against the FIPS
 180-4 vectors, against `tools::sha256sum()` where the R running the tests has
 it, and against every other compression path compiled into the same build:
 `test-digest.R` drives each path explicitly, since a host selects one and would

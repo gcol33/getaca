@@ -42,13 +42,21 @@ serves_api <- function(responses) {
 }
 
 # Bytes per URL, so a draft over several files hashes several distinct things.
+# A NULL destination asks for the digest rather than the file, which is the
+# shape a draft that is not keeping the bytes uses.
 serves_bytes <- function(map) {
   function(url, dest, progress = NULL) {
     if (is.null(map[[url]])) {
       return(list(success = FALSE, reason = "HTTP 404", http = 404L))
     }
-    writeBin(charToRaw(map[[url]]), dest)
-    if (!is.null(progress)) progress(nchar(map[[url]]))
+    bytes <- charToRaw(map[[url]])
+    if (!is.null(progress)) progress(length(bytes))
+    if (is.null(dest)) {
+      return(list(success = TRUE, reason = NA_character_, http = 200L,
+                  sha256 = getaca:::sha256_bytes(bytes),
+                  bytes = length(bytes)))
+    }
+    writeBin(bytes, dest)
     list(success = TRUE, reason = NA_character_, http = 200L)
   }
 }
@@ -413,15 +421,27 @@ test_that("keep= puts the drafted bytes where a later fetch will find them", {
   expect_identical(getaca:::sha256_file(path), rec$sha256)
 })
 
-test_that("without keep=, drafting leaves no bytes behind", {
+test_that("without keep=, the bytes are hashed as they arrive and never written", {
   local_cache()
   bytes <- list("payload"); names(bytes) <- "https://example.org/f.csv"
+  serve <- serves_bytes(bytes)
+  asked <- list()
 
   records <- getaca:::draft_resources(
     "https://example.org/f.csv", package = "demopkg", version = "1",
     quiet = TRUE, api = function(url) NULL, resolve = refuses_resolution,
-    transport = serves_bytes(bytes))
+    transport = function(url, dest, progress = NULL) {
+      asked <<- c(asked, list(dest))
+      serve(url, dest, progress = progress)
+    })
 
+  # No destination at all, which is what makes a location of any size cost no
+  # disk to draft.
+  expect_length(asked, 1L)
+  expect_null(asked[[1]])
+  expect_identical(records[[1]]$sha256,
+                   getaca:::sha256_bytes(charToRaw("payload")))
+  expect_identical(records[[1]]$size, 7)
   expect_false(file.exists(getaca:::blob_path(records[[1]]$sha256)))
   expect_length(list.files(getaca:::cache_tmp_dir()), 0L)
 })
@@ -443,6 +463,190 @@ test_that("several locations of different kinds draft in one call", {
                    c("only", "extra"))
   expect_identical(records[[1]]$license, "cc-by-4.0")
   expect_true(is.na(records[[2]]$license))
+})
+
+refuses_transport <- function(url, dest, progress = NULL) {
+  stop("nothing should have been retrieved")
+}
+
+
+test_that("local= hashes the copy on this machine and retrieves nothing", {
+  local_cache()
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "backbone.parquet")
+  writeBin(charToRaw("payload bytes"), path)
+
+  records <- getaca:::draft_resources(
+    c(backbone = "https://example.org/backbone.parquet"),
+    package = "demopkg", version = "2026.1", local = path, quiet = TRUE,
+    api = function(url) NULL, resolve = refuses_resolution,
+    transport = refuses_transport)
+
+  expect_identical(records[[1]]$sha256,
+                   getaca:::sha256_bytes(charToRaw("payload bytes")))
+  expect_identical(records[[1]]$size, 13)
+  # The record names where a user fetches from, not where the author measured.
+  expect_identical(records[[1]]$urls, "https://example.org/backbone.parquet")
+})
+
+test_that("sha256= is taken as declared and nothing is retrieved", {
+  local_cache()
+  sha <- getaca:::sha256_bytes(charToRaw("payload"))
+
+  records <- getaca:::draft_resources(
+    "https://example.org/f.csv", package = "demopkg", version = "1",
+    sha256 = sha, quiet = TRUE, api = function(url) NULL,
+    resolve = refuses_resolution, transport = refuses_transport)
+
+  expect_identical(records[[1]]$sha256, sha)
+  # A plain URL reports no size, and nothing measured one.
+  expect_true(is.na(records[[1]]$size))
+})
+
+test_that("sha256= takes the size the archive reported", {
+  local_cache()
+  api <- serves_api(list(
+    "https://zenodo.org/api/records/5" = zenodo_body("5", keys = "only.csv")))
+
+  records <- getaca:::draft_resources(
+    "10.5281/zenodo.5", package = "demopkg", sha256 = strrep("a", 64),
+    quiet = TRUE, api = api, resolve = refuses_resolution,
+    transport = refuses_transport)
+
+  expect_identical(records[[1]]$sha256, strrep("a", 64))
+  expect_identical(records[[1]]$size, 8)
+})
+
+test_that("both together hold the local copy to the checksum", {
+  local_cache()
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "f.csv")
+  writeBin(charToRaw("payload"), path)
+
+  records <- getaca:::draft_resources(
+    "https://example.org/f.csv", package = "demopkg", version = "1",
+    local = path, sha256 = getaca:::sha256_bytes(charToRaw("payload")),
+    quiet = TRUE, api = function(url) NULL, resolve = refuses_resolution,
+    transport = refuses_transport)
+  expect_identical(records[[1]]$sha256,
+                   getaca:::sha256_bytes(charToRaw("payload")))
+
+  expect_error(
+    getaca:::draft_resources(
+      "https://example.org/f.csv", package = "demopkg", version = "1",
+      local = path, sha256 = strrep("a", 64), quiet = TRUE,
+      api = function(url) NULL, resolve = refuses_resolution,
+      transport = refuses_transport),
+    "is not the file"
+  )
+})
+
+test_that("a checksum given in upper case is the same checksum", {
+  local_cache()
+  sha <- getaca:::sha256_bytes(charToRaw("payload"))
+
+  records <- getaca:::draft_resources(
+    "https://example.org/f.csv", package = "demopkg", version = "1",
+    sha256 = toupper(sha), quiet = TRUE, api = function(url) NULL,
+    resolve = refuses_resolution, transport = refuses_transport)
+  expect_identical(records[[1]]$sha256, sha)
+})
+
+test_that("a local path that is not a readable file says so", {
+  local_cache()
+  expect_error(
+    getaca:::draft_resources(
+      "https://example.org/f.csv", package = "demopkg", version = "1",
+      local = file.path(tempdir(), "absent-9d21f0"), quiet = TRUE,
+      api = function(url) NULL, resolve = refuses_resolution,
+      transport = refuses_transport),
+    "no file at"
+  )
+})
+
+test_that("keep= with local= copies into the store and leaves the original", {
+  local_cache()
+  local_fetchable()
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "f.csv")
+  writeBin(charToRaw("payload"), path)
+
+  reg <- getaca::registry(
+    package = "demopkg",
+    resources = getaca:::draft_resources(
+      "https://example.org/f.csv", package = "demopkg", version = "1",
+      local = path, keep = TRUE, quiet = TRUE, api = function(url) NULL,
+      resolve = refuses_resolution, transport = refuses_transport))
+  rec <- reg$resources[[1]]
+
+  # Admission is a move, so the author's own file has to survive it.
+  expect_true(file.exists(path))
+  expect_true(file.exists(getaca:::blob_path(rec$sha256)))
+  expect_length(list.files(getaca:::cache_tmp_dir()), 0L)
+
+  testthat::local_mocked_bindings(
+    try_one = function(...) stop("the store should have answered this"),
+    .package = "getaca"
+  )
+  expect_identical(
+    getaca:::sha256_file(getaca::getaca(rec$name, registry = reg, quiet = TRUE)),
+    rec$sha256)
+})
+
+test_that("a per-location argument is matched by name or by position", {
+  locations <- getaca:::as_locations(c(a = "https://x/1", b = "https://x/2"))
+
+  expect_identical(getaca:::as_per_location(NULL, locations, "local"),
+                   c(NA_character_, NA_character_))
+  expect_identical(getaca:::as_per_location(c(b = "two"), locations, "local"),
+                   c(NA_character_, "two"))
+  expect_identical(getaca:::as_per_location(c("one", "two"), locations, "local"),
+                   c("one", "two"))
+  expect_error(getaca:::as_per_location("one", locations, "local"),
+               "1 entries and there are 2 locations")
+  expect_error(getaca:::as_per_location(c(c = "x"), locations, "sha256"),
+               "not among the locations")
+  expect_error(getaca:::as_per_location(1L, locations, "local"),
+               "character vector")
+})
+
+test_that("a checksum cannot stand for a location holding several files", {
+  local_cache()
+  api <- serves_api(list("https://zenodo.org/api/records/17844561" = zenodo_body()))
+  expect_error(
+    getaca:::draft_resources("10.5281/zenodo.17844561", package = "demopkg",
+                             sha256 = strrep("a", 64), quiet = TRUE, api = api,
+                             resolve = refuses_resolution,
+                             transport = refuses_transport),
+    "`sha256` cannot stand for it"
+  )
+  expect_error(
+    getaca:::draft_resources("10.5281/zenodo.17844561", package = "demopkg",
+                             local = tempfile(), quiet = TRUE, api = api,
+                             resolve = refuses_resolution,
+                             transport = refuses_transport),
+    "`local` cannot stand for it"
+  )
+})
+
+test_that("routes mix within one call", {
+  local_cache()
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "b.csv")
+  writeBin(charToRaw("bee"), path)
+  bytes <- list("aye"); names(bytes) <- "https://example.org/a.csv"
+
+  records <- getaca:::draft_resources(
+    c(a = "https://example.org/a.csv", b = "https://example.org/b.csv",
+      c = "https://example.org/c.csv"),
+    package = "demopkg", version = "1", local = c(b = path),
+    sha256 = c(c = strrep("c", 64)), quiet = TRUE,
+    api = function(url) NULL, resolve = refuses_resolution,
+    transport = serves_bytes(bytes))
+
+  expect_identical(records[[1]]$sha256, getaca:::sha256_bytes(charToRaw("aye")))
+  expect_identical(records[[2]]$sha256, getaca:::sha256_bytes(charToRaw("bee")))
+  expect_identical(records[[3]]$sha256, strrep("c", 64))
 })
 
 test_that("x must be locations", {

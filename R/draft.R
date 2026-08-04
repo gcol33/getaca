@@ -14,14 +14,35 @@
 #'                package = "yourpkg", version = "2026.1")
 #' ```
 #'
-#' Every file is downloaded once and hashed locally. Checksums an archive
-#' reports are not used: they are md5 at all three archives supported here, and
-#' they arrive from the host that serves the bytes, so they say nothing the
-#' transfer itself has not already said.
+#' Every file is hashed from its own bytes. Checksums an archive reports are not
+#' used: they are md5 at all three archives supported here, and they arrive from
+#' the host that serves the bytes, so they say nothing the transfer itself has
+#' not already said.
 #'
 #' This is an authoring tool. Nothing in the retrieval path calls it, and a
 #' drafted registry names ordinary `https://` locations, so an archive is
 #' consulted when the registry is written and never when a user fetches.
+#'
+#' @section Where the bytes come from:
+#' A checksum can only come from the bytes, but they need not be transferred to
+#' get one, and where they are they need not be written down.
+#'
+#' \describe{
+#'   \item{retrieved}{The default. The file is fetched once and hashed as it
+#'     arrives, so nothing is written and a location of any size costs no disk.
+#'     `keep = TRUE` writes it to the cache instead, where a later [getaca()]
+#'     call for the drafted resource finds it already there.}
+#'   \item{`local =`}{A copy already on this machine, which is the usual case
+#'     for a file you have just published: it is hashed where it lies and
+#'     nothing is transferred. The record still names the location, since that
+#'     is where a user will fetch from.}
+#'   \item{`sha256 =`}{A checksum you already hold from somewhere that is not
+#'     the serving host. Taken as declared, and nothing is retrieved at all.}
+#' }
+#'
+#' Giving both `local =` and `sha256 =` for one location hashes the local copy
+#' and holds it to the checksum, which is how a published file is confirmed to
+#' be the one that was uploaded.
 #'
 #' @section Archives:
 #' \describe{
@@ -53,9 +74,18 @@
 #'   archive supplies one, required for a plain URL.
 #' @param source Which handler to use: `"auto"`, or one of `"zenodo"`,
 #'   `"figshare"`, `"dataverse"`, `"url"` to override the detection.
-#' @param keep Keep the downloaded bytes in the cache, so that a later
-#'   [getaca()] call for the drafted resource finds them already there instead
-#'   of transferring them a second time.
+#' @param local Paths to copies already on this machine, hashed in place
+#'   instead of retrieving. One per location: named after the locations they
+#'   belong to, or one for each in order. A location holding several files
+#'   cannot take one.
+#' @param sha256 Checksums to declare as given, retrieving nothing. Named or
+#'   positional on the same terms as `local`, and combinable with it, in which
+#'   case the local copy is hashed and held to the checksum.
+#' @param keep Keep the retrieved bytes in the cache, so that a later [getaca()]
+#'   call for the drafted resource finds them already there instead of
+#'   transferring them a second time. Without it a retrieved file is hashed as
+#'   it arrives and never written down. A location answered from `sha256 =`
+#'   alone transfers nothing, so there is nothing for this to keep.
 #' @param quiet Suppress transfer progress.
 #' @param ... Passed to [registry()], for `remote`, `policy`, `keys` and `auth`.
 #'
@@ -67,13 +97,20 @@
 #' \dontrun{
 #' reg <- registry_draft("10.5281/zenodo.17844561", package = "yourpkg")
 #' registry_write(reg, "inst/getaca/registry.rds")
+#'
+#' # The file you just uploaded, hashed from the copy you uploaded it from.
+#' registry_draft(c(backbone = "https://example.org/backbone.parquet"),
+#'                package = "yourpkg", version = "2026.1",
+#'                local = c(backbone = "~/data/backbone.parquet"))
 #' }
 registry_draft <- function(x, package, version = NULL, source = "auto",
+                           local = NULL, sha256 = NULL,
                            keep = FALSE, quiet = FALSE, ...) {
   stopifnot(is_string(package))
   registry(package = package,
            resources = draft_resources(x, package = package, version = version,
-                                       source = source, keep = keep,
+                                       source = source, local = local,
+                                       sha256 = sha256, keep = keep,
                                        quiet = quiet),
            ...)
 }
@@ -82,10 +119,13 @@ registry_draft <- function(x, package, version = NULL, source = "auto",
 # archive a string names and what its response means are the parts worth
 # testing, and neither needs a network to exercise.
 draft_resources <- function(x, package, version = NULL, source = "auto",
+                            local = NULL, sha256 = NULL,
                             keep = FALSE, quiet = FALSE,
                             api = api_get, resolve = doi_target,
                             transport = try_one) {
   locations <- as_locations(x)
+  paths <- as_per_location(local, locations, "local")
+  declared <- tolower(as_per_location(sha256, locations, "sha256"))
   rep <- effective_reporter(quiet)
 
   records <- list()
@@ -93,6 +133,7 @@ draft_resources <- function(x, package, version = NULL, source = "auto",
     records <- c(records, draft_location(
       loc = locations[[i]], given_name = names(locations)[i],
       package = package, version = version, source = source, keep = keep,
+      local = paths[i], declared = declared[i],
       rep = rep, api = api, resolve = resolve, transport = transport
     ))
   }
@@ -108,7 +149,7 @@ draft_resources <- function(x, package, version = NULL, source = "auto",
 }
 
 draft_location <- function(loc, given_name, package, version, source, keep,
-                           rep, api, resolve, transport) {
+                           local, declared, rep, api, resolve, transport) {
   chosen <- choose_handler(loc, source, resolve)
   if (is.null(chosen)) {
     stop(sprintf(
@@ -141,53 +182,129 @@ draft_location <- function(loc, given_name, package, version, source, keep,
       loc[1], length(spec$files), given_name
     ), call. = FALSE)
   }
+  # A checksum, and a copy to take one from, each describe one file, so neither
+  # can stand for a location that turned out to be several. There is nothing
+  # saying which file it belongs to.
+  if (length(spec$files) > 1L && (!is.na(local) || !is.na(declared))) {
+    stop(sprintf(
+      "getaca: '%s' holds %d files, so `%s` cannot stand for it.\nDraft the files whose checksums you hold as their own locations.",
+      loc[1], length(spec$files), if (!is.na(local)) "local" else "sha256"
+    ), call. = FALSE)
+  }
 
   lapply(spec$files, function(f) {
     name <- if (!is.na(given_name) && nzchar(given_name)) given_name else draft_name(f$file)
     draft_record(f, name = name, version = as.character(ver),
                  license = spec$license %||% NA_character_,
-                 package = package, keep = keep, rep = rep,
-                 transport = transport)
+                 package = package, keep = keep, local = local,
+                 declared = declared, rep = rep, transport = transport)
   })
 }
 
-# The bytes are retrieved to be hashed. A draft always starts from empty, since
-# a partial left by an earlier draft of a different file would be resumed onto.
-draft_record <- function(f, name, version, license, package, keep, rep,
-                         transport) {
+# One record, from whichever of the three routes to a checksum this location
+# was given. The location is what the record names either way: where the bytes
+# were measured is an authoring convenience and says nothing about where a user
+# will fetch from.
+draft_record <- function(f, name, version, license, package, keep, local,
+                         declared, rep, transport) {
   id <- resource_id(package, name, version)
   url <- f$urls[1]
-  dest <- file.path(cache_tmp_dir(), sprintf("draft-%s", draft_file(f$file)))
-  unlink(dest)
 
-  emit(rep, "begin", id = id, url = url, total = as_size(f$size), offset = 0)
-  res <- transport(url, dest, progress = byte_callback(rep, id, as_size(f$size)))
-  if (!isTRUE(res$success)) {
-    emit(rep, "end", id = id, status = "failed", bytes = 0, reason = res$reason)
-    unlink(dest)
-    stop(sprintf("getaca: could not retrieve %s to hash it.\n  %s: %s",
-                 format(id), url, res$reason), call. = FALSE)
+  measured <- if (!is.na(local)) {
+    hash_local(local, id, keep)
+  } else if (!is.na(declared)) {
+    # Nothing measured. The size the archive reports stands, since the checksum
+    # is what fixes the identity and a size only ever ends a transfer early.
+    list(sha256 = declared, size = as_size(f$size))
+  } else {
+    hash_transfer(f, id, url, keep, rep, transport)
   }
-  emit(rep, "end", id = id, status = "ok", bytes = bytes_on_disk(dest),
-       reason = NA_character_)
-
-  sha <- sha256_file(dest)
-  size <- file_size(dest)
-  if (isTRUE(keep)) admit(dest, sha) else unlink(dest)
+  if (!is.na(local) && !is.na(declared) &&
+      !identical(measured$sha256, declared)) {
+    stop(sprintf(
+      "getaca: the copy at '%s' is not the file %s declares.\n  declared SHA-256: %s\n  observed SHA-256: %s",
+      local, format(id), declared, measured$sha256
+    ), call. = FALSE)
+  }
 
   file <- draft_file(f$file)
   resource(
     name = name,
     version = version,
     urls = f$urls,
-    sha256 = sha,
-    size = size,
+    sha256 = measured$sha256,
+    size = measured$size,
     license = license,
     doi = f$doi,
     # Stated only where the location does not already say it, since a record
     # takes its cached name from the URL when it names nothing else.
     file = if (identical(file, url_basename(url))) NULL else file
   )
+}
+
+# A copy the author already has, hashed where it lies. Admission is a move, so
+# keeping it means copying into the cache first: the author's own file is not
+# getaca's to take, and a draft that relocated it would be unusable twice.
+hash_local <- function(path, id, keep) {
+  path <- path.expand(path)
+  if (!file.exists(path) || dir.exists(path)) {
+    stop(sprintf("getaca: no file at '%s' to hash for %s.", path, format(id)),
+         call. = FALSE)
+  }
+  sha <- sha256_file(path)
+  if (is.na(sha)) {
+    stop(sprintf("getaca: the file at '%s' could not be read.", path),
+         call. = FALSE)
+  }
+  if (isTRUE(keep)) {
+    staged <- file.path(cache_tmp_dir(), sprintf("draft-%s", basename(path)))
+    unlink(staged)
+    if (!isTRUE(file.copy(path, staged, overwrite = TRUE))) {
+      stop(sprintf("getaca: could not copy '%s' into the cache to keep it.", path),
+           call. = FALSE)
+    }
+    admit(staged, sha)
+  }
+  list(sha256 = sha, size = file_size(path))
+}
+
+# The bytes are retrieved to be hashed, and where they are not being kept they
+# are hashed as they arrive and never written down, so a location of any size
+# costs no disk. A draft that keeps them starts from empty, since a partial
+# left by an earlier draft of a different file would be resumed onto.
+hash_transfer <- function(f, id, url, keep, rep, transport) {
+  dest <- if (isTRUE(keep)) {
+    file.path(cache_tmp_dir(), sprintf("draft-%s", draft_file(f$file)))
+  } else {
+    NULL
+  }
+  if (!is.null(dest)) unlink(dest)
+
+  emit(rep, "begin", id = id, url = url, total = as_size(f$size), offset = 0)
+  res <- transport(url, dest, progress = byte_callback(rep, id, as_size(f$size)))
+  if (!isTRUE(res$success)) {
+    emit(rep, "end", id = id, status = "failed", bytes = 0, reason = res$reason)
+    if (!is.null(dest)) unlink(dest)
+    stop(sprintf("getaca: could not retrieve %s to hash it.\n  %s: %s",
+                 format(id), url, res$reason), call. = FALSE)
+  }
+
+  if (is.null(dest)) {
+    emit(rep, "end", id = id, status = "ok", bytes = res$bytes %||% 0,
+         reason = NA_character_)
+    if (!is_string(res$sha256) || !grepl("^[0-9a-f]{64}$", res$sha256)) {
+      stop(sprintf("getaca: nothing hashed %s as it arrived.", format(id)),
+           call. = FALSE)
+    }
+    return(list(sha256 = res$sha256, size = as_size(res$bytes)))
+  }
+
+  emit(rep, "end", id = id, status = "ok", bytes = bytes_on_disk(dest),
+       reason = NA_character_)
+  sha <- sha256_file(dest)
+  size <- file_size(dest)
+  admit(dest, sha)
+  list(sha256 = sha, size = size)
 }
 
 # One location per element, and a character vector inside an element is the
@@ -207,6 +324,40 @@ as_locations <- function(x) {
   })
   if (is.null(names(x))) names(x) <- rep(NA_character_, length(x))
   x
+}
+
+# An argument qualifying particular locations, lined up with them. Names match
+# the names the locations were given, which is what a draft of several files
+# with a checksum for one of them needs; without names the entries stand for
+# the locations in order.
+as_per_location <- function(x, locations, what) {
+  n <- length(locations)
+  if (is.null(x)) return(rep(NA_character_, n))
+  if (!is.character(x) || !length(x) || anyNA(x)) {
+    stop(sprintf("getaca: `%s` must be a character vector, one entry per location it applies to.",
+                 what), call. = FALSE)
+  }
+
+  given <- names(x)
+  if (is.null(given) || !all(nzchar(given))) {
+    if (length(x) != n) {
+      stop(sprintf(
+        "getaca: `%s` has %d entries and there are %d locations.\nGive one for each, in order, or name each after the location it belongs to.",
+        what, length(x), n), call. = FALSE)
+    }
+    return(unname(x))
+  }
+
+  known <- names(locations)
+  unknown <- setdiff(given, known[!is.na(known)])
+  if (length(unknown)) {
+    stop(sprintf(
+      "getaca: `%s` names %s, which is not among the locations being drafted.",
+      what, paste(sprintf("'%s'", unknown), collapse = ", ")), call. = FALSE)
+  }
+  out <- rep(NA_character_, n)
+  out[match(given, known)] <- unname(x)
+  out
 }
 
 # Detection is a property of the string wherever it can be. Zenodo and figshare

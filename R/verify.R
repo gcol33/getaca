@@ -41,6 +41,24 @@ sha256_bytes <- function(bytes, backend = NULL) {
   .Call(C_sha256_raw, bytes, backend)
 }
 
+# The same digest, driven a chunk at a time, for bytes that pass through
+# without ever being held whole: nothing has to be in memory and nothing has to
+# be written down to be hashed. The context lives behind an external pointer,
+# so an abandoned transfer's is collected rather than leaked.
+sha256_stream <- function() {
+  .Call(C_sha256_stream_new)
+}
+
+sha256_stream_update <- function(stream, bytes) {
+  invisible(.Call(C_sha256_stream_update, stream, bytes))
+}
+
+# The digest and the byte count, which is the only measurement left once
+# nothing was written to ask the filesystem about.
+sha256_stream_final <- function(stream) {
+  .Call(C_sha256_stream_final, stream)
+}
+
 sha256_backend <- function() {
   .Call(C_sha256_backend)
 }

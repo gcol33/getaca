@@ -94,6 +94,51 @@ test_that("the digest of raw bytes and of the same bytes on disk agree", {
   expect_equal(getaca:::sha256_file(path), getaca:::sha256_bytes(bytes))
 })
 
+test_that("a streamed digest is the digest of everything fed to it", {
+  bytes <- as.raw(0:255)
+  # Split at sizes that land inside a block, on a block boundary and past
+  # several, since what a streaming digest has to carry between calls is the
+  # partial block one chunk ends in.
+  for (chunk in c(1L, 7L, 64L, 65L, 200L, 256L)) {
+    stream <- getaca:::sha256_stream()
+    for (start in seq(1L, length(bytes), by = chunk)) {
+      getaca:::sha256_stream_update(
+        stream, bytes[start:min(start + chunk - 1L, length(bytes))])
+    }
+    got <- getaca:::sha256_stream_final(stream)
+    expect_identical(got$sha256, getaca:::sha256_bytes(bytes),
+                     info = paste("chunk", chunk))
+    expect_equal(got$size, 256)
+  }
+})
+
+test_that("a stream fed nothing is the digest of no bytes", {
+  got <- getaca:::sha256_stream_final(getaca:::sha256_stream())
+  expect_identical(got$sha256, getaca:::sha256_bytes(raw(0)))
+  expect_equal(got$size, 0)
+})
+
+test_that("a finished stream is done rather than reusable", {
+  stream <- getaca:::sha256_stream()
+  getaca:::sha256_stream_update(stream, charToRaw("abc"))
+  expect_identical(getaca:::sha256_stream_final(stream)$sha256,
+                   getaca:::sha256_bytes(charToRaw("abc")))
+
+  # The context is released with the digest, so a second call has nothing to
+  # read rather than a freed context to read from.
+  expect_error(getaca:::sha256_stream_final(stream), "already finished")
+  expect_error(getaca:::sha256_stream_update(stream, charToRaw("d")),
+               "already finished")
+})
+
+test_that("a stream takes bytes, and only a stream can be finished", {
+  stream <- getaca:::sha256_stream()
+  expect_error(getaca:::sha256_stream_update(stream, "abc"), "raw vector")
+  expect_error(getaca:::sha256_stream_final("not a stream"), "not a sha256 stream")
+  expect_error(getaca:::sha256_stream_update(list(), charToRaw("a")),
+               "not a sha256 stream")
+})
+
 test_that("registry_digest hashes the manifest text, not the R object", {
   reg <- demo_registry(strrep("a", 64))
   text <- paste0(paste(unclass(registry_manifest(reg)), collapse = "\n"), "\n")

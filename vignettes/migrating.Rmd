@@ -123,8 +123,21 @@ and a DOI along with the files:
 registry_draft("10.5281/zenodo.1234567", package = "yourpkg")
 ```
 
-Drafting a large record downloads it. Pass `keep = TRUE` to leave the bytes in
-the cache, so your first real call finds them already there.
+Drafting a large record costs no disk: the file is hashed as it arrives and
+never written down. Pass `keep = TRUE` to write it to the cache instead, so
+your first real call finds it already there.
+
+Hashing the copy you built is a different claim, and `local =` makes it:
+
+```{r, eval = FALSE}
+registry_draft(c(backbone = "https://zenodo.org/records/1234567/files/backbone.zip"),
+               package = "yourpkg", version = "2026-06",
+               local   = c(backbone = "~/build/backbone-2026-06.zip"),
+               sha256  = c(backbone = "9f9f..."))
+```
+
+With both, the local copy is hashed and held to the checksum, which is how a
+deposit is confirmed to be the file that was uploaded.
 
 A draft is a starting point, and two fields it cannot know are worth adding by
 hand: a second location, and a line of description for anyone reading the

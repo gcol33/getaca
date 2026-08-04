@@ -8,6 +8,7 @@
 #include <R_ext/Visibility.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -123,6 +124,95 @@ static SEXP sha256_raw(SEXP bytes, SEXP backend)
   sha256_final(&ctx, digest);
   hex_digest(digest, hex);
   return Rf_mkString(hex);
+}
+
+/*
+ * A digest driven across several calls, for bytes that are never all in memory
+ * and never on disk. The context outlives the call that made it, so it is held
+ * behind an external pointer with a finaliser: a transfer abandoned partway
+ * leaves the R object unreachable and the memory is returned at the next
+ * collection rather than leaked.
+ */
+static SEXP stream_tag = NULL;
+
+static void stream_finalize(SEXP ptr)
+{
+  sha256_ctx *ctx = (sha256_ctx *) R_ExternalPtrAddr(ptr);
+
+  if (ctx == NULL) return;
+  free(ctx);
+  R_ClearExternalPtr(ptr);
+}
+
+/*
+ * A context that has already produced its digest has been freed, and one
+ * carried across a save and reload never had a context at all. Both arrive as
+ * a null address, and neither has anything left to absorb.
+ */
+static sha256_ctx *stream_context(SEXP ptr)
+{
+  sha256_ctx *ctx;
+
+  if (TYPEOF(ptr) != EXTPTRSXP || R_ExternalPtrTag(ptr) != stream_tag) {
+    Rf_error("getaca: not a sha256 stream");
+  }
+  ctx = (sha256_ctx *) R_ExternalPtrAddr(ptr);
+  if (ctx == NULL) Rf_error("getaca: this sha256 stream is already finished");
+  return ctx;
+}
+
+static SEXP sha256_stream_new(void)
+{
+  sha256_ctx *ctx = (sha256_ctx *) calloc(1, sizeof(sha256_ctx));
+  SEXP ptr;
+
+  if (ctx == NULL) Rf_error("getaca: could not allocate a sha256 stream");
+  sha256_start(ctx);
+  ptr = PROTECT(R_MakeExternalPtr(ctx, stream_tag, R_NilValue));
+  R_RegisterCFinalizerEx(ptr, stream_finalize, TRUE);
+  UNPROTECT(1);
+  return ptr;
+}
+
+static SEXP sha256_stream_update(SEXP ptr, SEXP bytes)
+{
+  sha256_ctx *ctx = stream_context(ptr);
+
+  if (TYPEOF(bytes) != RAWSXP) {
+    Rf_error("getaca: a digest of bytes takes a raw vector");
+  }
+  sha256_update(ctx, RAW(bytes), (size_t) XLENGTH(bytes));
+  return R_NilValue;
+}
+
+/*
+ * The digest, and the count of everything that went into it. The context is
+ * released here rather than left to the finaliser, since a completed transfer
+ * knows it is done and a caller may drive many in one session.
+ */
+static SEXP sha256_stream_final(SEXP ptr)
+{
+  sha256_ctx *ctx = stream_context(ptr);
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+  char hex[2 * SHA256_DIGEST_LENGTH + 1];
+  double bytes = (double) ctx->bytes;
+  SEXP out, names;
+
+  sha256_final(ctx, digest);
+  hex_digest(digest, hex);
+  free(ctx);
+  R_ClearExternalPtr(ptr);
+
+  out = PROTECT(Rf_allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(out, 0, Rf_mkString(hex));
+  SET_VECTOR_ELT(out, 1, Rf_ScalarReal(bytes));
+  names = PROTECT(Rf_allocVector(STRSXP, 2));
+  SET_STRING_ELT(names, 0, Rf_mkChar("sha256"));
+  SET_STRING_ELT(names, 1, Rf_mkChar("size"));
+  Rf_setAttrib(out, R_NamesSymbol, names);
+
+  UNPROTECT(2);
+  return out;
 }
 
 static SEXP sha256_backend(void)
@@ -244,6 +334,9 @@ static const R_CallMethodDef call_methods[] = {
   {"sha256_raw",       (DL_FUNC) &sha256_raw,          2},
   {"sha256_backend",   (DL_FUNC) &sha256_backend,      0},
   {"sha256_backends",  (DL_FUNC) &sha256_backends,     0},
+  {"sha256_stream_new",    (DL_FUNC) &sha256_stream_new,    0},
+  {"sha256_stream_update", (DL_FUNC) &sha256_stream_update, 2},
+  {"sha256_stream_final",  (DL_FUNC) &sha256_stream_final,  1},
   {"sha512_raw",       (DL_FUNC) &sha512_raw,          1},
   {"ed25519_sign",     (DL_FUNC) &ed25519_sign_call,   2},
   {"ed25519_verify",   (DL_FUNC) &ed25519_verify_call, 3},
@@ -254,6 +347,9 @@ static const R_CallMethodDef call_methods[] = {
 void attribute_visible R_init_getaca(DllInfo *dll)
 {
   sha256_backend_select();
+  /* A symbol, so it is never collected and the tag survives as long as any
+     pointer carrying it. */
+  stream_tag = Rf_install("getaca_sha256_stream");
   R_registerRoutines(dll, NULL, call_methods, NULL, NULL);
   R_useDynamicSymbols(dll, FALSE);
   R_forceSymbols(dll, TRUE);

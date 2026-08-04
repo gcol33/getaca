@@ -120,6 +120,34 @@ test_that("a partial transfer resumes onto what is already there", {
   expect_gt(seen[1], 100)
 })
 
+test_that("a transfer with nowhere to go hashes what arrives and writes nothing", {
+  online_only()
+  dest <- withr::local_tempfile()
+  written <- served(getaca:::try_one(FIXTURE_URL, dest))
+
+  seen <- numeric()
+  hashed <- served(getaca:::try_one(FIXTURE_URL, NULL,
+                                    progress = function(b) seen <<- c(seen, b)))
+
+  # The same bytes over the same wire, measured without touching the disk.
+  expect_identical(hashed$sha256, getaca:::sha256_file(dest))
+  expect_equal(hashed$bytes, unname(file.info(dest)$size))
+  expect_gt(length(seen), 0)
+  expect_equal(seen[length(seen)], hashed$bytes)
+})
+
+test_that("a missing path with nowhere to go is still an HTTP failure", {
+  online_only()
+
+  res <- getaca:::try_one(MISSING_URL, NULL)
+
+  expect_false(res$success)
+  expect_match(res$reason, "404")
+  # The error page has a body, and hashing it would report a digest for a file
+  # that was never served.
+  expect_null(res$sha256)
+})
+
 test_that("an unresolvable host is a transfer failure", {
   testthat::skip_on_cran()
   dest <- withr::local_tempfile()

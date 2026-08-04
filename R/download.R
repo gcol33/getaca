@@ -158,7 +158,9 @@ one_pass <- function(url, dest, record, transport, rep, id) {
 }
 
 bytes_on_disk <- function(path) {
-  if (!file.exists(path)) return(0)
+  # A transfer with no destination has nothing on disk to continue from, so it
+  # always starts at zero.
+  if (is.null(path) || !file.exists(path)) return(0)
   size <- file_size(path)
   if (is.na(size)) 0 else size
 }
@@ -196,11 +198,21 @@ transfer_handle <- function(url, offset, auth = NULL) {
 # including whatever it resumed onto. It is the only thing the transport knows
 # about reporting: what the bytes mean, and how they are drawn, belongs to the
 # reporter that supplied the callback.
+#
+# `dest = NULL` asks for the digest instead of the file. The bytes are hashed
+# as they arrive and dropped, and the result carries `sha256` and `bytes` in
+# place of a path. Nothing is written, so nothing can be resumed and nothing is
+# left behind; that is the shape a caller wanting a checksum rather than a copy
+# needs, and it is what makes hashing a hundred gigabytes cost no disk.
 try_one <- function(url, dest, progress = NULL, auth = NULL) {
   offset <- bytes_on_disk(dest)
   handle <- transfer_handle(url, offset, auth)
   st <- new.env(parent = emptyenv())
   st$con <- NULL
+  # Made before the first chunk rather than on it, so a response with an empty
+  # body still produces the digest of no bytes rather than nothing at all.
+  st$digest <- if (is.null(dest)) sha256_stream() else NULL
+  st$opened <- FALSE
   st$refused <- FALSE
   st$base <- 0
   st$written <- 0
@@ -230,9 +242,13 @@ try_one <- function(url, dest, progress = NULL, auth = NULL) {
 # a partial continued, a range request the server ignored, and a response whose
 # body is not the resource at all.
 receive <- function(st, handle, buf, dest, offset, progress) {
-  if (is.null(st$con) && !st$refused) open_destination(st, handle, dest, offset)
+  if (!st$opened && !st$refused) open_destination(st, handle, dest, offset)
   if (st$refused) return(invisible(NULL))
-  writeBin(buf, st$con)
+  if (is.null(dest)) {
+    sha256_stream_update(st$digest, buf)
+  } else {
+    writeBin(buf, st$con)
+  }
   st$written <- st$written + length(buf)
   if (!is.null(progress)) progress(st$base + st$written)
   invisible(NULL)
@@ -244,11 +260,15 @@ open_destination <- function(st, handle, dest, offset) {
   st$status <- status
   # An error response has a body, and it is not the resource. Refusing to open
   # the file is what keeps it out of a partial a later attempt would resume
-  # onto, and leaves bytes an earlier attempt did get where they are.
+  # onto, and leaves bytes an earlier attempt did get where they are. A hashed
+  # transfer refuses for the same reason: an error page is not what the caller
+  # asked for the digest of.
   if (is.na(status) || status >= 400) {
     st$refused <- TRUE
     return(invisible(NULL))
   }
+  st$opened <- TRUE
+  if (is.null(dest)) return(invisible(NULL))
   # 206 is the range honoured. Anything else in the 2xx range answered a resume
   # request with the whole file, so what is on disk is the first bytes of it
   # twice over unless the file is truncated first.
@@ -278,9 +298,17 @@ transfer_result <- function(st, dest, offset) {
     # says the offset is past the end of the file the server holds, so the
     # partial disagrees with upstream and cannot be continued. Anything else
     # keeps the bytes an earlier attempt did get.
-    if (offset == 0 || identical(as.integer(status), 416L)) unlink(dest)
+    if (!is.null(dest) && (offset == 0 || identical(as.integer(status), 416L))) {
+      unlink(dest)
+    }
     return(list(success = FALSE, reason = paste("HTTP", status),
                 http = as.integer(status)))
+  }
+  if (is.null(dest)) {
+    digest <- sha256_stream_final(st$digest)
+    return(list(success = TRUE, reason = NA_character_,
+                http = as.integer(status),
+                sha256 = digest$sha256, bytes = digest$size))
   }
   # A resource of no bytes still has to arrive as a file, and a response with an
   # empty body never reaches the writer.

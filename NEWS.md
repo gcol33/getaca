@@ -1,3 +1,26 @@
+# getaca 0.1.5
+
+## Drafting a record without moving the file
+* Drafting no longer costs disk. A retrieved file is hashed as it arrives and
+  never written down, so a location of any size drafts in one pass with nothing
+  to clean up. `keep = TRUE` still writes it to the cache, where a later
+  `getaca()` call finds it.
+* `registry_draft(local = )` hashes a copy already on your machine and
+  transfers nothing. The record names the location, since that is where users
+  fetch from; where you measured leaves no trace.
+* `registry_draft(sha256 = )` declares a checksum you already hold and
+  retrieves nothing at all.
+* Given both, the local copy is hashed and held to the checksum. That is the
+  check an author wants after a deposit: hashing the download says what users
+  receive, hashing your build says what you uploaded, and a host that
+  recompresses on upload makes those different.
+* Both are per-location, named after the locations they belong to or given one
+  for each in order, so a draft over several files can supply a checksum for
+  one of them. A location holding several files takes neither, on the same
+  terms a resource name already does.
+* `try_one()` gained a streaming shape, `dest = NULL`, which hashes a response
+  as it arrives and reports the digest and the byte count in place of a path.
+
 # getaca 0.1.4
 
 ## Drafting a registry from where the data is
