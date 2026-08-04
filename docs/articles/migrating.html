@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -200,13 +200,23 @@ identifier is the location, and the archive supplies the licence, the
 version and a DOI along with the files:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="st">"10.5281/zenodo.1234567"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
-<p>Drafting a large record downloads it. Pass <code>keep = TRUE</code>
-to leave the bytes in the cache, so your first real call finds them
-already there.</p>
+<p>Drafting a large record costs no disk: the file is hashed as it
+arrives and never written down. Pass <code>keep = TRUE</code> to write
+it to the cache instead, so your first real call finds it already
+there.</p>
+<p>Hashing the copy you built is a different claim, and
+<code>local =</code> makes it:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_draft.html">registry_draft</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"https://zenodo.org/records/1234567/files/backbone.zip"</span><span class="op">)</span>,</span>
+<span>               package <span class="op">=</span> <span class="st">"yourpkg"</span>, version <span class="op">=</span> <span class="st">"2026-06"</span>,</span>
+<span>               local   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"~/build/backbone-2026-06.zip"</span><span class="op">)</span>,</span>
+<span>               sha256  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"9f9f..."</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>With both, the local copy is hashed and held to the checksum, which
+is how a deposit is confirmed to be the file that was uploaded.</p>
 <p>A draft is a starting point, and two fields it cannot know are worth
 adding by hand: a second location, and a line of description for anyone
 reading the catalogue.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">backbone</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name    <span class="op">=</span> <span class="st">"backbone"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"2026-06"</span>,</span>
@@ -224,7 +234,7 @@ code called “the current one” now needs a name that will still be right
 in two years. Upstream’s own release identifier is the default answer,
 and a label that records both identities is better when you are shipping
 something you built from upstream:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name    <span class="op">=</span> <span class="st">"backbone"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"source-2026-06_build-3"</span>,</span>
@@ -240,7 +250,7 @@ something you built from upstream:</p>
 </h2>
 <p>Every entry in the old table becomes a record, and the records become
 one registry scoped to your package:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name    <span class="op">=</span> <span class="st">"grid"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"2026-06"</span>,</span>
@@ -259,7 +269,7 @@ one registry scoped to your package:</p>
 <span><span class="co">#&gt;   - grid@2026-06  abababababab  [CC-BY-4.0]</span></span></code></pre></div>
 <p>Generate it rather than hand-maintaining it, from a script that stays
 out of the built package:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># data-raw/registry.R</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"data-raw/records.R"</span><span class="op">)</span>   <span class="co"># returns a list of resource()s</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span></span>
@@ -289,7 +299,7 @@ Description: ... The backbone is downloaded on first use and cached under
 <p>The package’s own API stays. Users keep calling
 <code>install_backbone()</code>; what changes is the two hundred lines
 behind it.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># R/download.R, after</span></span>
 <span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"backbone"</span>, <span class="va">force</span> <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu">getaca</span><span class="fu">::</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="va">name</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, verify <span class="op">=</span> <span class="va">force</span><span class="op">)</span><span class="op">)</span></span>
@@ -370,7 +380,7 @@ old <code>stop("Unknown dataset: ", name)</code> was reaching for.</p>
 <p>Every place the old code checked <code><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists()</a></code> before
 doing something expensive becomes one of the three helpers.</p>
 <p>In tests:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># before</span></span>
 <span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the backbone parses"</span>, <span class="op">{</span></span>
 <span>  <span class="fu">skip_if</span><span class="op">(</span><span class="op">!</span><span class="fu">backbone_available</span><span class="op">(</span><span class="st">"backbone"</span><span class="op">)</span>, <span class="st">"backbone not installed"</span><span class="op">)</span></span>
@@ -388,7 +398,7 @@ installed; the new one names the resource, the declaring package, and
 the call that would fetch it, which is what someone reading a CI log
 from another project needs.</p>
 <p>In examples:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' @examples</span></span>
 <span><span class="co">#' path &lt;- getaca_optional("backbone", package = "yourpkg")</span></span>
 <span><span class="co">#' if (!is.null(path)) summarise_backbone(path)</span></span></code></pre></div>
@@ -400,7 +410,7 @@ workflow.</p>
 </h2>
 <p>The old code had no version, so it had no way to answer “which
 release is this”. After the migration, provenance is a call:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;getaca cache entry&gt; yourpkg/backbone@2026-06</span></span>
 <span><span class="co">#&gt;   ...</span></span>
@@ -412,7 +422,7 @@ release is this”. After the migration, provenance is a call:</p>
 <p>Across the whole table the same question has a data frame for an
 answer, which is the report to ask a user for instead of a directory
 listing:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span>registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"version"</span>, <span class="st">"declared"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;       name version declared cached</span></span>
 <span><span class="co">#&gt; 1 backbone 2026-06     TRUE  FALSE</span></span>
@@ -421,7 +431,7 @@ listing:</p>
 users who know to look. A result object that records the resolved
 version, and a citation helper that reads it, turn the migration into a
 visible improvement rather than an internal one.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">analyse</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">info</span> <span class="op">&lt;-</span> <span class="fu">getaca</span><span class="fu">::</span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span>  <span class="va">out</span>  <span class="op">&lt;-</span> <span class="fu">do_the_work</span><span class="op">(</span><span class="va">x</span>, <span class="fu">getaca</span><span class="fu">::</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span></span>
@@ -448,7 +458,7 @@ it. For a cache measured in megabytes this is the whole job.</p>
 the old cache was large, since leaving gigabytes of superseded bytes on
 disk costs the user something for nothing. A flag in a package
 environment keeps it to one message per session:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">.legacy_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">retire_legacy_cache</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>

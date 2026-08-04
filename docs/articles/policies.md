@@ -219,7 +219,7 @@ tree:
 secret <- file.path(tempdir(), "yourpkg-signing.key")
 public <- registry_keygen(secret)
 substr(public, 1, 24)
-#> [1] "ed25519:1c7d3b53c9155a2e"
+#> [1] "ed25519:c679ead53ff8c8ac"
 ```
 
 Declare the public half in the registry the package ships:
@@ -249,9 +249,9 @@ registry_sign(path, key = secret)
 
 cat(readLines(paste0(path, ".sig"))[1:4], sep = "\n")
 #> getaca-signature 1
-#> digest sha256:0572da6f50b287f53e523a0da68281767bbadadb51bb79cfd86bce35761fda68
-#> created 2026-07-28T23:30:53Z
-#> expires 2026-10-26T23:30:53Z
+#> digest sha256:d77cf8bb3875a076ded2ca309673a67980e52d59ea3a08c3f67b516f1dad4bd6
+#> created 2026-08-04T22:09:41Z
+#> expires 2026-11-02T22:09:41Z
 ```
 
 Upload the `.sig` beside the registry; getaca fetches it from the
@@ -276,7 +276,7 @@ saveRDS(moved, path, version = 3)
 registry_verify(path)
 #> Error:
 #> ! The registry for 'yourpkg' could not be established as authentic.
-#>   the signature covers sha256:0572da6f50b2 but this registry is sha256:0b6e879515ea
+#>   the signature covers sha256:d77cf8bb3875 but this registry is sha256:6e754cf44452
 #> 
 #> This package declares signing keys, so a remote registry that cannot be
 #> checked against one is refused rather than used. The bundled declaration

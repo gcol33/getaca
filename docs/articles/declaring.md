@@ -192,10 +192,30 @@ A list element is the mirrors of one resource. The first is retrieved
 and hashed; the rest are recorded and walked at fetch time like any
 other mirror list.
 
-Drafting a large record downloads it. Pass `keep = TRUE` to leave the
-bytes in the cache, so the first
+A checksum can only come from the bytes, but drafting a large record
+costs no disk: the file is hashed as it arrives and never written down.
+Pass `keep = TRUE` to write it to the cache instead, so the first
 [`getaca()`](https://gillescolling.com/getaca/reference/getaca.md) call
-for the drafted resource finds them already there.
+for the drafted resource finds it already there.
+
+Where you have the file already, `local =` hashes the copy on your
+machine and transfers nothing. The record still names the location,
+since that is where users fetch from:
+
+``` r
+
+registry_draft(
+  c(backbone = "https://zenodo.org/records/1234567/files/backbone-2026-06.zip"),
+  package = "yourpkg", version = "2026-06",
+  local   = c(backbone = "~/build/backbone-2026-06.zip")
+)
+```
+
+That records your build rather than the download, which are the same
+bytes only if the host served back what it was given. `sha256 =`
+alongside it holds one to the other, and the draft fails where they
+differ. `sha256 =` on its own declares a checksum you already hold and
+retrieves nothing at all.
 
 ## Assembling the registry
 
@@ -273,7 +293,7 @@ when a build has to be byte-reproducible.
 ``` r
 
 registry_read(path)$created
-#> [1] "2026-07-29 01:30:45 CEST"
+#> [1] "2026-08-05 00:09:31 CEST"
 ```
 
 ## Naming the channel head

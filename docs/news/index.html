@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,6 +65,21 @@
       <small>Source: <a href="https://github.com/gcol33/getaca/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.5" id="getaca-015">getaca 0.1.5<a class="anchor" aria-label="anchor" href="#getaca-015"></a></h2>
+<div class="section level3">
+<h3 id="drafting-a-record-without-moving-the-file-0-1-5">Drafting a record without moving the file<a class="anchor" aria-label="anchor" href="#drafting-a-record-without-moving-the-file-0-1-5"></a></h3>
+<ul><li>Drafting no longer costs disk. A retrieved file is hashed as it arrives and never written down, so a location of any size drafts in one pass with nothing to clean up. <code>keep = TRUE</code> still writes it to the cache, where a later <code><a href="../reference/getaca.html">getaca()</a></code> call finds it.</li>
+<li>
+<code>registry_draft(local = )</code> hashes a copy already on your machine and transfers nothing. The record names the location, since that is where users fetch from; where you measured leaves no trace.</li>
+<li>
+<code>registry_draft(sha256 = )</code> declares a checksum you already hold and retrieves nothing at all.</li>
+<li>Given both, the local copy is hashed and held to the checksum. That is the check an author wants after a deposit: hashing the download says what users receive, hashing your build says what you uploaded, and a host that recompresses on upload makes those different.</li>
+<li>Both are per-location, named after the locations they belong to or given one for each in order, so a draft over several files can supply a checksum for one of them. A location holding several files takes neither, on the same terms a resource name already does.</li>
+<li>
+<code>try_one()</code> gained a streaming shape, <code>dest = NULL</code>, which hashes a response as it arrives and reports the digest and the byte count in place of a path.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.4" id="getaca-014">getaca 0.1.4<a class="anchor" aria-label="anchor" href="#getaca-014"></a></h2>
 <div class="section level3">
