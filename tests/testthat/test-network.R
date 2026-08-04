@@ -19,10 +19,41 @@ MISSING_URL <- paste0(
 # bytes.
 live_checksum <- function() {
   probe <- withr::local_tempfile(.local_envir = parent.frame())
-  res <- getaca:::try_one(FIXTURE_URL, probe)
-  testthat::skip_if(!isTRUE(res$success),
-                    paste("the fixture URL did not respond:", res$reason))
+  res <- served(getaca:::try_one(FIXTURE_URL, probe))
   getaca:::sha256_file(probe)
+}
+
+# Reachability is settled once, before each of these tests, and a shared runner
+# occasionally has the host stop answering after that. A transfer that fails
+# because nothing was there to answer says nothing about the adjudication under
+# test, so it skips on the same terms an offline machine does.
+served <- function(res) {
+  testthat::skip_if(!isTRUE(res$success),
+                    paste("the fixture URL stopped responding:", res$reason))
+  res
+}
+
+# The same outage, arriving as a condition rather than as a result. Only an
+# attempt that reached the live mirror and got nothing is an outage: one that
+# never reached it is the failure these tests exist to catch, and is raised.
+live_transfer <- function(expr) {
+  tryCatch(expr, getaca_error_unavailable = function(e) {
+    hit <- match(FIXTURE_URL, e$urls)
+    if (is.na(hit)) stop(e)
+    testthat::skip(paste("the fixture URL stopped responding:", e$reasons[hit]))
+  })
+}
+
+# The same outage where it is not a failure at all: the remote channel reports
+# one as a message and resolves through the bundled registry, so a test
+# asserting what the remote did would otherwise read the fallback as a verdict.
+# A channel that reached its remote never emits this, so nothing real is hidden.
+live_registry <- function(expr) {
+  withCallingHandlers(expr, message = function(m) {
+    if (grepl("could not reach the remote registry", conditionMessage(m))) {
+      testthat::skip("the remote registry URL stopped responding")
+    }
+  })
 }
 
 test_that("a real transfer reports success and writes the bytes", {
@@ -66,7 +97,7 @@ test_that("a real transfer reports its bytes as they arrive", {
 test_that("a partial transfer resumes onto what is already there", {
   online_only()
   whole <- withr::local_tempfile()
-  expect_true(getaca:::try_one(FIXTURE_URL, whole)$success)
+  served(getaca:::try_one(FIXTURE_URL, whole))
   full_size <- unname(file.info(whole)$size)
   full_sha <- getaca:::sha256_file(whole)
   testthat::skip_if(full_size < 100, "the fixture is too small to resume into")
@@ -105,8 +136,9 @@ test_that("bytes fetched over https verify against their declared checksum", {
   sha <- live_checksum()
 
   rec <- resource("fixture", "1.0", urls = FIXTURE_URL, sha256 = sha)
-  got <- getaca:::fetch_to_temp(resource_id("demopkg", "fixture", "1.0"), rec,
-                                quiet = TRUE)
+  got <- live_transfer(
+    getaca:::fetch_to_temp(resource_id("demopkg", "fixture", "1.0"), rec,
+                           quiet = TRUE))
 
   expect_equal(got$sha256, sha)
   expect_equal(got$url, FIXTURE_URL)
@@ -117,10 +149,10 @@ test_that("real bytes that do not match the declaration are an upstream mutation
   cache <- local_cache()
   rec <- resource("fixture", "1.0", urls = FIXTURE_URL, sha256 = strrep("d", 64))
 
-  err <- tryCatch(
+  err <- live_transfer(tryCatch(
     getaca:::fetch_to_temp(resource_id("demopkg", "fixture", "1.0"), rec, quiet = TRUE),
-    getaca_error = function(e) e
-  )
+    getaca_error_upstream_changed = function(e) e
+  ))
 
   expect_s3_class(err, "getaca_error_upstream_changed")
   expect_equal(err$actor, "upstream")
@@ -132,8 +164,9 @@ test_that("a dead mirror ahead of a live one is transparent", {
   sha <- live_checksum()
 
   rec <- resource("fixture", "1.0", urls = c(MISSING_URL, FIXTURE_URL), sha256 = sha)
-  got <- getaca:::fetch_to_temp(resource_id("demopkg", "fixture", "1.0"), rec,
-                                quiet = TRUE)
+  got <- live_transfer(
+    getaca:::fetch_to_temp(resource_id("demopkg", "fixture", "1.0"), rec,
+                           quiet = TRUE))
 
   expect_equal(got$url, FIXTURE_URL)
 })
@@ -148,7 +181,7 @@ test_that("an end-to-end retrieval works over real https", {
              license = "MIT")
   ))
 
-  path <- getaca("fixture", registry = reg, quiet = TRUE)
+  path <- live_transfer(getaca("fixture", registry = reg, quiet = TRUE))
   expect_true(file.exists(path))
   expect_equal(getaca:::sha256_file(path), sha)
 
@@ -173,7 +206,7 @@ test_that("a remote registry is fetched over https and takes effect", {
              sha256 = strrep("a", 64))
   ), remote = FIXTURE_URL)
 
-  fetched <- getaca:::remote_channel(bundled)
+  fetched <- live_registry(getaca:::remote_channel(bundled))
   expect_false(identical(registry_digest(fetched), registry_digest(bundled)))
   expect_length(fetched$resources, 2L)
 
@@ -193,8 +226,8 @@ test_that("a remote registry served from the wrong place is refused, not trusted
              sha256 = strrep("a", 64))
   ), remote = FIXTURE_URL)
 
-  expect_error(
+  live_registry(expect_error(
     getaca:::remote_channel(bundled),
     class = "getaca_error_invalid_registry"
-  )
+  ))
 })
