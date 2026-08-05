@@ -460,7 +460,7 @@ Counting the parts that were not there before:
 - a retention policy, which is what CRAN asks for when a package writes
   under `R_user_dir()`
 
-- nine classed conditions in place of one
+- eleven classed conditions in place of one
   [`stop()`](https://rdrr.io/r/base/stop.html) with a guessed cause
 
 - provenance, and a catalogue covering declared and cached in one table

@@ -102,18 +102,22 @@ many lockfiles.
 ## Failures that name who can fix them
 
 A retrieval produces the bytes the package was built against, or an
-error naming who can act on it. Seven situations get seven answers, each
-classed so callers can branch on the cause:
+error naming who can act on it. Eleven situations get eleven answers,
+each classed so callers can branch on the cause:
 
 | Condition | Meaning | Who acts |
 |----|----|----|
 | `getaca_error_unavailable` | no mirror answered | user |
 | `getaca_error_offline` | not cached, network not permitted here | user |
 | `getaca_error_incomplete` | transfer ended short | user |
+| `getaca_error_credentials` | every mirror refused to serve | user, or author |
 | `getaca_error_upstream_changed` | publisher replaced a published version | upstream |
 | `getaca_error_cache_corrupt` | local copy drifted from its own record | user |
+| `getaca_error_redeclared` | the declaration names different bytes for a version already held | author |
+| `getaca_error_invalid_registry` | the declaration is malformed or inconsistent | author |
 | `getaca_error_declaration` | every mirror agrees, the registry disagrees | author |
 | `getaca_error_composition` | the parts arrived intact and compose to something else | author |
+| `getaca_error_signature` | a registry that must be signed carried no usable one | author |
 
 When several independent mirrors return identical bytes and none of them
 match the declared checksum, the registry is the likely error, and
@@ -261,6 +265,7 @@ registry_write(
                sha256 = "9f2c...",
                size   = 4.1e9,
                license = "CC-BY-4.0",
+               doi     = "10.5281/zenodo.1234567",
                upstream = list(source_release = "2026-06", build = "3"))
     )
   ),
@@ -284,6 +289,8 @@ the rest of the declaration buys:
   second
 - **`sha256`** turns a truncated or substituted file into an error at
   retrieval, where it is diagnosable
+- **`doi`** records the identifier for the artefact, so an analysis can
+  cite the exact bytes it read
 - **`upstream`** keeps both identities, the publisher’s release and the
   build that turned it into the file you ship, so provenance answers
   which one moved
@@ -296,6 +303,91 @@ When the publisher issues `2026-09`, the remote registry adds the record
 and moves the head. When the publisher replaces `2026-06` in place, the
 checksum stops matching, the cached copy is left alone, and the error
 names the publisher as the party who changed something.
+
+## Where the checksum comes from
+
+Everything in that record can be typed except the checksum, which has to
+come from the bytes.
+[`registry_draft()`](https://gillescolling.com/getaca/reference/registry_draft.md)
+takes the locations, retrieves each file once, hashes it locally and
+returns a registry:
+
+``` r
+
+reg <- registry_draft(
+  c(backbone = "https://zenodo.invalid/records/1234567/files/backbone-2026-06.zip"),
+  package = "yourpkg",
+  version = "2026-06"
+)
+```
+
+A location is a plain URL, or an identifier for an archive holding
+several files. Zenodo, figshare and Dataverse are read off the string,
+and each supplies the licence, the version and a DOI for the artefact:
+
+``` r
+
+registry_draft("10.5281/zenodo.4924875", package = "yourpkg")
+```
+
+Drafting a large record costs no disk: the file is hashed as it arrives
+and never written down. `keep = TRUE` writes it to the cache instead,
+where the first
+[`getaca()`](https://gillescolling.com/getaca/reference/getaca.md) call
+finds it. Where you have the file already, `local =` hashes the copy on
+your machine and transfers nothing, and `sha256 =` declares a checksum
+you already hold. Given both, the local copy is hashed and held to the
+checksum, which is the check to run after a deposit: hashing the
+download says what users receive, hashing your build says what you
+uploaded, and a host that recompresses on upload makes those different.
+
+An archive is consulted when a registry is written and never when a user
+fetches. What ships is ordinary `https://` locations.
+
+## Data behind a registration
+
+Some archives serve their files only to a registered account. A
+declaration says which credential a host requires, and never carries
+one:
+
+``` r
+
+registry(
+  package = "canopy",
+  auth = list(
+    auth_host("data.ornldaac.earthdata.nasa.gov",
+              bearer("EARTHDATA_TOKEN"),
+              register = "https://urs.earthdata.nasa.gov/users/new")
+  ),
+  resources = list(...)
+)
+```
+
+[`bearer()`](https://gillescolling.com/getaca/reference/getaca-auth.md)
+and
+[`basic()`](https://gillescolling.com/getaca/reference/getaca-auth.md)
+name environment variables. The value is read at the moment of the
+request and never stored, so nothing secret enters a registry, a
+manifest, a digest, a provenance record or an error message. It travels
+as an `Authorization` header, which libcurl withholds from a redirect to
+another host, and to the declared host only: hosts match exactly, so a
+record listing an authenticated mirror beside a public one presents the
+credential to the first and falls through to the second.
+
+A refusal is its own failure. `getaca_error_credentials` names the
+variable wanted, says whether it is set, and points at where to
+register, so nobody is told to connect to a network they already have.
+[`getaca_credentials()`](https://gillescolling.com/getaca/reference/getaca_credentials.md)
+answers the same question before a fetch:
+
+``` r
+
+getaca_credentials(package = "canopy")
+#>   package                             host scheme        variable   set
+#> 1  canopy data.ornldaac.earthdata.nasa.gov bearer EARTHDATA_TOKEN FALSE
+#>                                   register
+#> 1 https://urs.earthdata.nasa.gov/users/new
+```
 
 ## What the cached path guarantees
 
@@ -347,11 +439,12 @@ getaca_info("backbone", package = "yourpkg")
 #>   sha256      9f2c8d1e...
 #>   size        4,100,000,000 bytes
 #>   license     CC-BY-4.0
+#>   doi         10.5281/zenodo.1234567
 #>   built from  source_release: 2026-06
 #>   built from  build: 3
 #>   resolved by current registry sha256:8b31e0da54cf (published 2026-07-22)
 #>   source url  https://zenodo.invalid/records/1234567/files/backbone-2026-06.zip
-#>   getaca      0.1.0
+#>   getaca      0.1.5
 #>   fetched     2026-07-26 11:02:13
 #>   verified    2026-07-26 11:09:44 (full re-hash)
 #>   checked     2026-07-26 15:31:02 (size and mtime)
@@ -562,6 +655,8 @@ on an i9-14900K, so a 4 GB resource is verified in under three seconds.
   declare one immutable record
 - **[`registry()`](https://gillescolling.com/getaca/reference/registry.md)**
   collect a package’s declarations and name the channel head
+- **[`registry_draft()`](https://gillescolling.com/getaca/reference/registry_draft.md)**
+  build one from the locations, every checksum taken from the bytes
 - **[`registry_write()`](https://gillescolling.com/getaca/reference/registry_write.md)**
   ship them at `inst/getaca/registry.rds`
 - **[`registry_digest()`](https://gillescolling.com/getaca/reference/registry_digest.md)**,
@@ -576,6 +671,12 @@ on an i9-14900K, so a 4 GB resource is verified in under three seconds.
   declare a post-verification transformation
 - **[`unpack()`](https://gillescolling.com/getaca/reference/unpack.md)**
   the stock one: extract an archive or a compressed file
+- **[`auth_host()`](https://gillescolling.com/getaca/reference/getaca-auth.md)**,
+  **[`bearer()`](https://gillescolling.com/getaca/reference/getaca-auth.md)**,
+  **[`basic()`](https://gillescolling.com/getaca/reference/getaca-auth.md)**
+  name the credential a host requires, without holding one
+- **[`getaca_credentials()`](https://gillescolling.com/getaca/reference/getaca_credentials.md)**
+  which variables a declaration reads, and whether they are set
 - **[`getaca_progress()`](https://gillescolling.com/getaca/reference/getaca_progress.md)**,
   **[`reporter()`](https://gillescolling.com/getaca/reference/reporter.md)**
   choose what a transfer looks like, or write your own

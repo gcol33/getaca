@@ -462,7 +462,7 @@ published version is refused, and how pinning interacts with `renv`.
   for the layout, verification schedule, locking and retention
 
 - [`vignette("failures")`](https://gillescolling.com/getaca/articles/failures.md)
-  for the six conditions and how to handle each
+  for the eleven conditions and how to handle each
 
 - [`vignette("alternatives")`](https://gillescolling.com/getaca/articles/alternatives.md)
   for choosing between `getaca`, a companion data package, and the

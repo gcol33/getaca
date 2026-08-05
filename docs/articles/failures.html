@@ -98,10 +98,10 @@
 
     
     
-<p>A plain downloader reports six different situations the same way:
+<p>A plain downloader reports eleven different situations the same way:
 something went wrong with a URL. <code>getaca</code> separates them,
-because the six have three different people who can act on them and four
-different things to do.</p>
+because the eleven have three different people who can act on them and
+five different things to do.</p>
 <p>Every failure is a classed condition carrying an <code>actor</code>
 field naming who can act. Callers branch on the class rather than on
 message text.</p>
@@ -156,28 +156,41 @@ message text.</p>
 <td>clean and refetch</td>
 </tr>
 <tr class="odd">
+<td><code>getaca_error_redeclared</code></td>
+<td>the declaration names different bytes for a version already
+held</td>
+<td>author</td>
+<td>report to the declaring package</td>
+</tr>
+<tr class="even">
 <td><code>getaca_error_invalid_registry</code></td>
 <td>the declaration is wrong</td>
 <td>author</td>
 <td>report to the declaring package</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>getaca_error_declaration</code></td>
 <td>every mirror agrees, the registry disagrees</td>
 <td>author</td>
 <td>report to the declaring package</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>getaca_error_composition</code></td>
 <td>the parts arrived intact and compose to something else</td>
 <td>author</td>
 <td>report to the declaring package</td>
 </tr>
+<tr class="odd">
+<td><code>getaca_error_signature</code></td>
+<td>a registry that must be signed carried no usable one</td>
+<td>author</td>
+<td>report to the declaring package</td>
+</tr>
 </tbody>
 </table>
-<p>All nine inherit from <code>getaca_error</code>, which inherits from
-<code>error</code>, so a handler for <code>getaca_error</code> catches
-everything the package raises and nothing else.</p>
+<p>All eleven inherit from <code>getaca_error</code>, which inherits
+from <code>error</code>, so a handler for <code>getaca_error</code>
+catches everything the package raises and nothing else.</p>
 <div class="section level2">
 <h2 id="the-general-shape">The general shape<a class="anchor" aria-label="anchor" href="#the-general-shape"></a>
 </h2>
@@ -356,8 +369,10 @@ variable that does not exist.</p>
 declaration reads and whether it is set:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_credentials.html">getaca_credentials</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"canopy"</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   package                                  host scheme         variable   set</span></span>
-<span><span class="co">#&gt; 1  canopy data.ornldaac.earthdata.nasa.gov bearer EARTHDATA_TOKEN FALSE</span></span></code></pre></div>
+<span><span class="co">#&gt;   package                             host scheme        variable   set</span></span>
+<span><span class="co">#&gt; 1  canopy data.ornldaac.earthdata.nasa.gov bearer EARTHDATA_TOKEN FALSE</span></span>
+<span><span class="co">#&gt;                                   register</span></span>
+<span><span class="co">#&gt; 1 https://urs.earthdata.nasa.gov/users/new</span></span></code></pre></div>
 <p>See <code><a href="../articles/declaring.html">vignette("declaring")</a></code> for how a package declares
 one.</p>
 </div>
@@ -485,13 +500,47 @@ want the repair. Doing it inside <code>getaca</code> for everyone would
 make the failure invisible.</p>
 </div>
 <div class="section level2">
+<h2 id="getaca_error_redeclared">
+<code>getaca_error_redeclared</code><a class="anchor" aria-label="anchor" href="#getaca_error_redeclared"></a>
+</h2>
+<p>The cached copy still matches its own record, and the declaration in
+force has moved to different bytes for that version. Both are intact,
+which is what separates this from a corrupt cache:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Error: The declaration for yourpkg/backbone@2026-06 no longer names the bytes already held.</span></span>
+<span><span class="co">#&gt;   cached SHA-256:   9f9f9f...</span></span>
+<span><span class="co">#&gt;   declared SHA-256: 71b0c2...</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; A version identifies exact bytes, so these cannot both be that version.</span></span>
+<span><span class="co">#&gt; The cached copy was verified against the earlier declaration and has</span></span>
+<span><span class="co">#&gt; been left untouched. Publish a new version instead of redefining this</span></span>
+<span><span class="co">#&gt; one.</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Action: if the new declaration is the correct one, drop the old copy</span></span>
+<span><span class="co">#&gt; with getaca_clean("backbone", package = "yourpkg") and retry.</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
+<p>Resolving quietly to the copy already held would be the wrong answer:
+it makes one machine keep bytes every other machine has stopped using,
+and the disagreement stays invisible for as long as that cache survives.
+<code>verify = TRUE</code> asks the same question, so a forced re-hash
+cannot confirm bytes against a declaration they no longer match
+either.</p>
+<p>A version reaches this state when a package upgrade brings an edited
+record for a version this machine has already fetched. A remote registry
+or a pin file trying the same thing is stopped earlier, at
+<code>getaca_error_invalid_registry</code>, since neither is allowed to
+redefine a published version at all.</p>
+</div>
+<div class="section level2">
 <h2 id="getaca_error_invalid_registry">
 <code>getaca_error_invalid_registry</code><a class="anchor" aria-label="anchor" href="#getaca_error_invalid_registry"></a>
 </h2>
 <p>The declaration is malformed or internally inconsistent. Raised at
 <code><a href="../reference/registry.html">registry()</a></code> and <code><a href="../reference/resource.html">resource()</a></code> where possible,
 which puts it on the author’s machine rather than a user’s:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-09"</span>,</span>
 <span>           urls <span class="op">=</span> <span class="st">"https://host.invalid/a"</span>,</span>
@@ -506,7 +555,7 @@ which puts it on the author’s machine rather than a user’s:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
 <p>Every problem found is listed, rather than the first one:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
 <span>         urls <span class="op">=</span> <span class="st">"ftp://host.invalid/a"</span>, sha256 <span class="op">=</span> <span class="st">"abc"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
@@ -519,7 +568,7 @@ which puts it on the author’s machine rather than a user’s:</p>
 registry, a name the registry does not declare, a remote registry
 declaring a different package, and a pin file that redefines a published
 version.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"no-such-resource"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'yourpkg'.</span></span>
@@ -528,7 +577,7 @@ version.</p>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
 <p>The message names what is on offer, which is usually enough to spot a
 typo without opening the registry.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"stats"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'stats'.</span></span>
@@ -539,13 +588,47 @@ typo without opening the registry.</p>
 package to declare resources can see immediately that it does not.</p>
 </div>
 <div class="section level2">
+<h2 id="getaca_error_signature">
+<code>getaca_error_signature</code><a class="anchor" aria-label="anchor" href="#getaca_error_signature"></a>
+</h2>
+<p>A remote registry arriving without a signature this package’s own
+keys accept. Raised only where the bundled registry declares
+<code>keys</code>; a package declaring none never fetches a signature
+and never meets this:</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Error: The registry for 'yourpkg' could not be established as authentic.</span></span>
+<span><span class="co">#&gt;   no signature could be fetched and read</span></span>
+<span><span class="co">#&gt;   source: https://yourpkg.invalid/getaca-registry.rds.sig</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; This package declares signing keys, so a remote registry that cannot be</span></span>
+<span><span class="co">#&gt; checked against one is refused rather than used. The bundled declaration</span></span>
+<span><span class="co">#&gt; the package ships is unaffected and still resolves.</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Action: getaca_policy("bundled") resolves through it for this session.</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
+<p>The same condition covers a signature from a key the package does not
+declare, one whose expiry has passed, and one covering a declaration
+state older than the installed registry, which is what stops an old
+genuine registry being replayed in place of the current one.</p>
+<p>A host that cannot be reached is a different situation and gets the
+other answer: resolution falls back to the bundled declaration with a
+message. A registry that arrives and fails verification stops instead. A
+registry arriving without its signature is the second, since one host
+serves both, and treating a missing signature as an outage would let
+whoever serves the file decide whether the check runs at all.</p>
+<p>See <code><a href="../articles/policies.html">vignette("policies")</a></code> for how a package declares keys
+and signs what it publishes.</p>
+</div>
+<div class="section level2">
 <h2 id="writing-a-handler-in-a-declaring-package">Writing a handler in a declaring package<a class="anchor" aria-label="anchor" href="#writing-a-handler-in-a-declaring-package"></a>
 </h2>
 <p>The pattern that works is to catch the user-actionable conditions and
 speak your own domain, and to let the author-actionable and
 upstream-actionable ones through unchanged. A user cannot act on either,
 and the default messages already say who can.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"backbone"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>    <span class="fu">open_backbone</span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="va">name</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -587,14 +670,14 @@ contains the checksums you need.</p>
 </h2>
 <p>Conditions can be constructed by making a resolution fail, which
 needs no network:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">offline_error</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"offline"</span><span class="op">)</span>,</span>
 <span>  getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">offline_error</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "getaca_error_offline"</span></span></code></pre></div>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"a missing backbone gets a yourpkg-flavoured message"</span>, <span class="op">{</span></span>
 <span>  <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_envvar.html" class="external-link">local_envvar</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>GETACA_OFFLINE <span class="op">=</span> <span class="st">"true"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_options.html" class="external-link">local_options</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>getaca.cache <span class="op">=</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
