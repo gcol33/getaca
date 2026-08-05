@@ -401,7 +401,7 @@ redefining a published version is refused, and how pinning interacts with
 
 - `vignette("cache")` for the layout, verification schedule, locking and
   retention
-- `vignette("failures")` for the six conditions and how to handle each
+- `vignette("failures")` for the eleven conditions and how to handle each
 
 - `vignette("alternatives")` for choosing between `getaca`, a companion data
   package, and the neighbouring tools

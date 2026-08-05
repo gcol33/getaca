@@ -22,9 +22,9 @@ reg <- registry("yourpkg", list(
 ))
 ```
 
-A plain downloader reports six different situations the same way: something
-went wrong with a URL. `getaca` separates them, because the six have three
-different people who can act on them and four different things to do.
+A plain downloader reports eleven different situations the same way: something
+went wrong with a URL. `getaca` separates them, because the eleven have three
+different people who can act on them and five different things to do.
 
 Every failure is a classed condition carrying an `actor` field naming who can
 act. Callers branch on the class rather than on message text.
@@ -37,11 +37,13 @@ act. Callers branch on the class rather than on message text.
 | `getaca_error_credentials` | every mirror refused to serve | user, or author | set the credential named; where none is declared, report it |
 | `getaca_error_upstream_changed` | published bytes were replaced | upstream | the declaring package needs a new record |
 | `getaca_error_cache_corrupt` | local copy drifted from its own record | user | clean and refetch |
+| `getaca_error_redeclared` | the declaration names different bytes for a version already held | author | report to the declaring package |
 | `getaca_error_invalid_registry` | the declaration is wrong | author | report to the declaring package |
 | `getaca_error_declaration` | every mirror agrees, the registry disagrees | author | report to the declaring package |
 | `getaca_error_composition` | the parts arrived intact and compose to something else | author | report to the declaring package |
+| `getaca_error_signature` | a registry that must be signed carried no usable one | author | report to the declaring package |
 
-All nine inherit from `getaca_error`, which inherits from `error`, so a
+All eleven inherit from `getaca_error`, which inherits from `error`, so a
 handler for `getaca_error` catches everything the package raises and nothing
 else.
 
@@ -214,8 +216,10 @@ reports every variable a package's declaration reads and whether it is set:
 
 ```{r, eval = FALSE}
 getaca_credentials(package = "canopy")
-#>   package                                  host scheme         variable   set
+#>   package                             host scheme        variable   set
 #> 1  canopy data.ornldaac.earthdata.nasa.gov bearer EARTHDATA_TOKEN FALSE
+#>                                   register
+#> 1 https://urs.earthdata.nasa.gov/users/new
 ```
 
 See `vignette("declaring")` for how a package declares one.
@@ -348,6 +352,41 @@ That handler is reasonable in a package that knows its users would want the
 repair. Doing it inside `getaca` for everyone would make the failure
 invisible.
 
+## `getaca_error_redeclared`
+
+The cached copy still matches its own record, and the declaration in force has
+moved to different bytes for that version. Both are intact, which is what
+separates this from a corrupt cache:
+
+```{r, eval = FALSE}
+getaca("backbone", package = "yourpkg")
+#> Error: The declaration for yourpkg/backbone@2026-06 no longer names the bytes already held.
+#>   cached SHA-256:   9f9f9f...
+#>   declared SHA-256: 71b0c2...
+#>
+#> A version identifies exact bytes, so these cannot both be that version.
+#> The cached copy was verified against the earlier declaration and has
+#> been left untouched. Publish a new version instead of redefining this
+#> one.
+#>
+#> Action: if the new declaration is the correct one, drop the old copy
+#> with getaca_clean("backbone", package = "yourpkg") and retry.
+#>
+#> Fix: the declaring package needs a correction. Report it to its maintainer.
+```
+
+Resolving quietly to the copy already held would be the wrong answer: it makes
+one machine keep bytes every other machine has stopped using, and the
+disagreement stays invisible for as long as that cache survives. `verify = TRUE`
+asks the same question, so a forced re-hash cannot confirm bytes against a
+declaration they no longer match either.
+
+A version reaches this state when a package upgrade brings an edited record for
+a version this machine has already fetched. A remote registry or a pin file
+trying the same thing is stopped earlier, at
+`getaca_error_invalid_registry`, since neither is allowed to redefine a
+published version at all.
+
 ## `getaca_error_invalid_registry`
 
 The declaration is malformed or internally inconsistent. Raised at
@@ -389,6 +428,42 @@ resolve_resource("backbone", package = "stats")
 
 That one names the conventional path, so a user who expected a package to
 declare resources can see immediately that it does not.
+
+## `getaca_error_signature`
+
+A remote registry arriving without a signature this package's own keys accept.
+Raised only where the bundled registry declares `keys`; a package declaring none
+never fetches a signature and never meets this:
+
+```{r, eval = FALSE}
+getaca("backbone", package = "yourpkg")
+#> Error: The registry for 'yourpkg' could not be established as authentic.
+#>   no signature could be fetched and read
+#>   source: https://yourpkg.invalid/getaca-registry.rds.sig
+#>
+#> This package declares signing keys, so a remote registry that cannot be
+#> checked against one is refused rather than used. The bundled declaration
+#> the package ships is unaffected and still resolves.
+#>
+#> Action: getaca_policy("bundled") resolves through it for this session.
+#>
+#> Fix: the declaring package needs a correction. Report it to its maintainer.
+```
+
+The same condition covers a signature from a key the package does not declare,
+one whose expiry has passed, and one covering a declaration state older than the
+installed registry, which is what stops an old genuine registry being replayed
+in place of the current one.
+
+A host that cannot be reached is a different situation and gets the other
+answer: resolution falls back to the bundled declaration with a message. A
+registry that arrives and fails verification stops instead. A registry arriving
+without its signature is the second, since one host serves both, and treating a
+missing signature as an outage would let whoever serves the file decide whether
+the check runs at all.
+
+See `vignette("policies")` for how a package declares keys and signs what it
+publishes.
 
 ## Writing a handler in a declaring package
 
