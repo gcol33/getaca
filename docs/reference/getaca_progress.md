@@ -21,7 +21,8 @@ getaca_progress(progress = NULL)
 
 ## Value
 
-The reporter in effect, invisibly when setting.
+When querying, the reporter in effect. When setting, the previous value
+of the `getaca.progress` option invisibly, `NULL` if it was unset.
 
 ## Details
 
@@ -52,6 +53,13 @@ session changed and put back.
 
   Nothing at all.
 
+Setting the style sets the `getaca.progress` option and nothing else,
+and returns what that option held before, so a caller that has to change
+it can put it back:
+
+    old <- getaca_progress("none")
+    on.exit(options(getaca.progress = old), add = TRUE)
+
 ## See also
 
 [`reporter()`](https://gillescolling.com/getaca/reference/reporter.md)
@@ -73,6 +81,8 @@ logger <- reporter("log", function(event) {
 })
 logger
 
-# getaca_progress(logger)
-# getaca_progress("line")
+# Choosing one is reversible, because the previous setting comes back.
+old <- getaca_progress(logger)
+getaca_progress()
+options(getaca.progress = old)
 ```

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,6 +65,19 @@
       <small>Source: <a href="https://github.com/gcol33/getaca/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.6" id="getaca-016">getaca 0.1.6<a class="anchor" aria-label="anchor" href="#getaca-016"></a></h2>
+<div class="section level3">
+<h3 id="setting-a-session-option-hands-the-old-one-back-0-1-6">Setting a session option hands the old one back<a class="anchor" aria-label="anchor" href="#setting-a-session-option-hands-the-old-one-back-0-1-6"></a></h3>
+<ul><li>
+<code><a href="../reference/getaca_policy.html">getaca_policy()</a></code> and <code><a href="../reference/getaca_progress.html">getaca_progress()</a></code> return what their option held before the call, invisibly, so a caller that has to change one for the duration of a function can restore it from <code><a href="https://rdrr.io/r/base/on.exit.html" class="external-link">on.exit()</a></code>. Querying is unchanged: with no argument each still reports what is in effect.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="attribution-0-1-6">Attribution<a class="anchor" aria-label="anchor" href="#attribution-0-1-6"></a></h3>
+<ul><li>The TweetNaCl authors, from whose work <code>src/ed25519.c</code> derives its Curve25519 arithmetic, are listed in <code>Authors@R</code> as contributors. The provenance and what the derived work adds stay in <code>inst/COPYRIGHTS</code>.</li>
+<li>The Description field cites the standards the compiled code implements: FIPS 180-4 for hashing, and the Ed25519 paper and RFC 8032 for signing.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.5" id="getaca-015">getaca 0.1.5<a class="anchor" aria-label="anchor" href="#getaca-015"></a></h2>
 <div class="section level3">

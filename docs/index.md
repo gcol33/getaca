@@ -753,7 +753,7 @@ MIT (see the LICENSE.md file)
 ``` bibtex
 @software{getaca,
   author = {Colling, Gilles},
-  title = {getaca: Reproducible External Data Dependencies for R Packages},
+  title = {getaca: Reproducible External Data Dependencies},
   year = {2026},
   url = {https://github.com/gcol33/getaca}
 }

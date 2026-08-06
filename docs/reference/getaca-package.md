@@ -1,4 +1,4 @@
-# getaca: Reproducible External Data Dependencies for R Packages
+# getaca: Reproducible External Data Dependencies
 
 Lets an R package declare that it depends on data living somewhere else,
 and makes that dependency behave like a dependency: pinned to exact
@@ -58,3 +58,23 @@ Authors:
 
 - Gilles Colling <gilles.colling051@gmail.com>
   ([ORCID](https://orcid.org/0000-0003-3070-6066)) \[copyright holder\]
+
+Other contributors:
+
+- Daniel J. Bernstein (TweetNaCl, from which src/ed25519.c derives)
+  \[contributor\]
+
+- Bernard van Gastel (TweetNaCl, from which src/ed25519.c derives)
+  \[contributor\]
+
+- Wesley Janssen (TweetNaCl, from which src/ed25519.c derives)
+  \[contributor\]
+
+- Tanja Lange (TweetNaCl, from which src/ed25519.c derives)
+  \[contributor\]
+
+- Peter Schwabe (TweetNaCl, from which src/ed25519.c derives)
+  \[contributor\]
+
+- Sjaak Smetsers (TweetNaCl, from which src/ed25519.c derives)
+  \[contributor\]

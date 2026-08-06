@@ -20,7 +20,8 @@ getaca_policy(policy = NULL)
 
 ## Value
 
-The policy in effect, invisibly when setting.
+When querying, the policy in effect. When setting, the previous value of
+the `getaca.policy` option invisibly, `NULL` if it was unset.
 
 ## Policies
 
@@ -48,8 +49,20 @@ The policy in effect, invisibly when setting.
 During `R CMD check` resolution always collapses to `"offline"`,
 whatever is set here.
 
+Setting the policy sets the `getaca.policy` option and nothing else, and
+returns what that option held before, so a caller that has to change it
+can put it back:
+
+    old <- getaca_policy("offline")
+    on.exit(options(getaca.policy = old), add = TRUE)
+
 ## Examples
 
 ``` r
 getaca_policy()
+
+# Setting it is reversible, because the previous value comes back.
+old <- getaca_policy("offline")
+getaca_policy()
+options(getaca.policy = old)
 ```

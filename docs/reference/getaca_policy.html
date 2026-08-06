@@ -24,7 +24,7 @@ and is recorded in provenance so a result can always be traced back to it."><scr
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -92,7 +92,8 @@ and is recorded in provenance so a result can always be traced back to it.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>The policy in effect, invisibly when setting.</p>
+    <p>When querying, the policy in effect. When setting, the previous
+value of the <code>getaca.policy</code> option invisibly, <code>NULL</code> if it was unset.</p>
     </div>
     <div class="section level2">
     <h2 id="policies">Policies<a class="anchor" aria-label="anchor" href="#policies"></a></h2>
@@ -119,11 +120,21 @@ information only.</p></dd>
 
 </dl><p>During <code>R CMD check</code> resolution always collapses to <code>"offline"</code>, whatever
 is set here.</p>
+<p>Setting the policy sets the <code>getaca.policy</code> option and nothing else, and
+returns what that option held before, so a caller that has to change it
+can put it back:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>old <span class="ot">&lt;-</span> <span class="fu">getaca_policy</span>(<span class="st">"offline"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">on.exit</span>(<span class="fu">options</span>(<span class="at">getaca.policy =</span> old), <span class="at">add =</span> <span class="cn">TRUE</span>)</span></code></pre><p></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getaca_policy</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getaca_policy</span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Setting it is reversible, because the previous value comes back.</span></span>
+<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu">getaca_policy</span><span class="op">(</span><span class="st">"offline"</span><span class="op">)</span></span>
+<span><span class="fu">getaca_policy</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.policy <span class="op">=</span> <span class="va">old</span><span class="op">)</span></span></code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
