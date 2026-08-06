@@ -29,7 +29,8 @@ local({
 # Everything below runs against a throwaway cache with the network switched
 # off, so this vignette builds identically on a machine that has never seen
 # these resources and on one that has them all.
-options(getaca.cache = file.path(tempdir(), "getaca-quickstart"))
+.old_options <- options(getaca.cache = file.path(tempdir(), "getaca-quickstart"))
+.old_envvars <- Sys.getenv(c("GETACA_OFFLINE", "NOT_CRAN"), unset = NA)
 Sys.setenv(GETACA_OFFLINE = "true", NOT_CRAN = "true")
 ```
 
@@ -405,3 +406,10 @@ redefining a published version is refused, and how pinning interacts with
 
 - `vignette("alternatives")` for choosing between `getaca`, a companion data
   package, and the neighbouring tools
+
+```{r, include = FALSE}
+options(.old_options)
+Sys.unsetenv(names(.old_envvars)[is.na(.old_envvars)])
+.restore <- .old_envvars[!is.na(.old_envvars)]
+if (length(.restore)) do.call(Sys.setenv, as.list(.restore))
+```

@@ -3,7 +3,7 @@
 \docType{package}
 \name{getaca-package}
 \alias{getaca-package}
-\title{getaca: Reproducible External Data Dependencies for R Packages}
+\title{getaca: Reproducible External Data Dependencies}
 \description{
 Lets an R package declare that it depends on data living somewhere else,
 and makes that dependency behave like a dependency: pinned to exact bytes,
@@ -50,6 +50,16 @@ Useful links:
 Authors:
 \itemize{
   \item Gilles Colling \email{gilles.colling051@gmail.com} (\href{https://orcid.org/0000-0003-3070-6066}{ORCID}) [copyright holder]
+}
+
+Other contributors:
+\itemize{
+  \item Daniel J. Bernstein (TweetNaCl, from which src/ed25519.c derives) [contributor]
+  \item Bernard van Gastel (TweetNaCl, from which src/ed25519.c derives) [contributor]
+  \item Wesley Janssen (TweetNaCl, from which src/ed25519.c derives) [contributor]
+  \item Tanja Lange (TweetNaCl, from which src/ed25519.c derives) [contributor]
+  \item Peter Schwabe (TweetNaCl, from which src/ed25519.c derives) [contributor]
+  \item Sjaak Smetsers (TweetNaCl, from which src/ed25519.c derives) [contributor]
 }
 
 }

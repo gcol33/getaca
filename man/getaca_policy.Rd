@@ -11,7 +11,8 @@ getaca_policy(policy = NULL)
 \code{NULL} to query without setting.}
 }
 \value{
-The policy in effect, invisibly when setting.
+When querying, the policy in effect. When setting, the previous
+value of the \code{getaca.policy} option invisibly, \code{NULL} if it was unset.
 }
 \description{
 \code{getaca_policy()} reports or sets the resolution policy for the current
@@ -35,8 +36,21 @@ information only.}
 
 During \verb{R CMD check} resolution always collapses to \code{"offline"}, whatever
 is set here.
+
+Setting the policy sets the \code{getaca.policy} option and nothing else, and
+returns what that option held before, so a caller that has to change it
+can put it back:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{old <- getaca_policy("offline")
+on.exit(options(getaca.policy = old), add = TRUE)
+}\if{html}{\out{</div>}}
 }
 
 \examples{
 getaca_policy()
+
+# Setting it is reversible, because the previous value comes back.
+old <- getaca_policy("offline")
+getaca_policy()
+options(getaca.policy = old)
 }

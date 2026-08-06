@@ -1,3 +1,18 @@
+# getaca 0.1.6
+
+## Setting a session option hands the old one back
+* `getaca_policy()` and `getaca_progress()` return what their option held
+  before the call, invisibly, so a caller that has to change one for the
+  duration of a function can restore it from `on.exit()`. Querying is
+  unchanged: with no argument each still reports what is in effect.
+
+## Attribution
+* The TweetNaCl authors, from whose work `src/ed25519.c` derives its
+  Curve25519 arithmetic, are listed in `Authors@R` as contributors. The
+  provenance and what the derived work adds stay in `inst/COPYRIGHTS`.
+* The Description field cites the standards the compiled code implements:
+  FIPS 180-4 for hashing, and the Ed25519 paper and RFC 8032 for signing.
+
 # getaca 0.1.5
 
 ## Drafting a record without moving the file

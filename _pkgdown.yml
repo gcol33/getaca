@@ -21,7 +21,7 @@ template:
       })();
       </script>
 home:
-  title: 'getaca: Reproducible External Data Dependencies for R Packages'
+  title: 'getaca: Reproducible External Data Dependencies'
   description: |
     Declare, retrieve, verify, track and actively manage external data dependencies for R packages. Pinned to exact bytes, resolvable offline, safe during R CMD check.
 authors:

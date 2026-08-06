@@ -99,11 +99,14 @@ test_that("the style is read from the option, then the environment", {
   expect_equal(getaca_progress()$id, "none")
 })
 
-test_that("setting the style returns the reporter and records the setting", {
+test_that("setting the style records it and hands back the previous one", {
   withr::local_options(list(getaca.progress = NULL))
-  rep <- getaca_progress("line")
-  expect_equal(rep$id, "line")
+
+  expect_null(getaca_progress("line"))
   expect_equal(getOption("getaca.progress"), "line")
+
+  expect_equal(getaca_progress("none"), "line")
+  expect_equal(getOption("getaca.progress"), "none")
 })
 
 test_that("quiet on one call beats whatever the session is set to", {

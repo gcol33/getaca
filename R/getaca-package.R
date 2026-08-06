@@ -1,4 +1,4 @@
-#' getaca: Reproducible External Data Dependencies for R Packages
+#' getaca: Reproducible External Data Dependencies
 #'
 #' Lets an R package declare that it depends on data living somewhere else,
 #' and makes that dependency behave like a dependency: pinned to exact bytes,

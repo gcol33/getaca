@@ -59,9 +59,19 @@ NULL
 #'   \item{`"none"`}{Nothing at all.}
 #' }
 #'
+#' Setting the style sets the `getaca.progress` option and nothing else, and
+#' returns what that option held before, so a caller that has to change it
+#' can put it back:
+#'
+#' ```
+#' old <- getaca_progress("none")
+#' on.exit(options(getaca.progress = old), add = TRUE)
+#' ```
+#'
 #' @param progress A style name, a [reporter()], or `NULL` to query without
 #'   setting.
-#' @return The reporter in effect, invisibly when setting.
+#' @return When querying, the reporter in effect. When setting, the previous
+#'   value of the `getaca.progress` option invisibly, `NULL` if it was unset.
 #' @seealso [reporter()] to write your own, and [getaca-progress] for the
 #'   events one receives.
 #' @export
@@ -78,13 +88,16 @@ NULL
 #' })
 #' logger
 #'
-#' # getaca_progress(logger)
-#' # getaca_progress("line")
+#' # Choosing one is reversible, because the previous setting comes back.
+#' old <- getaca_progress(logger)
+#' getaca_progress()
+#' options(getaca.progress = old)
 getaca_progress <- function(progress = NULL) {
   if (is.null(progress)) return(as_reporter(setting_progress()))
-  rep <- as_reporter(progress)
+  as_reporter(progress)   # an unusable style is refused before the option moves
+  previous <- getOption("getaca.progress", NULL)
   options(getaca.progress = progress)
-  invisible(rep)
+  invisible(previous)
 }
 
 setting_progress <- function() getaca_setting("progress", "auto")

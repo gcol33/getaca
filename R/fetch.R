@@ -56,13 +56,15 @@
 #'
 #' reg <- registry("demo", list(atlas))
 #'
+#' \dontrun{
 #' # Each piece is fetched and verified on its own, the two are concatenated,
 #' # and the zip is held to the resource's own sha256 before the processor
 #' # sees it. The returned path is the unpacked directory:
-#' # getaca("atlas", registry = reg)
+#' getaca("atlas", registry = reg)
 #'
 #' # The raw zip, without unpacking:
-#' # getaca("atlas", registry = reg, processed = FALSE)
+#' getaca("atlas", registry = reg, processed = FALSE)
+#' }
 getaca <- function(name, package = NULL, registry = NULL, version = NULL,
                    policy = NULL, verify = FALSE, processed = TRUE,
                    quiet = FALSE) {

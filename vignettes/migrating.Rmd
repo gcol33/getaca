@@ -11,7 +11,8 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(getaca)
 
-options(getaca.cache = file.path(tempdir(), "getaca-migrating"))
+.old_options <- options(getaca.cache = file.path(tempdir(), "getaca-migrating"))
+.old_envvars <- Sys.getenv(c("GETACA_OFFLINE", "NOT_CRAN"), unset = NA)
 Sys.setenv(GETACA_OFFLINE = "true", NOT_CRAN = "true")
 ```
 
@@ -438,3 +439,10 @@ availability check, the cleanup code, and the guard logic in every test.
 - `vignette("checks")` for the CI workflow and the empty-cache check
 
 - `vignette("alternatives")` for whether `getaca` is the right target at all
+
+```{r, include = FALSE}
+options(.old_options)
+Sys.unsetenv(names(.old_envvars)[is.na(.old_envvars)])
+.restore <- .old_envvars[!is.na(.old_envvars)]
+if (length(.restore)) do.call(Sys.setenv, as.list(.restore))
+```

@@ -26,7 +26,7 @@ test_that("a registry's own policy outranks the bundled default", {
   expect_equal(getaca:::effective_policy(NULL), "bundled")
 })
 
-test_that("setting a policy takes effect and returns it invisibly", {
+test_that("setting a policy takes effect and hands back the previous one", {
   withr::local_envvar(list(NOT_CRAN = "true", GETACA_OFFLINE = "",
                            GETACA_POLICY = ""))
   withr::local_options(list(getaca.policy = NULL))
@@ -34,6 +34,22 @@ test_that("setting a policy takes effect and returns it invisibly", {
   expect_invisible(getaca_policy("current"))
   expect_equal(getOption("getaca.policy"), "current")
   expect_equal(getaca_policy(), "current")
+
+  # What comes back is what the option held, so a caller can put it back.
+  expect_equal(getaca_policy("offline"), "current")
+  expect_equal(getaca_policy(), "offline")
+})
+
+test_that("an unset option comes back as NULL, so restoring is still exact", {
+  withr::local_envvar(list(NOT_CRAN = "true", GETACA_OFFLINE = "",
+                           GETACA_POLICY = ""))
+  withr::local_options(list(getaca.policy = NULL))
+
+  old <- getaca_policy("offline")
+  expect_null(old)
+  options(getaca.policy = old)
+  expect_null(getOption("getaca.policy"))
+  expect_equal(getaca_policy(), "bundled")
 })
 
 test_that("a policy that does not exist is refused rather than stored", {

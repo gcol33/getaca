@@ -11,7 +11,8 @@ getaca_progress(progress = NULL)
 setting.}
 }
 \value{
-The reporter in effect, invisibly when setting.
+When querying, the reporter in effect. When setting, the previous
+value of the \code{getaca.progress} option invisibly, \code{NULL} if it was unset.
 }
 \description{
 Reports or sets the progress style for the current session. The default,
@@ -34,6 +35,14 @@ a CI log or a \code{sink()}ed script wants, where a redrawing bar leaves
 thousands of fragments.}
 \item{\code{"none"}}{Nothing at all.}
 }
+
+Setting the style sets the \code{getaca.progress} option and nothing else, and
+returns what that option held before, so a caller that has to change it
+can put it back:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{old <- getaca_progress("none")
+on.exit(options(getaca.progress = old), add = TRUE)
+}\if{html}{\out{</div>}}
 }
 
 \examples{
@@ -48,8 +57,10 @@ logger <- reporter("log", function(event) {
 })
 logger
 
-# getaca_progress(logger)
-# getaca_progress("line")
+# Choosing one is reversible, because the previous setting comes back.
+old <- getaca_progress(logger)
+getaca_progress()
+options(getaca.progress = old)
 }
 \seealso{
 \code{\link[=reporter]{reporter()}} to write your own, and \link{getaca-progress} for the

@@ -26,7 +26,8 @@ local({
   })
 })
 
-options(getaca.cache = file.path(tempdir(), "getaca-cache-vignette"))
+.old_options <- options(getaca.cache = file.path(tempdir(), "getaca-cache-vignette"))
+.old_envvars <- Sys.getenv(c("GETACA_OFFLINE", "NOT_CRAN"), unset = NA)
 Sys.setenv(GETACA_OFFLINE = "true", NOT_CRAN = "true")
 
 reg <- registry("yourpkg", list(
@@ -505,3 +506,10 @@ restores is the cache, with nothing to rebuild.
 - `vignette("policies")` for what decides which version lands in the cache
 
 - `vignette("declaring")` for declaring a resource that arrives as a series
+
+```{r, include = FALSE}
+options(.old_options)
+Sys.unsetenv(names(.old_envvars)[is.na(.old_envvars)])
+.restore <- .old_envvars[!is.na(.old_envvars)]
+if (length(.restore)) do.call(Sys.setenv, as.list(.restore))
+```
