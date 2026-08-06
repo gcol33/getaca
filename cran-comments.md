@@ -65,12 +65,17 @@ them to hold; the `ctb` entries record the authorship.
 
 0 errors | 0 warnings | 1 note
 
-The note is "New submission".
+The note is "New submission", together with possibly misspelled words in the
+DESCRIPTION: Duif, EdDSA, Josefsson, Lange, Liusvaara, SHA and Schwabe. Those
+are the surnames of the authors of the two references added at your request,
+the abbreviation RFC 8032 gives its own title, and the first half of SHA-256.
+All are spelled as published.
 
 ## Test environments
 
 * local: Windows 11, R 4.6.0, `R CMD check --as-cran`
-* win-builder: R-devel, R-release
+* win-builder: R-devel (2026-08-05 r90355), 1 NOTE as above;
+  R-release (4.6.1), the same
 * GitHub Actions: macOS release, Windows release, Ubuntu r-devel, release,
   oldrel-1 and oldrel-2
 
