@@ -78,12 +78,18 @@ The compiled code is additionally checked on every push in the five r-hub
 containers CRAN uses for its own additional issues: clang-asan, gcc-asan,
 clang-ubsan, valgrind and rchk. All five are clean.
 
-## URLs in examples and vignettes
+## URLs and `\dontrun{}` in examples and vignettes
 
 Several examples declare resources at hosts under the `.invalid` top-level
 domain, which RFC 2606 reserves for exactly this purpose. They are meant not
 to resolve: a runnable example must never reach a real host, and the package's
 own check-time policy refuses network access regardless.
+
+The two `\dontrun{}` blocks, in `?getaca` and `?registry_draft`, are the only
+places an example would have to retrieve something. `\donttest{}` would not do
+there: those blocks are unrunnable rather than slow, since retrieving a
+declared resource needs a host that serves it and resolution collapses to the
+`offline` policy under check. Everything else in the manual runs.
 
 ## Downstream dependencies
 
