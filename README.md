@@ -13,6 +13,15 @@ files your package declares it needs.**
   <img src="man/figures/progress.gif" width="100%" alt="A getaca transfer: one call, a bar carrying the share, the rate and an estimate of what is left, and the local path it returns">
 </p>
 
+## Installation
+
+```r
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
+## Quick start
+
 Some of what a package needs is too large to ship inside it: a reference dataset, a
 trained model, an archive of examples. At multiple GB it lives somewhere else, and
 every user has to end up with the same copy of it. Declare it in a few kilobytes,
@@ -614,13 +623,6 @@ them, which puts verification at disk speed: 1.43 GB/s on an i9-14900K, so a
 - **`getaca_clean()`** run the retention sweeps by hand
 - **`getaca_available()`**, **`getaca_optional()`**, **`getaca_skip_if_unavailable()`** check-safe access
 - **`getaca_policy()`**, **`getaca_cache_dir()`** settings
-
-## Installation
-
-```r
-install.packages("pak")
-pak::pak("gcol33/getaca")
-```
 
 ## Documentation
 

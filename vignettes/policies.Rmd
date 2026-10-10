@@ -25,6 +25,13 @@ This article covers the four policies, what a remote channel is allowed to
 change, how pinning freezes an analysis, and how the three settings layers
 combine.
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## The two halves the design keeps apart
 
 A **resource record** names exact bytes and never changes:

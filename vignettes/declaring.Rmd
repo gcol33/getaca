@@ -25,6 +25,13 @@ Everything a declaring package owes `getaca` is one serialised object at
 registration call, and no runtime coupling beyond calling `getaca()` when a
 resource is actually needed.
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## Records and channels
 
 Two things that must not be conflated.

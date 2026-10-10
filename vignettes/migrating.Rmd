@@ -25,6 +25,13 @@ The example is a plausible starting point rather than any particular package:
 a table of URLs, a cache directory, a `file.exists()` check, and an ad-hoc
 version string.
 
+## Installation
+
+```{r, eval = FALSE}
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## What is being replaced
 
 ```{r, eval = FALSE}
