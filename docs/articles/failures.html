@@ -46,7 +46,7 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/quickstart.html">Get Started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
+<li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/quickstart.html">Quick Start</a></li>
@@ -192,18 +192,25 @@ held</td>
 from <code>error</code>, so a handler for <code>getaca_error</code>
 catches everything the package raises and nothing else.</p>
 <div class="section level2">
-<h2 id="the-general-shape">The general shape<a class="anchor" aria-label="anchor" href="#the-general-shape"></a>
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/getaca"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="the-general-shape">The general shape<a class="anchor" aria-label="anchor" href="#the-general-shape"></a>
+</h2>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span>, getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "getaca_error_offline"     "getaca_error_unavailable"</span></span>
 <span><span class="co">#&gt; [3] "getaca_error"             "error"                   </span></span>
 <span><span class="co">#&gt; [5] "condition"</span></span></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">err</span><span class="op">$</span><span class="va">actor</span></span>
 <span><span class="co">#&gt; [1] "user"</span></span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -219,7 +226,7 @@ what tells a user whether the next step is theirs, and the
 <p>Beyond <code>actor</code>, each condition carries the data that
 produced it, so a handler can reason about the situation rather than
 parse the message:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "message" "call"    "actor"   "id"</span></span></code></pre></div>
 <p><code>err$id</code> is the <code>getaca_id</code>, so
@@ -233,7 +240,7 @@ a log line.</p>
 <p>No mirror could be reached. Every URL is listed with the reason it
 failed, so a user can tell a proxy problem from a host that is down from
 a path that 404s.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: Cannot reach any source for yourpkg/backbone@2026-06.</span></span>
 <span><span class="co">#&gt;   https://primary.invalid/backbone-2026-06.zip: HTTP 503</span></span>
@@ -247,7 +254,7 @@ a path that 404s.</p>
 <p>The condition carries <code>urls</code> and <code>reasons</code> as
 parallel vectors, which is enough to build a domain-specific
 message:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>,</span>
 <span>  getaca_error_unavailable <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
@@ -267,7 +274,7 @@ resource is not cached and the policy in force forbids reaching for it.
 Under <code>R CMD check</code> this is the only failure a
 resource-dependent code path can produce, because the clamp forces
 <code>offline</code> before any transport is attempted.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -278,14 +285,14 @@ resource-dependent code path can produce, because the clamp forces
 <span><span class="co">#&gt; in tests and getaca_optional() in examples.</span></span></code></pre></div>
 <p>The subclass relationship is what lets a package write one handler
 and get both:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">err</span>, <span class="st">"getaca_error_unavailable"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>Separating them is worth doing when the two need different words.
 “You are offline” is wrong advice for a machine that is online but
 running a check, and “the server is down” is wrong advice for a machine
 with no network at all.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>,</span>
 <span>  getaca_error_offline <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
@@ -309,7 +316,7 @@ first.</p>
 That is a different situation from a host being down, and the action is
 different: retry, because a partial transfer resumes rather than
 restarting.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: Transfer of yourpkg/backbone@2026-06 ended early.</span></span>
 <span><span class="co">#&gt;   expected 797000000 bytes, received 412300000 bytes</span></span>
@@ -336,7 +343,7 @@ reachable and the machine has a network; what is missing is permission.
 Telling that user to connect to a network would send them looking in the
 wrong place, which is the same reasoning that separates a truncation
 from an outage.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"gedi-l4a"</span>, package <span class="op">=</span> <span class="st">"canopy"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: Access to canopy/gedi-l4a@2026-06 was refused.</span></span>
 <span><span class="co">#&gt;   data.ornldaac.earthdata.nasa.gov: bearer credential from EARTHDATA_TOKEN (not set: EARTHDATA_TOKEN)</span></span>
@@ -367,7 +374,7 @@ variable that does not exist.</p>
 <p>To ask before fetching rather than after failing,
 <code><a href="../reference/getaca_credentials.html">getaca_credentials()</a></code> reports every variable a package’s
 declaration reads and whether it is set:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_credentials.html">getaca_credentials</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"canopy"</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   package                             host scheme        variable   set</span></span>
 <span><span class="co">#&gt; 1  canopy data.ornldaac.earthdata.nasa.gov bearer EARTHDATA_TOKEN FALSE</span></span>
@@ -383,7 +390,7 @@ one.</p>
 <p>A complete transfer whose digest does not match the declaration. The
 publisher appears to have replaced the file without issuing a new
 version.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The remote file no longer matches yourpkg/backbone@2026-06.</span></span>
 <span><span class="co">#&gt;   declared SHA-256: 9f9f9f...</span></span>
@@ -415,7 +422,7 @@ registry.</p>
 <p>Several independent mirrors returned identical bytes, and none
 matched the declared checksum. When every mirror agrees with the others
 and disagrees with the registry, the registry is the likely error.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The declared checksum for yourpkg/backbone@2026-06 looks wrong.</span></span>
 <span><span class="co">#&gt;   2 independent sources agreed on SHA-256 3c1a77...</span></span>
@@ -440,7 +447,7 @@ practical argument for declaring two.</p>
 <p>Every declared <code><a href="../reference/part.html">part()</a></code> arrived and matched its own
 checksum, and combining them produced something other than the artefact
 the record names.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The parts declared for yourpkg/backbone@2026-09 do not produce the declared bytes.</span></span>
 <span><span class="co">#&gt;   3 parts, each matching its own checksum, combined by 'concat'</span></span>
@@ -457,7 +464,7 @@ the transport was sound and the checksum was wrong; here every checksum
 in the series was right and what they add up to was wrong. A part that
 goes missing or arrives changed raises the ordinary transfer conditions
 instead, naming which part of the series it was:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#&gt; Error: Cannot reach any source for yourpkg/backbone@2026-09 (part 2 of 3).</span></span></code></pre></div>
 <p>As an author, reach for this after re-splitting a file, reordering a
 series, or changing what a <code><a href="../reference/combiner.html">combiner()</a></code> does without changing
@@ -471,7 +478,7 @@ a half-composed artefact.</p>
 <p>The cached copy no longer matches its own entry record. Raised by the
 cheap size check on ordinary access, and by the scheduled or forced
 re-hash.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The cached copy of yourpkg/backbone@2026-06 is damaged.</span></span>
 <span><span class="co">#&gt;   path: ~/.cache/R/getaca/yourpkg/backbone/2026-06/raw/backbone-2026-06.zip</span></span>
@@ -486,7 +493,7 @@ anything would hide a disk developing bad sectors, a sync client
 rewriting files, and a colleague who opened something in the cache
 directory and saved it. The message names the clean-up call, so the
 repair is one line and the user knows it happened.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>,</span>
 <span>  getaca_error_cache_corrupt <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
@@ -506,7 +513,7 @@ make the failure invisible.</p>
 <p>The cached copy still matches its own record, and the declaration in
 force has moved to different bytes for that version. Both are intact,
 which is what separates this from a corrupt cache:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The declaration for yourpkg/backbone@2026-06 no longer names the bytes already held.</span></span>
 <span><span class="co">#&gt;   cached SHA-256:   9f9f9f...</span></span>
@@ -540,7 +547,7 @@ redefine a published version at all.</p>
 <p>The declaration is malformed or internally inconsistent. Raised at
 <code><a href="../reference/registry.html">registry()</a></code> and <code><a href="../reference/resource.html">resource()</a></code> where possible,
 which puts it on the author’s machine rather than a user’s:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-09"</span>,</span>
 <span>           urls <span class="op">=</span> <span class="st">"https://host.invalid/a"</span>,</span>
@@ -555,7 +562,7 @@ which puts it on the author’s machine rather than a user’s:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
 <p>Every problem found is listed, rather than the first one:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
 <span>         urls <span class="op">=</span> <span class="st">"ftp://host.invalid/a"</span>, sha256 <span class="op">=</span> <span class="st">"abc"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
@@ -568,7 +575,7 @@ which puts it on the author’s machine rather than a user’s:</p>
 registry, a name the registry does not declare, a remote registry
 declaring a different package, and a pin file that redefines a published
 version.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"no-such-resource"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'yourpkg'.</span></span>
@@ -577,7 +584,7 @@ version.</p>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
 <p>The message names what is on offer, which is usually enough to spot a
 typo without opening the registry.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"stats"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'stats'.</span></span>
@@ -595,7 +602,7 @@ package to declare resources can see immediately that it does not.</p>
 keys accept. Raised only where the bundled registry declares
 <code>keys</code>; a package declaring none never fetches a signature
 and never meets this:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: The registry for 'yourpkg' could not be established as authentic.</span></span>
 <span><span class="co">#&gt;   no signature could be fetched and read</span></span>
@@ -628,7 +635,7 @@ and signs what it publishes.</p>
 speak your own domain, and to let the author-actionable and
 upstream-actionable ones through unchanged. A user cannot act on either,
 and the default messages already say who can.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"backbone"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>    <span class="fu">open_backbone</span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="va">name</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -670,14 +677,14 @@ contains the checksums you need.</p>
 </h2>
 <p>Conditions can be constructed by making a resolution fail, which
 needs no network:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">offline_error</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"offline"</span><span class="op">)</span>,</span>
 <span>  getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">offline_error</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "getaca_error_offline"</span></span></code></pre></div>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"a missing backbone gets a yourpkg-flavoured message"</span>, <span class="op">{</span></span>
 <span>  <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_envvar.html" class="external-link">local_envvar</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>GETACA_OFFLINE <span class="op">=</span> <span class="st">"true"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_options.html" class="external-link">local_options</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>getaca.cache <span class="op">=</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -715,7 +722,7 @@ name you</p></li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

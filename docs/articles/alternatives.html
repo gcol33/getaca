@@ -46,7 +46,7 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/quickstart.html">Get Started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
+<li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/quickstart.html">Quick Start</a></li>
@@ -106,6 +106,13 @@ package someone met first.</p>
 <p>The question <code>getaca</code> is built around: a package needs a
 file it cannot ship, and every machine running that package should get
 the same bytes.</p>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/getaca"</span><span class="op">)</span></span></code></pre></div>
+</div>
 <div class="section level2">
 <h2 id="bundling-the-data-in-the-package">Bundling the data in the package<a class="anchor" aria-label="anchor" href="#bundling-the-data-in-the-package"></a>
 </h2>
@@ -302,7 +309,7 @@ the right file.</p>
 <p>They compose. A <code>targets</code> pipeline can have a target whose
 command is <code>getaca("backbone", package = "yourpkg")</code>, which
 gives the pipeline a path, and the path a provenance record:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/targets/" class="external-link">targets</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -325,10 +332,10 @@ what to recompute.</p>
 resolved to. Neither subsumes the other: a package version does not
 determine a data version once the package is on the <code>current</code>
 policy, and a data version says nothing about the code that read it.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">renv</span><span class="fu">::</span><span class="fu">snapshot</span><span class="op">(</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/snapshot.html" class="external-link">snapshot</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/getaca_pin.html">getaca_pin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="st">"otherpkg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Commit both files. Restoring is <code>renv::restore()</code> followed
+<p>Commit both files. Restoring is <code><a href="https://rstudio.github.io/renv/reference/restore.html" class="external-link">renv::restore()</a></code> followed
 by <code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> on a connected machine, after which
 the analysis runs offline. See <code><a href="../articles/policies.html">vignette("policies")</a></code> for
 what a pin holds.</p>
@@ -421,7 +428,7 @@ graph.</li>
 could grow into something else, and the dependency footprint that makes
 <code>getaca</code> inexpensive to depend on is the thing that would go
 first.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/packageDescription.html" class="external-link">packageDescription</a></span><span class="op">(</span><span class="st">"getaca"</span><span class="op">)</span><span class="op">$</span><span class="va">Imports</span></span>
 <span><span class="co">#&gt; [1] "curl (&gt;= 5.0.0), stats, tools, utils"</span></span></code></pre></div>
 </div>
@@ -448,7 +455,7 @@ machines and time</p></li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

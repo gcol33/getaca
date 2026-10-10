@@ -44,7 +44,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/quickstart.html">Get Started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../articles/quickstart.html">Get Started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -112,11 +112,18 @@ up.</p>
 it, behaving during checks, reading its provenance, and knowing where it
 went. Each section links the companion article that goes deeper.</p>
 <div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/getaca"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="declaring-what-you-need">Declaring what you need<a class="anchor" aria-label="anchor" href="#declaring-what-you-need"></a>
 </h2>
 <p>A resource record names exact bytes: one checksum, one version label,
 and the places those bytes live.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">backbone</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span></span>
 <span>  name    <span class="op">=</span> <span class="st">"backbone"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"2026-06"</span>,</span>
@@ -148,7 +155,7 @@ call. The <code>license</code> travels into provenance, so a result can
 say what terms the data came under.</p>
 <p>Records live in a registry, which is scoped to the declaring
 package:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"yourpkg"</span>, resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">backbone</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
 <span><span class="co">#&gt; &lt;getaca registry&gt; yourpkg  (policy "bundled")</span></span>
@@ -158,12 +165,12 @@ package:</p>
 <code>package / name / version</code>, so two packages may both declare
 something called <code>"backbone"</code> and never collide, in the cache
 or anywhere else.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="../reference/resource_id.html">resource_id</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="st">"backbone"</span>, <span class="st">"2026-06"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "yourpkg/backbone@2026-06"</span></span></code></pre></div>
 <p>Ship the registry where <code>getaca</code> looks for it, and there
 is nothing else to wire up:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">reg</span>, <span class="st">"inst/getaca/registry.rds"</span><span class="op">)</span></span></code></pre></div>
 <p>Discovery is a file test across the library paths.
 <code>getaca</code> asks <code><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file()</a></code> for
@@ -177,7 +184,7 @@ checklist.</p>
 <div class="section level2">
 <h2 id="getting-it">Getting it<a class="anchor" aria-label="anchor" href="#getting-it"></a>
 </h2>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
 <p>That path points to a complete file, verified against the declared
 checksum, at the resolved version, in a cache slot <code>getaca</code>
@@ -209,7 +216,7 @@ and what happens to a lock whose holder died.</p>
 <p><code>getaca("backbone")</code> asks for a name, and the registry
 says which record that name means. When a package offers several
 versions, it states the answer:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">multi</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
@@ -226,7 +233,7 @@ versions, it states the answer:</p>
 <span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">multi</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
 <span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-09</span></span></code></pre></div>
 <p>The older record stays resolvable by asking for it:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">multi</span>, version <span class="op">=</span> <span class="st">"2026-06"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
 <span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-06</span></span></code></pre></div>
 <p>Version strings here are labels rather than semantic versions.
@@ -234,7 +241,7 @@ versions, it states the answer:</p>
 defensible ordering, so <code>getaca</code> never tries to rank them. A
 registry that declares two versions of a name and states no head is
 refused:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -262,7 +269,7 @@ policy is set, so a check run never reaches the network. Three helpers
 cover the three places that matters, and they answer three different
 questions.</p>
 <p>In tests, skip cleanly and say what is missing:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the backbone parses"</span>, <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/getaca-checks.html">getaca_skip_if_unavailable</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span>  <span class="fu">expect_s3_class</span><span class="op">(</span><span class="fu">read_backbone</span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span><span class="op">)</span>, <span class="st">"backbone"</span><span class="op">)</span></span>
@@ -270,7 +277,7 @@ questions.</p>
 <p>In examples and vignettes, degrade to a message rather than an error.
 This vignette is running with the network switched off, so the call
 below takes exactly the path a CRAN check machine would take:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getaca-checks.html">getaca_optional</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; getaca: 'backbone' is not available here, so this output is abbreviated.</span></span>
 <span><span class="co">#&gt; yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
@@ -283,7 +290,7 @@ below takes exactly the path a CRAN check machine would take:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>And where a plain logical reads better:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca-checks.html">getaca_available</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 <p><code><a href="../reference/getaca-checks.html">getaca_available()</a></code> never touches the network. It asks
@@ -292,7 +299,7 @@ is what makes it safe to call in a condition that gates expensive
 work.</p>
 <p>To prepare a machine that will later be offline, or a CI job that
 should find everything already present:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/getaca_prefetch.html">getaca_prefetch</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>   <span class="co"># everything the package declares</span></span></code></pre></div>
 <p>Setting <code>GETACA_CACHE</code> points any session at a cache that
@@ -306,13 +313,13 @@ directory and finds the resources waiting.
 <p>Every failure is classed, and carries an <code>actor</code> field
 naming who can act on it. Here is the one a check run produces, in
 full:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span>, getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "getaca_error_offline"     "getaca_error_unavailable"</span></span>
 <span><span class="co">#&gt; [3] "getaca_error"             "error"                   </span></span>
 <span><span class="co">#&gt; [5] "condition"</span></span></code></pre></div>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -321,7 +328,7 @@ full:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fix: this is expected during checks. Use getaca_skip_if_unavailable()</span></span>
 <span><span class="co">#&gt; in tests and getaca_optional() in examples.</span></span></code></pre></div>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">err</span><span class="op">$</span><span class="va">actor</span></span>
 <span><span class="co">#&gt; [1] "user"</span></span></code></pre></div>
 <p><code>getaca_error_offline</code> is a subclass of
@@ -329,7 +336,7 @@ full:</p>
 catches it and a narrower handler can separate the two. A declaring
 package usually catches the ones its users will meet and answers in its
 own vocabulary:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">install_backbone</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"backbone"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="va">name</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>,</span>
@@ -349,7 +356,7 @@ disagree with the registry.</p>
 <div class="section level2">
 <h2 id="knowing-where-a-file-came-from">Knowing where a file came from<a class="anchor" aria-label="anchor" href="#knowing-where-a-file-came-from"></a>
 </h2>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;getaca cache entry&gt; yourpkg/backbone@2026-06</span></span>
 <span><span class="co">#&gt;   path        ~/.cache/R/getaca/yourpkg/backbone/2026-06/raw/backbone-2026-06.zip</span></span>
@@ -375,13 +382,13 @@ January look verified today because someone opened it this morning.</p>
 <p>An uncached resource gives <code>NULL</code> from
 <code><a href="../reference/getaca_info.html">getaca_info()</a></code>, which keeps the call usable in a report
 covering a machine that holds some of the set:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p><code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> widens that to a data frame covering
 both halves: every resource the installed packages declare, and every
 copy the cache holds.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_catalogue.html">getaca_catalogue</a></span><span class="op">(</span>registry <span class="op">=</span> <span class="va">multi</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"version"</span>, <span class="st">"current"</span>,</span>
 <span>                                       <span class="st">"declared"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;       name version current declared cached</span></span>
@@ -399,7 +406,7 @@ any more, which is what the retention sweeps reclaim first.</p>
 <div class="section level2">
 <h2 id="where-things-are-stored">Where things are stored<a class="anchor" aria-label="anchor" href="#where-things-are-stored"></a>
 </h2>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_cache_dir.html">getaca_cache_dir</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "&lt;tempdir&gt;/getaca-quickstart"</span></span></code></pre></div>
 <p>That is the temporary directory this vignette is sandboxed in. The
@@ -423,7 +430,7 @@ order.</p>
 is what makes <code>GETACA_CACHE</code> and a CI cache key sufficient
 for seeding.</p>
 <p>To see what a sweep would remove without removing it:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] package  resource reason   bytes    path    </span></span>
 <span><span class="co">#&gt; &lt;0 rows&gt; (or 0-length row.names)</span></span></code></pre></div>
@@ -437,10 +444,10 @@ read, and what is never touched.</p>
 </h2>
 <p>The registry declares a default, and a session or a single call can
 override it:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_policy.html">getaca_policy</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "offline"</span></span></code></pre></div>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_policy.html">getaca_policy</a></span><span class="op">(</span><span class="st">"current"</span><span class="op">)</span>                                     <span class="co"># for this session</span></span>
 <span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, policy <span class="op">=</span> <span class="st">"bundled"</span><span class="op">)</span>  <span class="co"># for this call</span></span></code></pre></div>
 <p><code>bundled</code> is the default because a dependency that
@@ -450,7 +457,7 @@ which lets a dead mirror be repaired without a CRAN release.
 <code>pinned</code> resolves through a frozen local snapshot, so an
 analysis keeps resolving what it was written against.
 <code>offline</code> never reaches for the network at all.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_pin.html">getaca_pin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="st">"otherpkg"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># writes getaca.pins.rds in the project</span></span></code></pre></div>
 <p><code><a href="../articles/policies.html">vignette("policies")</a></code> covers what a remote channel is
 allowed to change, why redefining a published version is refused, and
@@ -486,7 +493,7 @@ tools</p></li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

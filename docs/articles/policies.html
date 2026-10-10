@@ -46,7 +46,7 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/quickstart.html">Get Started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
+<li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/quickstart.html">Quick Start</a></li>
@@ -106,11 +106,18 @@ on two days” can legitimately produce different bytes.</p>
 allowed to change, how pinning freezes an analysis, and how the three
 settings layers combine.</p>
 <div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"gcol33/getaca"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="the-two-halves-the-design-keeps-apart">The two halves the design keeps apart<a class="anchor" aria-label="anchor" href="#the-two-halves-the-design-keeps-apart"></a>
 </h2>
 <p>A <strong>resource record</strong> names exact bytes and never
 changes:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
 <span>                urls <span class="op">=</span> <span class="st">"https://host.invalid/backbone-2026-06.zip"</span>,</span>
 <span>                sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"9f"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
@@ -165,7 +172,7 @@ They differ in what happens when the resource is absent from the cache:
 <p>The default, and the one that makes a data dependency behave like a
 code dependency. The registry that shipped inside the installed package
 is the whole answer; nothing is fetched to decide what a name means.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
@@ -195,7 +202,7 @@ package version alone.</p>
 <p>For data that release on their own schedule. The author publishes a
 static registry file somewhere they control, and <code>getaca</code>
 consults it before resolving:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">remote_reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  policy  <span class="op">=</span> <span class="st">"current"</span>,</span>
@@ -213,7 +220,7 @@ r-universe or an institutional web server already serves.</p>
 <p>An unreachable remote produces a message and the bundled registry,
 which is what CRAN policy requires of a package that uses Internet
 resources:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">remote_reg</span>, policy <span class="op">=</span> <span class="st">"current"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; getaca: could not reach the remote registry for 'yourpkg'; using the bundled</span></span>
 <span><span class="co">#&gt; registry.</span></span></code></pre></div>
@@ -226,7 +233,7 @@ misconfiguration rather than an outage.</p>
 script making a hundred calls performs one fetch.
 <code><a href="../reference/getaca_refresh.html">getaca_refresh()</a></code> forgets it, which is how you pick up a
 registry you published five minutes ago without restarting.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_refresh.html">getaca_refresh</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>That also forgets registries discovered from installed packages, so
 it is what you call after installing a new version of a declaring
@@ -250,7 +257,7 @@ already exists. That is refused, and the error names the declaring
 package as the party at fault rather than the publisher. The same rule
 holds for a pin file, which is the branch that can be shown here without
 a network:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rewritten</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"rewritten.rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>yourpkg <span class="op">=</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -261,7 +268,7 @@ a network:</p>
 <span>  <span class="va">rewritten</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.pin_file <span class="op">=</span> <span class="va">rewritten</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid getaca registry for package 'yourpkg'.</span></span>
@@ -279,7 +286,7 @@ version label, which is a record users can see and choose.</p>
 </h3>
 <p>Publishing <code>2026-09</code> and moving the channel head onto it
 is one registry:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ahead</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
@@ -314,13 +321,13 @@ your own host. Someone who takes the host does not thereby have the
 key.</p>
 <p>Make a key once, and keep the secret half outside the package source
 tree:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">secret</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"yourpkg-signing.key"</span><span class="op">)</span></span>
 <span><span class="va">public</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_keygen.html">registry_keygen</a></span><span class="op">(</span><span class="va">secret</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">public</span>, <span class="fl">1</span>, <span class="fl">24</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "ed25519:23aabe26182fba97"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "ed25519:11b54cb5041195ee"</span></span></code></pre></div>
 <p>Declare the public half in the registry the package ships:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">signed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  remote <span class="op">=</span> <span class="st">"https://host.invalid/yourpkg.rds"</span>,</span>
@@ -333,32 +340,32 @@ tree:</p>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Then write and sign whatever you publish. Sign after writing: writing
 is what stamps the publication time, and the signature binds it.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"yourpkg.rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">signed</span>, <span class="va">path</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_sign.html">registry_sign</a></span><span class="op">(</span><span class="va">path</span>, key <span class="op">=</span> <span class="va">secret</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">".sig"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; getaca-signature 1</span></span>
-<span><span class="co">#&gt; digest sha256:b0a1be3063e646a0799477da1f8160878fa9d12e5d7dc108689a54fece07dd3a</span></span>
-<span><span class="co">#&gt; created 2026-08-06T12:47:35Z</span></span>
-<span><span class="co">#&gt; expires 2026-11-04T12:47:35Z</span></span></code></pre></div>
+<span><span class="co">#&gt; digest sha256:c52caf4ec26db541d1355d632f4249a4f8fd66414813733d20568ce99bf8fc86</span></span>
+<span><span class="co">#&gt; created 2026-10-10T12:34:36Z</span></span>
+<span><span class="co">#&gt; expires 2027-01-08T12:34:36Z</span></span></code></pre></div>
 <p>Upload the <code>.sig</code> beside the registry; getaca fetches it
 from the registry’s own URL with <code>.sig</code> appended.
 <code><a href="../reference/registry_verify.html">registry_verify()</a></code> runs the same check a user’s session
 will, which is worth doing before publishing:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_verify.html">registry_verify</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span></code></pre></div>
 <p>Editing the registry after signing breaks the link, which is the
 whole point:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">moved</span> <span class="op">&lt;-</span> <span class="va">signed</span></span>
 <span><span class="va">moved</span><span class="op">$</span><span class="va">resources</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">urls</span> <span class="op">&lt;-</span> <span class="st">"https://elsewhere.invalid/backbone-2026-06.zip"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">moved</span>, <span class="va">path</span>, version <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_verify.html">registry_verify</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> The registry for 'yourpkg' could not be established as authentic.</span></span>
-<span><span class="co">#&gt;   the signature covers sha256:b0a1be3063e6 but this registry is sha256:3fe57c06a86a</span></span>
+<span><span class="co">#&gt;   the signature covers sha256:c52caf4ec26d but this registry is sha256:30e71d73e140</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; This package declares signing keys, so a remote registry that cannot be</span></span>
 <span><span class="co">#&gt; checked against one is refused rather than used. The bundled declaration</span></span>
@@ -400,11 +407,11 @@ force at the moment you pinned. Under the <code>pinned</code> policy
 that snapshot is what resolution reads, so an analysis keeps resolving
 what it was written against even after the package is reinstalled and
 the remote registry has moved on.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pins</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"getaca.pins.rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>yourpkg <span class="op">=</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="va">pins</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.pin_file <span class="op">=</span> <span class="va">pins</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">moved_on</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
 <span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
 <span>  current <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>backbone <span class="op">=</span> <span class="st">"2026-09"</span><span class="op">)</span>,</span>
@@ -423,7 +430,7 @@ the remote registry has moved on.</p>
 <p>The installed registry has moved to <code>2026-09</code>; the pin
 holds the analysis at <code>2026-06</code>.</p>
 <p>In practice the pin file is written rather than hand-built:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_pin.html">getaca_pin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"yourpkg"</span>, <span class="st">"otherpkg"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>That writes <code>getaca.pins.rds</code> in the working directory by
 default, which puts it beside <code>renv.lock</code> in a project. Under
@@ -439,7 +446,7 @@ stale or edited pin cannot quietly serve different bytes.</p>
 <p>Pinning a package that ships no registry warns and skips it, so
 pinning a project’s whole dependency list does not fail on the ones that
 need nothing:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_pin.html">getaca_pin</a></span><span class="op">(</span><span class="st">"stats"</span>, path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"pins.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: package 'stats' ships no getaca registry; skipped</span></span></code></pre></div>
 <div class="section level3">
@@ -451,7 +458,7 @@ which data versions those packages resolved to. Together they pin both
 halves. Neither subsumes the other, because a package version does not
 determine a data version once the package is on <code>current</code>,
 and a data version says nothing about the code that read it.</p>
-<p>Commit both files. Restoring is <code>renv::restore()</code> followed
+<p>Commit both files. Restoring is <code><a href="https://rstudio.github.io/renv/reference/restore.html" class="external-link">renv::restore()</a></code> followed
 by <code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> on a connected machine, after which
 the analysis runs offline.</p>
 </div>
@@ -462,12 +469,12 @@ the analysis runs offline.</p>
 </h2>
 <p>Never reaches for the network. Cached copies and bundled declarations
 only.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"offline"</span><span class="op">)</span>,</span>
 <span>                getaca_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "getaca_error_offline"</span></span></code></pre></div>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; yourpkg/backbone@2026-06 is not cached and cannot be downloaded (offline mode is in effect).</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -503,13 +510,13 @@ variables</p></li>
 <li><p><code>GETACA_OFFLINE</code> set to <code>1</code>,
 <code>true</code> or <code>yes</code></p></li>
 </ul>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_policy.html">getaca_policy</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "offline"</span></span></code></pre></div>
 <p>The check clamp is released by <code>NOT_CRAN=true</code>, which is
 how a package’s own CI runs tests against real resources while a CRAN
 machine never does.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_policy.html">getaca_policy</a></span><span class="op">(</span><span class="st">"current"</span><span class="op">)</span>                                     <span class="co"># this session</span></span>
 <span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, policy <span class="op">=</span> <span class="st">"bundled"</span><span class="op">)</span>  <span class="co"># this call</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>GETACA_POLICY <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span>                         <span class="co"># this process</span></span></code></pre></div>
@@ -547,7 +554,7 @@ direction, and the direction is the reason to pick it.</p>
 </h2>
 <p>Whichever policy resolved a resource is kept in its cache entry,
 alongside the digest of the registry state that supplied the record:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_info.html">getaca_info</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;getaca cache entry&gt; yourpkg/backbone@2026-06</span></span>
 <span><span class="co">#&gt;   ...</span></span>
@@ -581,7 +588,7 @@ can raise</p></li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>
