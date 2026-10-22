@@ -9,6 +9,14 @@ This article covers the four policies, what a remote channel is allowed
 to change, how pinning freezes an analysis, and how the three settings
 layers combine.
 
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## The two halves the design keeps apart
 
 A **resource record** names exact bytes and never changes:
@@ -219,7 +227,7 @@ tree:
 secret <- file.path(tempdir(), "yourpkg-signing.key")
 public <- registry_keygen(secret)
 substr(public, 1, 24)
-#> [1] "ed25519:23aabe26182fba97"
+#> [1] "ed25519:c9d875d5bc3a0752"
 ```
 
 Declare the public half in the registry the package ships:
@@ -249,9 +257,9 @@ registry_sign(path, key = secret)
 
 cat(readLines(paste0(path, ".sig"))[1:4], sep = "\n")
 #> getaca-signature 1
-#> digest sha256:b0a1be3063e646a0799477da1f8160878fa9d12e5d7dc108689a54fece07dd3a
-#> created 2026-08-06T12:47:35Z
-#> expires 2026-11-04T12:47:35Z
+#> digest sha256:3f6db7d17a4103136205a56c9766f0ca4ebb6055a21368657d8047b2e4ae7a83
+#> created 2026-10-22T23:19:55Z
+#> expires 2027-01-20T23:19:55Z
 ```
 
 Upload the `.sig` beside the registry; getaca fetches it from the
@@ -276,7 +284,7 @@ saveRDS(moved, path, version = 3)
 registry_verify(path)
 #> Error:
 #> ! The registry for 'yourpkg' could not be established as authentic.
-#>   the signature covers sha256:b0a1be3063e6 but this registry is sha256:3fe57c06a86a
+#>   the signature covers sha256:3f6db7d17a41 but this registry is sha256:33b78114a438
 #> 
 #> This package declares signing keys, so a remote registry that cannot be
 #> checked against one is refused rather than used. The bundled declaration

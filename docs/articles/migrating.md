@@ -10,6 +10,14 @@ package: a table of URLs, a cache directory, a
 [`file.exists()`](https://rdrr.io/r/base/files.html) check, and an
 ad-hoc version string.
 
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## What is being replaced
 
 ``` r

@@ -25,6 +25,14 @@ The rest of this article is those guards, the workflow files that make
 CI exercise the real path, and the recipe for reproducing a check farm
 locally before submitting.
 
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## The check clamp
 
 Under `R CMD check`, resolution collapses to `offline` whatever the

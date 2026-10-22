@@ -2,6 +2,8 @@
 
 ## getaca 0.1.6
 
+CRAN release: 2026-09-01
+
 ### Setting a session option hands the old one back
 
 - [`getaca_policy()`](https://gillescolling.com/getaca/reference/getaca_policy.md)

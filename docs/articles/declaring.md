@@ -10,6 +10,14 @@ no registration call, and no runtime coupling beyond calling
 [`getaca()`](https://gillescolling.com/getaca/reference/getaca.md) when
 a resource is actually needed.
 
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## Records and channels
 
 Two things that must not be conflated.
@@ -293,7 +301,7 @@ when a build has to be byte-reproducible.
 ``` r
 
 registry_read(path)$created
-#> [1] "2026-08-06 14:47:27 CEST"
+#> [1] "2026-10-23 01:19:45 CEST"
 ```
 
 ## Naming the channel head

@@ -15,3 +15,5 @@ src/*.dll
 # local agent instructions, not part of the package
 CLAUDE.md
 .claude/
+
+.run*

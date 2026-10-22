@@ -9,6 +9,14 @@ package someone met first.
 The question `getaca` is built around: a package needs a file it cannot
 ship, and every machine running that package should get the same bytes.
 
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## Bundling the data in the package
 
 The first thing to rule in or out. A dataset in `data/` needs no cache,

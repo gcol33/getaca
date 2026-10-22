@@ -14,6 +14,14 @@ This vignette walks the whole cycle: declaring a resource, retrieving
 it, behaving during checks, reading its provenance, and knowing where it
 went. Each section links the companion article that goes deeper.
 
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## Declaring what you need
 
 A resource record names exact bytes: one checksum, one version label,

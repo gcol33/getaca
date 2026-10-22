@@ -325,7 +325,7 @@ tree:</p>
 <code class="sourceCode R"><span><span class="va">secret</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"yourpkg-signing.key"</span><span class="op">)</span></span>
 <span><span class="va">public</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_keygen.html">registry_keygen</a></span><span class="op">(</span><span class="va">secret</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">public</span>, <span class="fl">1</span>, <span class="fl">24</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "ed25519:11b54cb5041195ee"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "ed25519:c9d875d5bc3a0752"</span></span></code></pre></div>
 <p>Declare the public half in the registry the package ships:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">signed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
@@ -347,9 +347,9 @@ is what stamps the publication time, and the signature binds it.</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">".sig"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; getaca-signature 1</span></span>
-<span><span class="co">#&gt; digest sha256:c52caf4ec26db541d1355d632f4249a4f8fd66414813733d20568ce99bf8fc86</span></span>
-<span><span class="co">#&gt; created 2026-10-10T12:34:36Z</span></span>
-<span><span class="co">#&gt; expires 2027-01-08T12:34:36Z</span></span></code></pre></div>
+<span><span class="co">#&gt; digest sha256:3f6db7d17a4103136205a56c9766f0ca4ebb6055a21368657d8047b2e4ae7a83</span></span>
+<span><span class="co">#&gt; created 2026-10-22T23:19:55Z</span></span>
+<span><span class="co">#&gt; expires 2027-01-20T23:19:55Z</span></span></code></pre></div>
 <p>Upload the <code>.sig</code> beside the registry; getaca fetches it
 from the registry’s own URL with <code>.sig</code> appended.
 <code><a href="../reference/registry_verify.html">registry_verify()</a></code> runs the same check a user’s session
@@ -365,7 +365,7 @@ whole point:</p>
 <span><span class="fu"><a href="../reference/registry_verify.html">registry_verify</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> The registry for 'yourpkg' could not be established as authentic.</span></span>
-<span><span class="co">#&gt;   the signature covers sha256:c52caf4ec26d but this registry is sha256:30e71d73e140</span></span>
+<span><span class="co">#&gt;   the signature covers sha256:3f6db7d17a41 but this registry is sha256:33b78114a438</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; This package declares signing keys, so a remote registry that cannot be</span></span>
 <span><span class="co">#&gt; checked against one is refused rather than used. The bundled declaration</span></span>
@@ -458,7 +458,7 @@ which data versions those packages resolved to. Together they pin both
 halves. Neither subsumes the other, because a package version does not
 determine a data version once the package is on <code>current</code>,
 and a data version says nothing about the code that read it.</p>
-<p>Commit both files. Restoring is <code><a href="https://rstudio.github.io/renv/reference/restore.html" class="external-link">renv::restore()</a></code> followed
+<p>Commit both files. Restoring is <code>renv::restore()</code> followed
 by <code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> on a connected machine, after which
 the analysis runs offline.</p>
 </div>

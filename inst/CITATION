@@ -1,7 +1,12 @@
+citHeader("To cite getaca in publications use:")
+
 bibentry(
   bibtype  = "Manual",
-  title    = "getaca: Reproducible External Data Dependencies",
-  author   = person("Gilles", "Colling"),
+  key      = "colling2026getaca",
+  title    = paste0("getaca: ", meta$Title),
+  author   = person("Gilles", "Colling", comment = c(ORCID = "0000-0003-3070-6066")),
   year     = "2026",
-  url      = "https://github.com/gcol33/getaca"
+  note     = paste("R package version", meta$Version),
+  doi      = "10.32614/CRAN.package.getaca",
+  url      = "https://gillescolling.com/getaca/"
 )

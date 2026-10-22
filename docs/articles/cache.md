@@ -9,6 +9,14 @@ None of it is private. The cache is an ordinary directory tree, and that
 is a deliberate property: copying it to an offline machine, restoring it
 from a CI cache action, or looking at it with a file browser all work.
 
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## Where it lives
 
 ``` r

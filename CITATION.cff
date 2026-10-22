@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+type: software
+title: 'getaca: Reproducible External Data Dependencies'
+version: 0.1.6
+authors:
+- family-names: Colling
+  given-names: Gilles
+  orcid: https://orcid.org/0000-0003-3070-6066
+license: MIT
+repository-code: https://github.com/gcol33/getaca
+url: https://gillescolling.com/getaca/
+preferred-citation:
+  type: software
+  title: 'getaca: Reproducible External Data Dependencies'
+  authors:
+  - family-names: Colling
+    given-names: Gilles
+    orcid: https://orcid.org/0000-0003-3070-6066
+  year: 2026
+  doi: 10.32614/CRAN.package.getaca
+  url: https://gillescolling.com/getaca/
+  notes: R package version 0.1.6

@@ -26,6 +26,14 @@ All eleven inherit from `getaca_error`, which inherits from `error`, so
 a handler for `getaca_error` catches everything the package raises and
 nothing else.
 
+## Installation
+
+``` r
+
+install.packages("pak")
+pak::pak("gcol33/getaca")
+```
+
 ## The general shape
 
 ``` r
