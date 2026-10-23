@@ -7,6 +7,10 @@
 
 [![CRAN
 status](https://www.r-pkg.org/badges/version/getaca)](https://CRAN.R-project.org/package=getaca)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/grand-total/getaca)](https://cran.r-project.org/package=getaca)
+[![Monthly
+downloads](https://cranlogs.r-pkg.org/badges/getaca)](https://cran.r-project.org/package=getaca)
 [![R-CMD-check](https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
 coverage](https://codecov.io/gh/gcol33/getaca/graph/badge.svg)](https://app.codecov.io/gh/gcol33/getaca)
