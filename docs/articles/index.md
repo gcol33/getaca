@@ -1,16 +1,16 @@
 # Articles
 
-### Getting Started
+### Get started
 
 - [Quick
   Start](https://gillescolling.com/getaca/articles/quickstart.md):
-- [Declaring
-  Resources](https://gillescolling.com/getaca/articles/declaring.md):
 
 ### Using it
 
-Resolution, checks and the cache
+Declaring resources, resolution, checks and the cache
 
+- [Declaring
+  Resources](https://gillescolling.com/getaca/articles/declaring.md):
 - [Policies and
   Channels](https://gillescolling.com/getaca/articles/policies.md):
 - [Surviving R CMD check and

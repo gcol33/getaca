@@ -11,13 +11,14 @@ but cannot ship, such as a reference dataset, a trained model or an
 archive of examples.
 
 A package declares each file as a resource: a name, a version, the URLs
-that serve it and the SHA-256 checksum of its bytes. The declarations
-form a registry that ships inside the installed package. getaca resolves
-a request through an explicit policy, checks what arrives against the
-checksum, records where it came from and returns an ordinary local path,
-so the same installed package resolves the same bytes on every machine.
-You decide whether the declaration stays fixed with each release of your
-package or follows a remote registry that you maintain.
+that serve it and the SHA-256 checksum of its bytes (the Secure Hash
+Algorithm with a 256-bit digest). The declarations form a registry that
+ships inside the installed package. getaca resolves a request through an
+explicit policy, checks what arrives against the checksum, records where
+it came from and returns an ordinary local path, so the same installed
+package resolves the same bytes on every machine. You decide whether the
+declaration stays fixed with each release of your package or follows a
+remote registry that you maintain.
 
 getaca supports:
 
@@ -31,7 +32,8 @@ getaca supports:
   registry can be signed with Ed25519 against a key your package ships.
 - **Errors that name who can act.** Each failure is a classed condition
   with an `actor` field (user, author or upstream), so a declaring
-  package can catch the ones its users meet and answer in its own words.
+  package can catch the ones that reach the person running it and answer
+  in its own words.
 - **A managed cache.** Bytes enter the cache only after verification,
   are stored once under their checksum and are re-hashed on a schedule.
   Retention sweeps after every retrieval remove abandoned transfers and
@@ -39,17 +41,17 @@ getaca supports:
 - **Provenance.**
   [`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.html)
   reports the mirror that served the bytes, the registry state that
-  chose them, the licence, the DOI and when the copy was fetched and
-  last verified.
+  chose them, the licence, the digital object identifier (DOI) and when
+  the copy was fetched and last verified.
 - **Archives and multi-part files.** An archive can be unpacked once in
   the cache, a file can be declared as parts that compose to the
   checksummed artefact, and credentials for registered-access hosts are
   read from environment variables at request time.
 
-Hashing follows the Secure Hash Standard (FIPS 180-4), and signing
-follows Ed25519 (RFC 8032). Both are implemented in C inside the
-package, and transfers go through
-[curl](https://jeroen.r-universe.dev/curl).
+Hashing follows the Secure Hash Standard (Federal Information Processing
+Standard 180-4), and signing follows Ed25519 (Request for Comments
+8032). Both are implemented in C inside the package, and transfers go
+through [curl](https://jeroen.r-universe.dev/curl).
 
 ## Installation
 
@@ -176,8 +178,8 @@ path <- getaca_optional("backbone", package = "yourpkg")
 getaca_available("backbone", package = "yourpkg")
 ```
 
-A CI job pointed at a pre-seeded `GETACA_CACHE` finds every file already
-there. [Surviving R CMD check and
+A continuous integration (CI) job pointed at a pre-seeded `GETACA_CACHE`
+finds every file already there. [Surviving R CMD check and
 CI](https://gillescolling.com/getaca/articles/checks.html) gives the
 GitHub Actions setup and a CRAN checklist.
 

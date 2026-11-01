@@ -48,21 +48,24 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="articles/quickstart.html">Get Started</a></li>
+<li class="nav-item"><a class="nav-link" href="articles/quickstart.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/quickstart.html">Quick Start</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Using it</h6></li>
     <li><a class="dropdown-item" href="articles/declaring.html">Declaring Resources</a></li>
-    <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="articles/policies.html">Policies and Channels</a></li>
     <li><a class="dropdown-item" href="articles/checks.html">Surviving R CMD check and CI</a></li>
     <li><a class="dropdown-item" href="articles/cache.html">The Cache</a></li>
     <li><a class="dropdown-item" href="articles/failures.html">Handling Failures</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Adopting it</h6></li>
     <li><a class="dropdown-item" href="articles/migrating.html">Migrating an Existing Downloader</a></li>
     <li><a class="dropdown-item" href="articles/alternatives.html">Choosing Between getaca and the Alternatives</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="articles/index.html">More articles...</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -71,6 +74,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gcol33/getaca" aria-label="GitHub"><span class="fa fab fa-github"></span></a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
@@ -79,7 +83,6 @@
     <li><button class="dropdown-item" data-bs-theme-value="auto"><span class="fa fa-adjust"></span> Auto</button></li>
   </ul>
 </li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gcol33/getaca" aria-label="GitHub"><span class="fa fab fa-github"></span></a></li>
       </ul>
 </div>
 
@@ -96,7 +99,7 @@
 <p align="center">
 <img src="reference/figures/progress.gif" width="100%" alt="A getaca transfer in the R console: one call, a progress bar carrying the share, the rate and an estimate of the time left, and the local path the call returns"></p>
 <p>getaca retrieves, verifies and caches the large files an R package needs but cannot ship, such as a reference dataset, a trained model or an archive of examples.</p>
-<p>A package declares each file as a resource: a name, a version, the URLs that serve it and the SHA-256 checksum of its bytes. The declarations form a registry that ships inside the installed package. getaca resolves a request through an explicit policy, checks what arrives against the checksum, records where it came from and returns an ordinary local path, so the same installed package resolves the same bytes on every machine. You decide whether the declaration stays fixed with each release of your package or follows a remote registry that you maintain.</p>
+<p>A package declares each file as a resource: a name, a version, the URLs that serve it and the SHA-256 checksum of its bytes (the Secure Hash Algorithm with a 256-bit digest). The declarations form a registry that ships inside the installed package. getaca resolves a request through an explicit policy, checks what arrives against the checksum, records where it came from and returns an ordinary local path, so the same installed package resolves the same bytes on every machine. You decide whether the declaration stays fixed with each release of your package or follows a remote registry that you maintain.</p>
 <p>getaca supports:</p>
 <ul>
 <li>
@@ -104,15 +107,15 @@
 <li>
 <strong>Data releases between package releases.</strong> A remote registry can repair a dead mirror or publish a new version without a CRAN release. A version already published keeps naming the same bytes, and the registry can be signed with Ed25519 against a key your package ships.</li>
 <li>
-<strong>Errors that name who can act.</strong> Each failure is a classed condition with an <code>actor</code> field (user, author or upstream), so a declaring package can catch the ones its users meet and answer in its own words.</li>
+<strong>Errors that name who can act.</strong> Each failure is a classed condition with an <code>actor</code> field (user, author or upstream), so a declaring package can catch the ones that reach the person running it and answer in its own words.</li>
 <li>
 <strong>A managed cache.</strong> Bytes enter the cache only after verification, are stored once under their checksum and are re-hashed on a schedule. Retention sweeps after every retrieval remove abandoned transfers and superseded versions and keep the cache under a size ceiling.</li>
 <li>
-<strong>Provenance.</strong> <a href="https://gillescolling.com/getaca/reference/getaca_info.html"><code>getaca_info()</code></a> reports the mirror that served the bytes, the registry state that chose them, the licence, the DOI and when the copy was fetched and last verified.</li>
+<strong>Provenance.</strong> <a href="https://gillescolling.com/getaca/reference/getaca_info.html"><code>getaca_info()</code></a> reports the mirror that served the bytes, the registry state that chose them, the licence, the digital object identifier (DOI) and when the copy was fetched and last verified.</li>
 <li>
 <strong>Archives and multi-part files.</strong> An archive can be unpacked once in the cache, a file can be declared as parts that compose to the checksummed artefact, and credentials for registered-access hosts are read from environment variables at request time.</li>
 </ul>
-<p>Hashing follows the Secure Hash Standard (FIPS 180-4), and signing follows Ed25519 (RFC 8032). Both are implemented in C inside the package, and transfers go through <a href="https://jeroen.r-universe.dev/curl" class="external-link">curl</a>.</p>
+<p>Hashing follows the Secure Hash Standard (Federal Information Processing Standard 180-4), and signing follows Ed25519 (Request for Comments 8032). Both are implemented in C inside the package, and transfers go through <a href="https://jeroen.r-universe.dev/curl" class="external-link">curl</a>.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -206,7 +209,7 @@
 <span></span>
 <span><span class="co"># anywhere a logical reads better</span></span>
 <span><span class="fu"><a href="reference/getaca-checks.html">getaca_available</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span></code></pre></div>
-<p>A CI job pointed at a pre-seeded <code>GETACA_CACHE</code> finds every file already there. <a href="https://gillescolling.com/getaca/articles/checks.html">Surviving R CMD check and CI</a> gives the GitHub Actions setup and a CRAN checklist.</p>
+<p>A continuous integration (CI) job pointed at a pre-seeded <code>GETACA_CACHE</code> finds every file already there. <a href="https://gillescolling.com/getaca/articles/checks.html">Surviving R CMD check and CI</a> gives the GitHub Actions setup and a CRAN checklist.</p>
 </div>
 <div class="section level2">
 <h2 id="policies-and-channels">Policies and channels<a class="anchor" aria-label="anchor" href="#policies-and-channels"></a>
@@ -355,6 +358,8 @@ doi:10.32614/CRAN.package.getaca
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
 <li><a href="https://CRAN.R-project.org/package=getaca" class="external-link"><img src="https://www.r-pkg.org/badges/version/getaca" alt="CRAN status"></a></li>
+<li><a href="https://cran.r-project.org/package=getaca" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/getaca" alt="CRAN downloads"></a></li>
+<li><a href="https://cran.r-project.org/package=getaca" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/getaca" alt="Monthly downloads"></a></li>
 <li><a href="https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/gcol33/getaca/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://app.codecov.io/gh/gcol33/getaca" class="external-link"><img src="https://codecov.io/gh/gcol33/getaca/graph/badge.svg" alt="Codecov test coverage"></a></li>
 <li><a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></li>

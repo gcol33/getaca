@@ -36,33 +36,12 @@ navbar:
     - news
     right:
     - search
-    - lightswitch
     - github
+    - lightswitch
   components:
     intro:
-      text: Get Started
+      text: Get started
       href: articles/quickstart.html
-    articles:
-      text: Articles
-      menu:
-      - text: Quick Start
-        href: articles/quickstart.html
-      - text: Declaring Resources
-        href: articles/declaring.html
-      - text: '---'
-      - text: Policies and Channels
-        href: articles/policies.html
-      - text: Surviving R CMD check and CI
-        href: articles/checks.html
-      - text: The Cache
-        href: articles/cache.html
-      - text: Handling Failures
-        href: articles/failures.html
-      - text: '---'
-      - text: Migrating an Existing Downloader
-        href: articles/migrating.html
-      - text: Choosing Between getaca and the Alternatives
-        href: articles/alternatives.html
     github:
       icon: fab fa-github
       href: https://github.com/gcol33/getaca
@@ -137,20 +116,21 @@ reference:
   desc: The failure taxonomy
   contents: getaca-conditions
 articles:
-- title: Getting Started
-  navbar: ~
+- title: Get started
   contents:
   - quickstart
-  - declaring
 - title: Using it
-  desc: Resolution, checks and the cache
+  desc: Declaring resources, resolution, checks and the cache
+  navbar: Using it
   contents:
+  - declaring
   - policies
   - checks
   - cache
   - failures
 - title: Adopting it
   desc: Coming from something else, and choosing between them
+  navbar: Adopting it
   contents:
   - migrating
   - alternatives
