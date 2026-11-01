@@ -1,5 +1,10 @@
 # getaca 0.1.6
 
+## Tarballs unpack without external compressors
+* `unpack()` reads `.tar.gz`, `.tar.bz2` and `.tar.xz` with R's own tar
+  reader, so a `.tar.bz2` unpacks on a system whose `tar` cannot find
+  `bzip2` or `lbzip2`.
+
 ## Setting a session option hands the old one back
 * `getaca_policy()` and `getaca_progress()` return what their option held
   before the call, invisibly, so a caller that has to change one for the

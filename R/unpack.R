@@ -117,9 +117,13 @@ unpack_zip <- function(input, output_dir, members) {
   output_dir
 }
 
+# R's own tar reader decompresses gzip, bzip2 and xz through its connections, so
+# extraction does not depend on which compressors the system tar can call.
 unpack_tar <- function(input, output_dir, members) {
-  wanted <- expand_members(utils::untar(input, list = TRUE), members, input)
-  status <- utils::untar(input, files = wanted, exdir = output_dir)
+  listed <- utils::untar(input, list = TRUE, tar = "internal")
+  wanted <- expand_members(listed, members, input)
+  status <- utils::untar(input, files = wanted, exdir = output_dir,
+                         tar = "internal")
   if (!identical(as.integer(status), 0L)) {
     stop(sprintf("getaca: extracting '%s' failed with status %s.",
                  basename(input), status), call. = FALSE)
