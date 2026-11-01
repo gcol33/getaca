@@ -39,9 +39,6 @@ navbar:
     - github
     - lightswitch
   components:
-    intro:
-      text: Get started
-      href: articles/quickstart.html
     github:
       icon: fab fa-github
       href: https://github.com/gcol33/getaca
@@ -116,9 +113,6 @@ reference:
   desc: The failure taxonomy
   contents: getaca-conditions
 articles:
-- title: Get started
-  contents:
-  - quickstart
 - title: Using it
   desc: Declaring resources, resolution, checks and the cache
   navbar: Using it
@@ -138,3 +132,5 @@ footer:
   structure:
     left: developed_by
     right: built_with
+redirects:
+- ["articles/quickstart.html", "articles/getaca.html"]

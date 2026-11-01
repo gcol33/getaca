@@ -271,7 +271,7 @@ packageDescription("getaca")$Imports
 
 ## Where to go next
 
-- [`vignette("quickstart")`](https://gillescolling.com/getaca/articles/quickstart.md)
+- [`vignette("getaca")`](https://gillescolling.com/getaca/articles/getaca.md)
   for the whole cycle in one pass
 
 - [`vignette("declaring")`](https://gillescolling.com/getaca/articles/declaring.md)

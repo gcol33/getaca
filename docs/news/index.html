@@ -28,7 +28,7 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/quickstart.html">Get started</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/getaca.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -43,8 +43,6 @@
     <li><h6 class="dropdown-header" data-toc-skip>Adopting it</h6></li>
     <li><a class="dropdown-item" href="../articles/migrating.html">Migrating an Existing Downloader</a></li>
     <li><a class="dropdown-item" href="../articles/alternatives.html">Choosing Between getaca and the Alternatives</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -70,6 +68,11 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.6" id="getaca-016">getaca 0.1.6<a class="anchor" aria-label="anchor" href="#getaca-016"></a></h2><p class="text-muted">CRAN release: 2026-09-01</p>
+<div class="section level3">
+<h3 id="tarballs-unpack-without-external-compressors-0-1-6">Tarballs unpack without external compressors<a class="anchor" aria-label="anchor" href="#tarballs-unpack-without-external-compressors-0-1-6"></a></h3>
+<ul><li>
+<code><a href="../reference/unpack.html">unpack()</a></code> reads <code>.tar.gz</code>, <code>.tar.bz2</code> and <code>.tar.xz</code> with R’s own tar reader, so a <code>.tar.bz2</code> unpacks on a system whose <code>tar</code> cannot find <code>bzip2</code> or <code>lbzip2</code>.</li>
+</ul></div>
 <div class="section level3">
 <h3 id="setting-a-session-option-hands-the-old-one-back-0-1-6">Setting a session option hands the old one back<a class="anchor" aria-label="anchor" href="#setting-a-session-option-hands-the-old-one-back-0-1-6"></a></h3>
 <ul><li>

@@ -177,7 +177,7 @@ A companion data package suits data that fits a repository and is released with 
 
 ## Documentation
 
-Start with [Quick Start](https://gillescolling.com/getaca/articles/quickstart.html): one resource declared, retrieved, checked and cached.
+Start with [Quick Start](https://gillescolling.com/getaca/articles/getaca.html): one resource declared, retrieved, checked and cached.
 
 - [Declaring Resources](https://gillescolling.com/getaca/articles/declaring.html): every field of a record, drafting checksums, parts, processors and credentials.
 - [Policies and Channels](https://gillescolling.com/getaca/articles/policies.html): what each policy resolves through, and signing a remote registry.

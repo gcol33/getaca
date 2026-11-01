@@ -259,7 +259,7 @@ packageDescription("getaca")$Imports
 
 ## Where to go next
 
-- `vignette("quickstart")` for the whole cycle in one pass
+- `vignette("getaca")` for the whole cycle in one pass
 
 - `vignette("declaring")` for what a declaring package writes
 

@@ -4,6 +4,13 @@
 
 CRAN release: 2026-09-01
 
+### Tarballs unpack without external compressors
+
+- [`unpack()`](https://gillescolling.com/getaca/reference/unpack.md)
+  reads `.tar.gz`, `.tar.bz2` and `.tar.xz` with R’s own tar reader, so
+  a `.tar.bz2` unpacks on a system whose `tar` cannot find `bzip2` or
+  `lbzip2`.
+
 ### Setting a session option hands the old one back
 
 - [`getaca_policy()`](https://gillescolling.com/getaca/reference/getaca_policy.md)

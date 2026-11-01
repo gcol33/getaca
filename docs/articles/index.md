@@ -1,10 +1,5 @@
 # Articles
 
-### Get started
-
-- [Quick
-  Start](https://gillescolling.com/getaca/articles/quickstart.md):
-
 ### Using it
 
 Declaring resources, resolution, checks and the cache

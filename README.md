@@ -252,7 +252,7 @@ sets these side by side.
 ## Documentation
 
 Start with [Quick
-Start](https://gillescolling.com/getaca/articles/quickstart.html): one
+Start](https://gillescolling.com/getaca/articles/getaca.html): one
 resource declared, retrieved, checked and cached.
 
 - [Declaring

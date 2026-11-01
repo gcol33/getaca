@@ -29,9 +29,9 @@ development and `R CMD check`; they do not need to know content-addressed storag
 - answer: `resource()` with name, version, URLs and checksum; `registry()`; `getaca()` returns a
   verified local path; `registry_draft()` takes the checksum from the bytes
 - payoff: the reader declares a resource and retrieves it
-- evidence: README usage chunk; quickstart.Rmd
+- evidence: README usage chunk; getaca.Rmd
 - limits: the checksum has to come from the bytes
-- home: vignettes/quickstart.Rmd, vignettes/declaring.Rmd
+- home: vignettes/getaca.Rmd, vignettes/declaring.Rmd
 - also: README, DESCRIPTION
 
 ### A2 Surviving R CMD check and CI
@@ -76,7 +76,7 @@ development and `R CMD check`; they do not need to know content-addressed storag
 ## Documents
 - DESCRIPTION: listing text; claim, A3 (signing), standards cited
 - README / landing: entry point; claim, first example, one section per arc, routing
-- quickstart.Rmd: tutorial; the whole cycle
+- getaca.Rmd: tutorial; the whole cycle
 - declaring.Rmd, policies.Rmd, checks.Rmd, cache.Rmd, failures.Rmd: how-to, one arc each
 - migrating.Rmd: how-to, an existing downloader to a declaration
 - alternatives.Rmd: comparison, Relation home
