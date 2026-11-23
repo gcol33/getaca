@@ -1,6 +1,6 @@
 # Hex logo: the console progress bar of a transfer, filling in twelve steps,
-# holding at 100% and starting again. The loop starts at 67%, which is also
-# where reduced motion and renderers without animation rest.
+# holding at 100% and starting again. Reduced motion and renderers without
+# animation rest at 67%.
 # Run from the package root: Rscript data-raw/logo.R
 
 paper <- "#F5F6F8"; ink <- "#2B3A4A"; blue <- "#2E6F9E"; rest <- "#B4BDC8"
@@ -14,8 +14,8 @@ still_at <- 8
 x0 <- 76; x1 <- 444; seg <- (x1 - x0) / n; gap <- 6; top <- 280; h <- 54
 key_times <- paste(sprintf("%.4f", (seq_len(frames) - 1) / frames), collapse = ";")
 discrete <- function(values) sprintf(
-  '<animate attributeName="opacity" calcMode="discrete" dur="%ss" begin="-%ss" repeatCount="indefinite" keyTimes="%s" values="%s"/>',
-  dur, (still_at + 0.5) * step, key_times, paste(values, collapse = ";"))
+  '<animate attributeName="opacity" calcMode="discrete" dur="%ss" repeatCount="indefinite" keyTimes="%s" values="%s"/>',
+  dur, key_times, paste(values, collapse = ";"))
 frame <- seq_len(frames) - 1
 filled <- pmin(frame, n)
 segment <- function(i, animate) {
