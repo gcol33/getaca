@@ -84,10 +84,16 @@ jobs:
       #
       # So the verdict is read from the check directory, the same way for all
       # five. Upstream, in r-hub/containers.
+      #
+      # VALGRIND_OPTS is read by valgrind alone. One test forks a child while
+      # threads are running, the heartbeat's and cli's, and a thread does not
+      # survive a fork: its thread-local block is in the child's heap with
+      # nothing pointing at it, which valgrind calls possibly lost. Only a
+      # block that is definitely lost counts as an error.
       - name: Check under ${{ matrix.container }}
         shell: bash
         run: |
-          docker run --rm -v "${PWD}/check:/check" \
+          docker run --rm -v "${PWD}/check:/check"             -e VALGRIND_OPTS=--errors-for-leak-kinds=definite \
             "ghcr.io/r-hub/containers/${{ matrix.container }}:latest" \
             r-check 2>&1 | tee container.log
           echo "r-check exit: ${PIPESTATUS[0]} (advisory, see the next step)"
@@ -139,8 +145,8 @@ jobs:
           case "${{ matrix.container }}" in
             valgrind)
               # One summary per instrumented process, and anything but zero is
-              # real. Leak records are not counted: R leaks at exit by design
-              # and says nothing about src/. No summary at all means nothing was
+              # real. A block still reachable at exit is not counted: R leaves
+              # those by design and they say nothing about src/. No summary at all means nothing was
               # instrumented, which has to read as a failure rather than as
               # silence.
               summaries=$(grep -hoE "ERROR SUMMARY: [0-9]+ errors" \

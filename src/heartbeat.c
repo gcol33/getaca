@@ -203,8 +203,11 @@ static void beat_join(void)
   pthread_join(thread, NULL);
 }
 
+static void free_paths(path_char **paths, int n);
+
 /* A forked child has this state and not the thread, and may have been forked
-   while the thread held the mutex. Its parent goes on holding the locks. */
+   while the thread held the mutex. Its parent goes on holding the locks; the
+   paths the child frees are its own copy of them. */
 static void forget_if_forked(void)
 {
   pid_t me = getpid();
@@ -212,6 +215,7 @@ static void forget_if_forked(void)
   if (owner != 0) {
     pthread_mutex_init(&mu, NULL);
     pthread_cond_init(&cv, NULL);
+    free_paths(held, n_held);
     held = NULL;
     n_held = 0;
     running = 0;
