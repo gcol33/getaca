@@ -17,6 +17,9 @@ changes how long transfers and locks behave; `NEWS.md` has the list.
   and R-release at 18:22 was still in the upload directory at 19:53, together
   with every other package uploaded since 17:19, so the R-devel check on
   Windows was run locally instead.
+* CRAN incoming pretest of the submitted tarball (2026-11-23,
+  `incoming_pretest/getaca_0.2.0_20261123_195715`): Windows R-devel
+  (2026-11-17 r90926) Status OK, Debian R-devel (2026-11-21 r90959) Status OK
 * GitHub Actions: macOS release, Windows release, Ubuntu r-devel, release,
   oldrel-1 and oldrel-2
 
