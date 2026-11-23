@@ -24,16 +24,32 @@ resolve_resource(
 \item{version}{Optional explicit version, bypassing channel resolution.}
 }
 \value{
-A list with \code{id}, \code{record}, \code{policy}, \code{source}, \code{digest}, \code{created}
-and \code{auth}. \code{policy} is the one actually in force, after the argument, the
-session setting, the registry default and the check clamp have been
-resolved. \code{digest} identifies the registry state that answered, and
-\code{created} says when that state was published, or \code{NA} for a declaration
-that was built in the session rather than read from a file. \code{auth} is the
-credential declaration, taken from the registry the package ships.
+A \code{getaca_resolution}: a list with \code{id}, \code{record}, \code{policy},
+\code{source}, \code{digest}, \code{created} and \code{auth}. \code{policy} is the one actually in
+force, after the argument, the session setting, the registry default and
+the check clamp have been resolved. \code{digest} identifies the registry state
+that answered, and \code{created} says when that state was published, or \code{NA}
+for a declaration that was built in the session rather than read from a
+file. \code{auth} is the credential declaration, taken from the registry the
+package ships.
+
+Printing one shows what was resolved and through what. \code{format()} gives
+the identity as \code{package/name@version}, which is the form to compare
+against in a test.
 }
 \description{
 Separates the two things that must not be conflated: an immutable resource
 record, and the mutable channel that maps a logical name onto one. This
 function walks the channel; everything downstream deals only in records.
+}
+\examples{
+reg <- registry("demo", list(
+  resource("example", "1.0",
+           urls = "https://example.org/example-1.0.csv",
+           sha256 = strrep("a", 64))
+))
+
+res <- resolve_resource("example", registry = reg)
+res
+format(res)
 }

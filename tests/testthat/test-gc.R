@@ -191,3 +191,97 @@ test_that("a blob that is already gone contributes nothing to free", {
   cache <- local_cache()
   expect_equal(getaca:::blob_bytes(strrep("a", 64)), 0)
 })
+
+# A deliberate removal: the copy is healthy, current and declared, so none of
+# the sweeps that run on their own would touch it.
+test_that("a cached copy is removed on request, and its bytes with it", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  reg <- demo_registry(f$sha256)
+  seeded <- seed_cache(reg, f)
+
+  expect_equal(nrow(getaca_clean("res", package = "demopkg")), 0L)
+
+  out <- getaca_clean("res", package = "demopkg", what = "cached")
+  expect_equal(out$reason[1], "removed on request")
+  expect_equal(length(getaca:::read_index("demopkg")), 0L)
+  expect_false(file.exists(seeded$path))
+  expect_false(getaca:::blob_exists(f$sha256))
+})
+
+test_that("removal on request is never part of an unqualified clean", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  seeded <- seed_cache(demo_registry(f$sha256), f)
+
+  getaca_clean()
+  expect_true(file.exists(seeded$path))
+})
+
+test_that("removal on request can be held to one version", {
+  cache <- local_cache()
+  old <- seed_file(withr::local_tempdir(), contents = "older")
+  new <- seed_file(withr::local_tempdir(), contents = "newer")
+  reg <- registry("demopkg", current = c(res = "2.0"), resources = list(
+    resource("res", "1.0", urls = "https://example.invalid/res-1.0.csv", sha256 = old$sha256),
+    resource("res", "2.0", urls = "https://example.invalid/res-2.0.csv", sha256 = new$sha256)
+  ))
+  rec <- reg$resources
+  for (i in seq_along(rec)) {
+    id <- resource_id("demopkg", "res", rec[[i]]$version)
+    f <- list(old, new)[[i]]
+    staged <- file.path(getaca:::cache_tmp_dir(), paste0("v", i))
+    file.copy(f$path, staged)
+    getaca:::admit(staged, f$sha256)
+    placed <- getaca:::place(id, rec[[i]])
+    getaca:::put_entry(getaca:::new_entry(id, rec[[i]], placed$path, f$sha256,
+                                          source = "bundled",
+                                          digest = registry_digest(reg),
+                                          url_used = rec[[i]]$urls[1],
+                                          link = placed$link))
+  }
+
+  out <- getaca_clean("res", package = "demopkg", version = "1.0",
+                      what = "cached", dry_run = TRUE)
+  expect_equal(out$resource, "demopkg/res@1.0")
+  expect_equal(length(getaca:::read_index("demopkg")), 2L)
+
+  getaca_clean("res", package = "demopkg", version = "1.0", what = "cached")
+  left <- getaca:::read_index("demopkg")
+  expect_equal(vapply(left, function(e) e$id$version, character(1), USE.NAMES = FALSE), "2.0")
+  expect_true(getaca:::blob_exists(new$sha256))
+  expect_false(getaca:::blob_exists(old$sha256))
+})
+
+test_that("removal on request takes a pinned copy and leaves a locked one", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  reg <- demo_registry(f$sha256)
+  seeded <- seed_cache(reg, f)
+  getaca_keep("res", registry = reg)
+
+  lock <- getaca:::acquire_lock(f$sha256)
+  expect_equal(nrow(getaca_clean("res", package = "demopkg", what = "cached")), 0L)
+  expect_true(file.exists(seeded$path))
+  getaca:::release_lock(lock)
+
+  getaca_clean("res", package = "demopkg", what = "cached")
+  expect_false(file.exists(seeded$path))
+})
+
+# A lock directory left by a session that has gone protects nothing, and a blob
+# under one is as unreferenced as any other.
+test_that("a lock nobody is behind any more does not keep bytes alive", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  staged <- file.path(getaca:::cache_tmp_dir(), "orphan")
+  file.copy(f$path, staged)
+  getaca:::admit(staged, f$sha256)
+  path <- getaca:::lock_dir(f$sha256)
+  dir.create(path)
+  getaca:::write_holder(path, list(pid = 4242L, host = "another-machine", start = 100))
+  Sys.setFileTime(getaca:::holder_path(path), Sys.time() - 86400)
+
+  getaca_clean(what = "unreferenced")
+  expect_false(getaca:::blob_exists(f$sha256))
+})

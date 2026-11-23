@@ -40,7 +40,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -321,6 +321,10 @@ first.</p>
 That is a different situation from a host being down, and the action is
 different: retry, because a partial transfer resumes rather than
 restarting.</p>
+<p>A connection that drops partway is a different thing again and raises
+nothing by itself: the same mirror is asked to continue for as long as
+each attempt gets further. This condition is what is left when a mirror
+closes the response as though it were complete and it was not.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: Transfer of yourpkg/backbone@2026-06 ended early.</span></span>
@@ -490,7 +494,8 @@ re-hash.</p>
 <span><span class="co">#&gt;   declared SHA-256: 9f9f9f...</span></span>
 <span><span class="co">#&gt;   observed SHA-256: 71b0c2...</span></span>
 <span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; Action: getaca_clean("backbone", package = "yourpkg"), then retry.</span></span>
+<span><span class="co">#&gt; Action: getaca_clean("backbone", package = "yourpkg", what = "cached"),</span></span>
+<span><span class="co">#&gt; then retry.</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Fix: see the actions listed above.</span></span></code></pre></div>
 <p>Silent repair was considered and rejected. Refetching without saying
@@ -503,7 +508,7 @@ repair is one line and the user knows it happened.</p>
 <span>  <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>,</span>
 <span>  getaca_error_cache_corrupt <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning</a></span><span class="op">(</span><span class="st">"The cached backbone was damaged; refetching."</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, what <span class="op">=</span> <span class="st">"cached"</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="../reference/getaca.html">getaca</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -530,7 +535,8 @@ which is what separates this from a corrupt cache:</p>
 <span><span class="co">#&gt; one.</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Action: if the new declaration is the correct one, drop the old copy</span></span>
-<span><span class="co">#&gt; with getaca_clean("backbone", package = "yourpkg") and retry.</span></span>
+<span><span class="co">#&gt; with getaca_clean("backbone", package = "yourpkg", what = "cached")</span></span>
+<span><span class="co">#&gt; and retry.</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Fix: the declaring package needs a correction. Report it to its maintainer.</span></span></code></pre></div>
 <p>Resolving quietly to the copy already held would be the wrong answer:
@@ -664,7 +670,8 @@ and the default messages already say who can.</p>
 <span>    getaca_error_cache_corrupt <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"The cached "</span>, <span class="va">name</span>, <span class="st">" backbone is damaged.\n"</span>,</span>
 <span>           <span class="st">"Repair it with:\n"</span>,</span>
-<span>           <span class="st">"  getaca::getaca_clean(\""</span>, <span class="va">name</span>, <span class="st">"\", package = \"yourpkg\")"</span>,</span>
+<span>           <span class="st">"  getaca::getaca_clean(\""</span>, <span class="va">name</span>, <span class="st">"\", package = \"yourpkg\", "</span>,</span>
+<span>           <span class="st">"what = \"cached\")"</span>,</span>
 <span>           call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>    <span class="op">}</span></span>
 <span>  <span class="op">)</span></span>

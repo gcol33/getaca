@@ -363,10 +363,10 @@ improvement rather than an internal one.
 ``` r
 
 analyse <- function(x) {
-  info <- getaca::getaca_info("backbone", package = "yourpkg")
   out  <- do_the_work(x, getaca::getaca("backbone", package = "yourpkg"))
-  attr(out, "backbone_version") <- info$id$version
-  attr(out, "backbone_sha256")  <- info$observed_sha256
+  info <- as.data.frame(getaca::getaca_info("backbone", package = "yourpkg"))
+  attr(out, "backbone_version") <- info$version
+  attr(out, "backbone_sha256")  <- info$sha256
   out
 }
 ```

@@ -199,14 +199,14 @@ credential_secret <- function(url, auth) {
 }
 
 # The seam between "which host needs a credential" and "how a request carries
-# one". Applied to the transport rather than threaded through the mirror loop,
-# so a stand-in transport in a test is unaffected by a declaration it is not
-# exercising.
-with_credentials <- function(transport, auth) {
-  function(url, dest, progress = NULL) {
-    transport(url, dest, progress = progress,
-              auth = credential_secret(url, auth))
-  }
+# one". Applied to the attempt the transport is handed rather than threaded
+# through the mirror loop, so nothing that adjudicates handles a credential,
+# and a stand-in transport in a test is unaffected by a declaration it is not
+# exercising: with nothing declared the attempt carries no `auth` at all.
+with_credentials <- function(attempt, auth) {
+  if (is.null(auth)) return(attempt)
+  attempt["auth"] <- list(credential_secret(attempt$url, auth))
+  attempt
 }
 
 #' Which credentials a package expects

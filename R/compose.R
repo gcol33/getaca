@@ -39,21 +39,6 @@ part_digests <- function(record) {
   vapply(record$parts, function(p) p$sha256, character(1))
 }
 
-# One lock per distinct part digest, taken for the whole composition rather than
-# only for the transfer, and for two reasons. Two sessions must not both fetch
-# one part, which is what the acquisition lock already does for a whole file.
-# And a part blob is named by no index until the entry composed from it is
-# written, so without a lock another session's opportunistic collection would
-# see bytes nothing references and remove them mid-composition; the unreferenced
-# sweep treats a blob under an active lock as live, which is exactly this case.
-#
-# `held` is the digest the caller already holds. A part naming the same bytes as
-# the artefact it composes would otherwise wait on a lock this session owns.
-lock_parts <- function(id, record, held = character()) {
-  shas <- setdiff(unique(part_digests(record)), held)
-  lapply(shas, function(sha) acquire_lock(sha, sprintf("a part of %s", format(id))))
-}
-
 release_locks <- function(locks) {
   for (l in locks) release_lock(l)
   invisible(NULL)
@@ -64,18 +49,70 @@ release_locks <- function(locks) {
 # everything after it is one path.
 compose_parts <- function(id, record, quiet = FALSE, transport = try_one,
                           reporter = NULL, auth = NULL) {
-  n <- length(record$parts)
-  rep <- reporter %||% effective_reporter(quiet)
-  paths <- vapply(seq_len(n), function(i) {
-    obtain_part(part_id(id, i, n), record$parts[[i]], quiet, transport, rep, auth)
-  }, character(1))
+  items <- part_items(id, record, auth = auth)
+  got <- fetch_many(items, quiet = quiet, transport = transport,
+                    reporter = reporter, auth = auth)
+  admit_parts(items, got)
+  combine_parts(id, record)
+}
 
+# The parts of a series that have to be transferred, each as fetch_many() takes
+# one. A part already in the store needs no transfer, which is the point of
+# declaring one: a base appearing in every version is fetched once, and a part
+# named twice in one series is fetched once too. A stored part is re-hashed
+# before use rather than trusted, because nothing else re-verifies it. Periodic
+# re-verification is driven from the entries, and a part blob is named by an
+# entry's `parts` field rather than being one, so a rotted base would otherwise
+# surface as the declaration failing to produce its own artefact.
+part_items <- function(id, record, auth = NULL) {
+  n <- length(record$parts)
+  items <- list()
+  for (i in seq_len(n)) {
+    prt <- record$parts[[i]]
+    if (!is.null(items[[prt$sha256]]) || stored_intact(prt)) next
+    items[[prt$sha256]] <- list(id = part_id(id, i, n), record = prt, auth = auth)
+  }
+  items
+}
+
+# Whether the store holds the bytes a record names, asked by hashing them. A
+# new name is about to be given to these bytes and stamped as verified, and
+# the blob's being filed under the right digest only says what it was when it
+# was admitted.
+stored_intact <- function(record) {
+  blob <- blob_path(record$sha256)
+  if (!file.exists(blob)) return(FALSE)
+  if (identical(sha256_file(blob), record$sha256)) return(TRUE)
+  # The declaration lists mirrors for these bytes, so the damaged copy is
+  # dropped and fetched again rather than the run stopping. It is the
+  # reasoning that drops a stale partial file: a local copy that fails its own
+  # checksum indicts itself. A view another slot holds of it is that slot's to
+  # find on its own next verification.
+  remove_path(blob)
+  FALSE
+}
+
+# What fetch_many() returned for a set of parts, moved into the store. The
+# first part that could not be had is the reason the artefact cannot be.
+admit_parts <- function(items, got) {
+  for (k in seq_along(items)) {
+    if (inherits(got[[k]], "condition")) stop(got[[k]])
+  }
+  for (k in seq_along(items)) admit(got[[k]]$path, items[[k]]$record$sha256)
+  invisible(NULL)
+}
+
+# Every part is in the store. Combined into .tmp/ and held to the record.
+combine_parts <- function(id, record) {
+  n <- length(record$parts)
+  paths <- blob_path(part_digests(record))
   out <- compose_path(record)
   remove_path(out)
   combine <- combiner_fn(record$combiner)
   tryCatch(combine(paths, out), error = function(e) {
     remove_path(out)
-    stop(sprintf("getaca: combiner '%s' failed for %s:\n  %s",
+    stop(sprintf("getaca: combiner '%s' failed for %s:
+  %s",
                  combiner_id(record$combiner), format(id), conditionMessage(e)),
          call. = FALSE)
   })
@@ -90,27 +127,6 @@ compose_parts <- function(id, record, quiet = FALSE, transport = try_one,
     err_composition(id, record$sha256, observed, n, combiner_id(record$combiner))
   }
   out
-}
-
-# A part already in the store needs no transfer, which is the point of declaring
-# one: a base appearing in every version is fetched once. It is re-hashed before
-# use rather than trusted, because nothing else re-verifies it. Periodic
-# re-verification is driven from the entries, and a part blob is named by an
-# entry's `parts` field rather than being one, so a rotted base would otherwise
-# surface as the declaration failing to produce its own artefact.
-obtain_part <- function(pid, prt, quiet, transport, rep = NULL, auth = NULL) {
-  blob <- blob_path(prt$sha256)
-  if (file.exists(blob)) {
-    if (identical(sha256_file(blob), prt$sha256)) return(blob)
-    # Nothing names these bytes and the declaration lists mirrors for them, so
-    # the damaged copy is dropped and the part fetched again rather than the run
-    # stopping. It is the reasoning attempt_mirror() already applies to a stale
-    # partial file: a local copy that fails its own checksum indicts itself.
-    remove_path(blob)
-  }
-  got <- fetch_to_temp(pid, prt, quiet = quiet, transport = transport,
-                       reporter = rep, auth = auth)
-  admit(got$path, prt$sha256)
 }
 
 # Composition writes into .tmp/, where a transfer lands, so bytes that are never

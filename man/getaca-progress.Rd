@@ -28,12 +28,20 @@ adding an event type leaves an existing reporter working.
 the mirror. \code{total} is the declared size in bytes, or \code{NA} when the
 declaration gives none. \code{offset} is what was already on disk, which is
 non-zero when an interrupted transfer resumes.}
-\item{\code{"bytes"}}{Bytes have arrived. \code{bytes} is the cumulative total for
-this attempt including \code{offset}, so it can be compared against \code{total}
-directly. Fires often; a reporter that draws is expected to throttle.}
-\item{\code{"end"}}{The attempt finished. \code{status} is \code{"ok"} or \code{"failed"},
-\code{reason} is the failure reason or \code{NA}, and \code{bytes} is what arrived.}
+\item{\code{"bytes"}}{Bytes have arrived. \code{id} is the resource they belong
+to. \code{bytes} is the cumulative total for this attempt including \code{offset},
+so it can be compared against \code{total} directly. Fires often; a reporter
+that draws is expected to throttle.}
+\item{\code{"end"}}{The attempt finished. \code{id} is the resource, \code{status} is
+\code{"ok"} or \code{"failed"}, \code{reason} is the failure reason or \code{NA}, and \code{bytes}
+is what arrived.}
 }
+
+Several transfers may be under way at once: the parts of a series, or the
+resources of one \code{\link[=getaca_prefetch]{getaca_prefetch()}} call, move together. Their events
+interleave, and \code{id} is what says which transfer an event belongs to. A
+mirror that is asked again, after a dropped connection or a busy server,
+ends one attempt and begins another.
 
 A reporter never affects the outcome of a retrieval. An error raised inside
 one is caught, reported once as a warning, and the reporter is switched off

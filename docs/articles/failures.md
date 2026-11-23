@@ -175,6 +175,11 @@ That is a different situation from a host being down, and the action is
 different: retry, because a partial transfer resumes rather than
 restarting.
 
+A connection that drops partway is a different thing again and raises
+nothing by itself: the same mirror is asked to continue for as long as
+each attempt gets further. This condition is what is left when a mirror
+closes the response as though it were complete and it was not.
+
 ``` r
 
 getaca("backbone", package = "yourpkg")
@@ -370,7 +375,8 @@ getaca("backbone", package = "yourpkg")
 #>   declared SHA-256: 9f9f9f...
 #>   observed SHA-256: 71b0c2...
 #>
-#> Action: getaca_clean("backbone", package = "yourpkg"), then retry.
+#> Action: getaca_clean("backbone", package = "yourpkg", what = "cached"),
+#> then retry.
 #>
 #> Fix: see the actions listed above.
 ```
@@ -387,7 +393,7 @@ tryCatch(
   getaca("backbone", package = "yourpkg"),
   getaca_error_cache_corrupt = function(e) {
     warning("The cached backbone was damaged; refetching.", call. = FALSE)
-    getaca_clean("backbone", package = "yourpkg")
+    getaca_clean("backbone", package = "yourpkg", what = "cached")
     getaca("backbone", package = "yourpkg")
   }
 )
@@ -416,7 +422,8 @@ getaca("backbone", package = "yourpkg")
 #> one.
 #>
 #> Action: if the new declaration is the correct one, drop the old copy
-#> with getaca_clean("backbone", package = "yourpkg") and retry.
+#> with getaca_clean("backbone", package = "yourpkg", what = "cached")
+#> and retry.
 #>
 #> Fix: the declaring package needs a correction. Report it to its maintainer.
 ```
@@ -574,7 +581,8 @@ install_backbone <- function(name = "backbone") {
     getaca_error_cache_corrupt = function(e) {
       stop("The cached ", name, " backbone is damaged.\n",
            "Repair it with:\n",
-           "  getaca::getaca_clean(\"", name, "\", package = \"yourpkg\")",
+           "  getaca::getaca_clean(\"", name, "\", package = \"yourpkg\", ",
+           "what = \"cached\")",
            call. = FALSE)
     }
   )

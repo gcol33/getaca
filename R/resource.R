@@ -373,6 +373,9 @@ combiner <- function(id, fn) {
 }
 
 #' @export
+format.getaca_combiner <- function(x, ...) x$id
+
+#' @export
 print.getaca_combiner <- function(x, ...) {
   cat("<getaca combiner> ", x$id, "\n", sep = "")
   invisible(x)
@@ -393,7 +396,7 @@ print.getaca_combiner <- function(x, ...) {
 #' @param fn A function `(input, output_dir)` returning a path inside
 #'   `output_dir`.
 #'
-#' @return An object of class `getaca_processor`.
+#' @return An object of class `getaca_processor`. `format()` gives its id.
 #' @export
 #'
 #' @examples
@@ -404,6 +407,17 @@ print.getaca_combiner <- function(x, ...) {
 processor <- function(id, fn) {
   stopifnot(is_string(id), grepl("^[A-Za-z0-9._-]+$", id), is.function(fn))
   structure(list(id = id, fn = fn), class = "getaca_processor")
+}
+
+# The id is what the cache slot and the manifest are keyed on, so it is what a
+# processor is, as far as anything outside it can tell.
+#' @export
+format.getaca_processor <- function(x, ...) x$id
+
+#' @export
+print.getaca_processor <- function(x, ...) {
+  cat("<getaca processor> ", x$id, "\n", sep = "")
+  invisible(x)
 }
 
 is_string <- function(x) is.character(x) && length(x) == 1L && !is.na(x)

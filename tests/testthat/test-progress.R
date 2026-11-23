@@ -499,3 +499,51 @@ test_that("a line longer than the terminal is cut rather than wrapped", {
   expect_equal(nchar(written), 41L)
   expect_true(startsWith(written, "\r"))
 })
+
+# A terminal has one line to redraw, so transfers under way together are drawn
+# as one: how many there are, and their bytes and totals added up.
+test_that("several transfers at once are drawn as one line that adds them up", {
+  withr::local_options(list(width = 100))
+  cap <- capture_reporter(function(con) {
+    getaca:::reporter_bar(con = con, now = fake_clock(c(0, 0, 2, 2, 2, 4)))
+  })
+  rep <- cap$reporter
+  one <- resource_id("demopkg", "one", "1.0")
+  two <- resource_id("demopkg", "two", "1.0")
+
+  rep$fn(list(type = "begin", id = one, url = "https://a.invalid/one",
+              total = 6e8, offset = 0))
+  rep$fn(list(type = "begin", id = two, url = "https://a.invalid/two",
+              total = 4e8, offset = 0))
+  rep$fn(list(type = "bytes", id = one, bytes = 15e7, total = 6e8))
+  rep$fn(list(type = "bytes", id = two, bytes = 10e7, total = 4e8))
+  cap$close()
+
+  line <- cap$text()
+  expect_match(line, "2 transfers")
+  expect_match(line, "25%")
+  expect_match(line, "250 MB / 1.0 GB")
+})
+
+test_that("the line style keeps each of several transfers to its own start", {
+  cap <- capture_reporter(function(con) {
+    getaca:::reporter_line(con = con, now = fake_clock(c(0, 10, 30, 30)))
+  })
+  rep <- cap$reporter
+  one <- resource_id("demopkg", "one", "1.0")
+  two <- resource_id("demopkg", "two", "1.0")
+
+  rep$fn(list(type = "begin", id = one, url = "https://a.invalid/one",
+              total = 100, offset = 0))
+  rep$fn(list(type = "begin", id = two, url = "https://a.invalid/two",
+              total = 100, offset = 0))
+  rep$fn(list(type = "end", id = one, status = "ok", bytes = 100,
+              reason = NA_character_))
+  rep$fn(list(type = "end", id = two, status = "ok", bytes = 100,
+              reason = NA_character_))
+  cap$close()
+
+  text <- cap$text()
+  expect_match(text, "demopkg/one@1.0 done, 100 B in 00:30")
+  expect_match(text, "demopkg/two@1.0 done, 100 B in 00:20")
+})

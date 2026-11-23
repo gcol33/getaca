@@ -25,8 +25,15 @@
 #' remove names. Bytes go once the last name for them does, which is why the
 #' store sweep runs last.
 #'
-#' Never removed: pinned entries, the version the bundled registry currently
-#' names, and anything under an active lock.
+#' Never removed by those: pinned entries, the version the bundled registry
+#' currently names, and anything under an active lock.
+#'
+#' One further sweep is never run unless asked for. `"cached"` removes every
+#' cached copy the `name`, `package` and `version` arguments select, whatever
+#' state it is in and whether or not it is pinned, and then the bytes nothing
+#' references any more. It is how a resource you are finished with is given
+#' its disk back, and how a copy is dropped so that the next [getaca()] call
+#' fetches it again. Only a copy under an active lock is left.
 #'
 #' @name getaca-gc
 NULL
@@ -35,18 +42,26 @@ NULL
 #' @param name Restrict to one resource name.
 #' @param package Restrict to one declaring package. `NULL` means all.
 #' @param what Which sweeps to run. Any of `"broken"`, `"temp"`,
-#'   `"superseded"`, `"lru"`, `"unreferenced"`.
+#'   `"superseded"`, `"lru"`, `"unreferenced"`, which together are the
+#'   default, and `"cached"`, which runs only when named.
 #' @param dry_run Report what would be removed without removing it.
+#' @param version Restrict to one version of the resources selected.
 #' @return A data frame of affected entries, invisibly when acting.
 #' @export
 #'
 #' @examples
 #' getaca_clean(dry_run = TRUE)
+#'
+#' # Everything cached for one resource, as a report of what would go:
+#' getaca_clean("backbone", package = "yourpkg", what = "cached", dry_run = TRUE)
 getaca_clean <- function(name = NULL, package = NULL,
                          what = c("broken", "temp", "superseded", "lru",
                                   "unreferenced"),
-                         dry_run = FALSE) {
-  what <- match.arg(what, several.ok = TRUE)
+                         dry_run = FALSE, version = NULL) {
+  what <- match.arg(what, c(SWEEPS, "cached"), several.ok = TRUE)
+  # Removing a name frees nothing while the store still holds the bytes, and
+  # freeing them is what a deliberate removal is for.
+  if ("cached" %in% what) what <- union(what, "unreferenced")
   pkgs <- package %||% list_cached_packages()
   removed <- list()
 
@@ -54,8 +69,12 @@ getaca_clean <- function(name = NULL, package = NULL,
     removed <- c(removed, list(sweep_temp(dry_run)))
   }
   for (p in pkgs) {
-    index <- entries_for(p, name)
+    index <- entries_for(p, name, version)
     if (!length(index)) next
+    if ("cached" %in% what) {
+      removed <- c(removed, list(sweep_cached(index, dry_run)))
+      if (!dry_run) index <- entries_for(p, name, version)
+    }
     if ("broken" %in% what)     removed <- c(removed, list(sweep_broken(index, dry_run)))
     if ("superseded" %in% what) removed <- c(removed, list(sweep_superseded(p, index, dry_run)))
   }
@@ -63,7 +82,8 @@ getaca_clean <- function(name = NULL, package = NULL,
   # under a shared store evicting a name frees nothing until the last name for
   # those bytes is gone. Both need every package in view at once.
   if ("lru" %in% what) {
-    removed <- c(removed, list(sweep_lru(unlist(lapply(pkgs, entries_for, name = name),
+    removed <- c(removed, list(sweep_lru(unlist(lapply(pkgs, entries_for, name = name,
+                                                       version = version),
                                                 recursive = FALSE, use.names = FALSE),
                                          dry_run)))
   }
@@ -77,10 +97,28 @@ getaca_clean <- function(name = NULL, package = NULL,
   invisible(out)
 }
 
-entries_for <- function(package, name = NULL) {
-  index <- read_index(package)
-  if (is.null(name)) return(index)
-  Filter(function(e) identical(e$id$name, name), index)
+# The sweeps that only ever remove what is no longer wanted, and so run
+# without being asked for.
+SWEEPS <- c("broken", "temp", "superseded", "lru", "unreferenced")
+
+entries_for <- function(package, name = NULL, version = NULL) {
+  Filter(function(e) {
+    (is.null(name) || identical(e$id$name, name)) &&
+      (is.null(version) || identical(e$id$version, version))
+  }, read_index(package))
+}
+
+# A deliberate removal. What a pin holds off is collection, and this is the
+# caller saying which copies are to go; what it cannot override is another
+# session at work on the same bytes.
+sweep_cached <- function(index, dry_run) {
+  chosen <- Filter(function(e) !locked(e), index)
+  if (!length(chosen)) return(NULL)
+  out <- do.call(rbind, lapply(chosen, function(e) {
+    removal_row(e$package, format(e$id), "removed on request", e$path)
+  }))
+  if (!dry_run) for (e in chosen) drop_cached(e)
+  out
 }
 
 empty_removal <- function() {
@@ -107,7 +145,7 @@ sweep_temp <- function(dry_run) {
   files <- list.files(d, full.names = TRUE)
   if (!length(files)) return(NULL)
   age <- as.numeric(difftime(Sys.time(), file.info(files)$mtime, units = "days"))
-  stale <- files[!is.na(age) & age > 7]
+  stale <- files[!is.na(age) & age > setting_temp_days()]
   if (!length(stale)) return(NULL)
   out <- do.call(rbind, lapply(stale, function(f) {
     removal_row(NA_character_, NA_character_, "abandoned transfer", f)
@@ -196,7 +234,7 @@ sweep_unreferenced <- function(dry_run) {
   if (!length(blobs)) return(NULL)
   live <- live_blobs()
   shas <- basename(blobs)
-  dead <- blobs[!shas %in% live & !dir.exists(lock_dir(shas))]
+  dead <- blobs[!shas %in% live & !vapply(shas, lock_is_live, logical(1))]
   if (!length(dead)) return(NULL)
 
   out <- do.call(rbind, lapply(dead, function(b) {
@@ -223,7 +261,7 @@ blob_bytes <- function(sha) {
 }
 
 # Keyed on the checksum, the way the acquisition lock is.
-locked <- function(entry) dir.exists(lock_dir(entry$declared_sha256))
+locked <- function(entry) lock_is_live(entry$declared_sha256)
 
 # Runs after a successful retrieval. Deliberately narrow: the sweeps that only
 # ever remove material which is already useless.

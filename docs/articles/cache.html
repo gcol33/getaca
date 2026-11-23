@@ -40,7 +40,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -344,8 +344,8 @@ fetch it, and must never mistake each other’s in-flight temporary file
 for a finished resource.</p>
 <p>The lock is a directory under <code>.locks/</code>, named for the
 declared checksum. <code><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create()</a></code> is atomic on both POSIX and
-Windows, which makes a directory a portable mutex with no compiled
-dependency and no lockfile library.</p>
+Windows, and on the network filesystems a shared cache tends to live on,
+which makes a directory a mutex that works wherever the cache does.</p>
 <p>Keying it on the checksum rather than on the resource triple means
 the two sessions need not be asking on behalf of the same package. Two
 packages declaring the same file are waiting for the same transfer, and
@@ -353,9 +353,9 @@ the one that waits finds the bytes in the store when it wakes.</p>
 <p>What a second session does:</p>
 <ol style="list-style-type: decimal">
 <li><p>tries to create the lock directory, and fails</p></li>
-<li><p>checks whether the lock is stale, by the age of the holder file
-inside it</p></li>
-<li><p>waits, polling, until the holder releases</p></li>
+<li><p>checks whether the session that holds it is still there</p></li>
+<li><p>says once whom it is waiting for, and waits until the holder
+releases</p></li>
 <li><p>re-reads the cache index, finds the first session’s entry, and
 returns that path</p></li>
 </ol>
@@ -371,16 +371,32 @@ entry composed from it is written, so the lock is also what tells
 another session that bytes nothing references yet are wanted: the
 <code>unreferenced</code> sweep treats a blob under an active lock as
 live.</p>
-<p>A lock whose holder died leaves a directory behind. It goes stale
-after <code>getaca.lock_stale_seconds</code>, defaulting to 1800, after
-which the next session removes it and takes over. A session that waits
-longer than its timeout gets an error naming the lock path and the
-<code><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink()</a></code> call that clears it, so a genuinely wedged lock is
-a one-line fix rather than a support thread.</p>
+<p>A lock whose holder died leaves a directory behind, so a waiter has
+to tell a holder that is busy from one that is gone. The lock records
+the process that took it, the machine it runs on and when that process
+started, and a waiter on the same machine asks the operating system
+whether that process is still running. A lock is therefore held for
+exactly as long as its holder lives: a transfer of any length keeps it,
+and a session that crashed loses it to the next one that asks. The start
+time is part of the question because process ids are reused, and a later
+process handed the same number is not the holder.</p>
+<p>A cache on a shared filesystem can be reached from several machines,
+and a waiter on another machine cannot ask about a process it cannot
+see. There the holder shows it is alive by touching its lock every half
+minute for as long as it holds it. The touching is done from a second
+thread, so it goes on under a transfer and under a
+<code><a href="../reference/processor.html">processor()</a></code> that runs for an hour alike. The lock is
+abandoned once it has gone untouched for
+<code>getaca.lock_stale_seconds</code>, defaulting to 1800, which is how
+long a session that crashed on another machine keeps the others
+waiting.</p>
+<p>A waiter waits for as long as the holder is alive, since the
+alternative is a second transfer of the same bytes. Where a bounded wait
+is wanted, <code>getaca.lock_wait_seconds</code> sets one, and a session
+that waits past it gets an error naming the holder, the lock path and
+the <code><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink()</a></code> call that clears it.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.lock_stale_seconds <span class="op">=</span> <span class="fl">600</span><span class="op">)</span></span></code></pre></div>
-<p>Set it lower for short downloads on a shared machine, higher when a
-single transfer legitimately runs for an hour.</p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>getaca.lock_wait_seconds <span class="op">=</span> <span class="fl">600</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="how-bytes-get-in">How bytes get in<a class="anchor" aria-label="anchor" href="#how-bytes-get-in"></a>
@@ -403,6 +419,27 @@ partial file rather than the publisher, so the same mirror is asked once
 more from empty before any conclusion is drawn about upstream. Without
 that, one stale temporary file makes a resource permanently unfetchable
 and blames the wrong party for it.</p>
+<p>A transfer is given up on for standing still, never for taking long.
+A connection that delivers nothing for
+<code>getaca.stall_seconds</code>, 60 by default, is dropped; one that
+keeps delivering runs for as long as the file takes, since a limit on
+the whole transfer would fail every file too large for the link it
+arrives over. <code>getaca.timeout</code> sets such a limit for a caller
+who wants one, and is off unless set.</p>
+<p>A mirror is asked again in two cases. A connection that dropped after
+delivering bytes has left a partial that mirror can continue, so the
+transfer resumes there for as long as each attempt gets further. A
+server that answers that it is busy (HTTP 408, 429, 500, 502, 503 or
+504) is asked again after a wait that doubles from two seconds, or after
+the interval its <code>Retry-After</code> header names, and never after
+more than a minute. Attempts that move nothing are counted against
+<code>getaca.retries</code>, 3 by default, after which the next mirror
+is tried. A mirror that never answered, or answered that the file is not
+there, is not asked twice.</p>
+<p>Several files move at once. The parts of a series, and the resources
+of one <code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> call, share up to
+<code>getaca.connections</code> connections, 4 by default, and a file
+two of them name is transferred once.</p>
 <p>Verified bytes are then admitted to the store under their own
 checksum, and the version slot is given a name for them. Admission is a
 rename, since <code>.tmp/</code> and <code>blobs/</code> share the cache
@@ -493,7 +530,8 @@ every successful retrieval.</p>
 <td><code>temp</code></td>
 <td>abandoned transfers in <code>.tmp/</code>
 </td>
-<td>7 days by mtime</td>
+<td>
+<code>getaca.temp_days</code> by mtime, default 7</td>
 </tr>
 <tr class="odd">
 <td><code>superseded</code></td>
@@ -513,6 +551,13 @@ every successful retrieval.</p>
 </tr>
 </tbody>
 </table>
+<p>A sixth, <code>cached</code>, is never run unless named. It removes
+every cached copy the <code>name</code>, <code>package</code> and
+<code>version</code> arguments select, whatever state it is in and
+whether or not it is pinned, and then the bytes nothing references any
+more. It is how a resource you are finished with gives its disk back,
+and how a copy is dropped so that the next <code><a href="../reference/getaca.html">getaca()</a></code> call
+fetches it again.</p>
 <p>The first four sweeps remove names. <code>unreferenced</code> runs
 last and removes the bytes those names were for, once the last one is
 gone. A blob under an active lock is left alone: it belongs to a session
@@ -532,13 +577,14 @@ declares.</p>
 An expensive resource that is still the current version is never dropped
 merely for being old; it is dropped only when the cache is over its
 ceiling, and then only after everything already useless has gone.</p>
-<p>Three things are never removed: pinned entries, the version the
-registry currently names, and anything under an active lock.</p>
-<p>The automatic pass after a retrieval runs only <code>broken</code>
-and <code>temp</code>, the two sweeps that can only ever remove material
-which is already useless. Reclaiming a superseded four-gigabyte version
-is a decision, so it happens on a schedule rather than as a side effect
-of a download.</p>
+<p>Three things are never removed by those five: pinned entries, the
+version the registry currently names, and anything under an active
+lock.</p>
+<p>The automatic pass after a retrieval runs only <code>broken</code>,
+<code>temp</code> and <code>unreferenced</code>, the sweeps that can
+only ever remove material which is already useless. Reclaiming a
+superseded four-gigabyte version is a decision, so it happens on a
+schedule rather than as a side effect of a download.</p>
 </div>
 <div class="section level2">
 <h2 id="cleaning-by-hand">Cleaning by hand<a class="anchor" aria-label="anchor" href="#cleaning-by-hand"></a>
@@ -559,7 +605,11 @@ which is the report to read before running it for real.</p>
 <span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="op">)</span>                                 <span class="co"># run every sweep</span></span>
 <span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>what <span class="op">=</span> <span class="st">"temp"</span><span class="op">)</span>                    <span class="co"># just the abandoned transfers</span></span>
 <span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span>package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>              <span class="co"># one package</span></span>
-<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>  <span class="co"># one resource name</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>  <span class="co"># one resource name</span></span>
+<span></span>
+<span><span class="co"># Everything cached for one resource, or for one version of it, healthy or not:</span></span>
+<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, what <span class="op">=</span> <span class="st">"cached"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/getaca-gc.html">getaca_clean</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, version <span class="op">=</span> <span class="st">"2026-03"</span>, what <span class="op">=</span> <span class="st">"cached"</span><span class="op">)</span></span></code></pre></div>
 <p>Keeping something the sweeps would otherwise take:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getaca_keep.html">getaca_keep</a></span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span><span class="op">)</span>                  <span class="co"># pin it</span></span>
@@ -624,16 +674,52 @@ with the option taking precedence.</p>
 <td>ceiling above which LRU runs</td>
 </tr>
 <tr class="odd">
-<td><code>getaca.timeout</code></td>
-<td><code>GETACA_TIMEOUT</code></td>
-<td>3600</td>
-<td>transfer timeout in seconds</td>
+<td><code>getaca.temp_days</code></td>
+<td><code>GETACA_TEMP_DAYS</code></td>
+<td>7</td>
+<td>when an unfinished transfer is abandoned</td>
 </tr>
 <tr class="even">
+<td><code>getaca.stall_seconds</code></td>
+<td><code>GETACA_STALL_SECONDS</code></td>
+<td>60</td>
+<td>how long a connection may deliver nothing</td>
+</tr>
+<tr class="odd">
+<td><code>getaca.connect_seconds</code></td>
+<td><code>GETACA_CONNECT_SECONDS</code></td>
+<td>30</td>
+<td>how long a connection may take to open</td>
+</tr>
+<tr class="even">
+<td><code>getaca.timeout</code></td>
+<td><code>GETACA_TIMEOUT</code></td>
+<td>0, no limit</td>
+<td>a limit on a whole transfer, in seconds</td>
+</tr>
+<tr class="odd">
+<td><code>getaca.retries</code></td>
+<td><code>GETACA_RETRIES</code></td>
+<td>3</td>
+<td>attempts at one mirror that may move nothing</td>
+</tr>
+<tr class="even">
+<td><code>getaca.connections</code></td>
+<td><code>GETACA_CONNECTIONS</code></td>
+<td>4</td>
+<td>transfers under way at once</td>
+</tr>
+<tr class="odd">
 <td><code>getaca.lock_stale_seconds</code></td>
 <td><code>GETACA_LOCK_STALE_SECONDS</code></td>
 <td>1800</td>
-<td>when a lock is abandoned</td>
+<td>when a lock held on another machine is abandoned</td>
+</tr>
+<tr class="even">
+<td><code>getaca.lock_wait_seconds</code></td>
+<td><code>GETACA_LOCK_WAIT_SECONDS</code></td>
+<td>no limit</td>
+<td>how long to wait for another session</td>
 </tr>
 <tr class="odd">
 <td><code>getaca.pin_file</code></td>
@@ -645,10 +731,8 @@ with the option taking precedence.</p>
 </tbody>
 </table>
 <p>The defaults suit a laptop holding a couple of large reference
-datasets. Two are worth revisiting on a shared machine: raise
-<code>getaca.max_bytes</code> when the cache lives on a volume sized for
-it, and lower <code>getaca.lock_stale_seconds</code> when transfers are
-short and a wedged lock costs more than a rare duplicate download.</p>
+datasets. On a shared machine, raise <code>getaca.max_bytes</code> when
+the cache lives on a volume sized for it.</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span></span>
 <span>  getaca.cache        <span class="op">=</span> <span class="st">"/mnt/data/getaca"</span>,</span>

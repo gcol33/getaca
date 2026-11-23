@@ -30,7 +30,7 @@ a bug report."><meta property="og:image" content="https://gillescolling.com/geta
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -127,7 +127,14 @@ return the processed path. <code>FALSE</code> returns the raw artefact.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>getaca_entry</code>, or <code>NULL</code> when the resource is not cached.</p>
+    <p>A <code>getaca_entry</code>, or <code>NULL</code> when the resource is not cached.
+Printing one shows the full record. <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> gives the same
+record as one row, for a report or for binding several together, with the
+columns <code>package</code>, <code>name</code>, <code>version</code>, <code>processor</code>, <code>parts</code>, <code>link</code>, <code>size</code>,
+<code>sha256</code>, <code>license</code>, <code>doi</code>, <code>source</code>, <code>registry_digest</code>,
+<code>registry_created</code>, <code>url</code>, <code>getaca_version</code>, <code>fetched_at</code>, <code>verified_at</code>,
+<code>checked_at</code>, <code>accessed_at</code>, <code>pinned</code> and <code>path</code>. <code><a href="https://rdrr.io/r/base/format.html" class="external-link">format()</a></code> gives the
+identity as <code>package/name@version</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

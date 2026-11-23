@@ -250,7 +250,7 @@ leaves its identity alone. Pass a fixed `created` when a build has to be
 byte-reproducible.
 
 ```{r}
-registry_read(path)$created
+registry_read(path)
 ```
 
 ## Naming the channel head
@@ -541,14 +541,14 @@ It covers `.zip`, the tarballs under any compression (`.tar`, `.tar.gz`,
 extension dropped. Name the format for a file whose name does not carry one:
 
 ```{r}
-unpack("gzip")$id
+unpack("gzip")
 ```
 
 A large archive holding one subtree you need takes `members`, which names a
 file, or a directory and everything under it:
 
 ```{r}
-unpack(members = "tables")$id
+unpack(members = "tables")
 ```
 
 The id encodes the settings for a reason. It is what the cache slot and the
@@ -568,7 +568,7 @@ index <- processor("index-v1", function(input, output_dir) {
   write.table(read.csv(input), out, sep = "\t", row.names = FALSE)
   out
 })
-index$id
+index
 ```
 
 The function receives the verified input path and a staging directory, and
@@ -761,7 +761,8 @@ without a network:
 test_that("the shipped registry is valid and names a head", {
   reg <- registry_for("yourpkg")
   expect_s3_class(reg, "getaca_registry")
-  expect_equal(resolve_resource("backbone", registry = reg)$id$version, "2026-06")
+  expect_equal(format(resolve_resource("backbone", registry = reg)),
+               "yourpkg/backbone@2026-06")
 })
 
 test_that("the backbone parses when it is available", {

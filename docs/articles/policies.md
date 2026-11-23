@@ -58,13 +58,12 @@ reg <- registry(
   resources = list(rec)
 )
 
-res <- resolve_resource("backbone", registry = reg, policy = "bundled")
-res$id
-#> <getaca resource> yourpkg/backbone@2026-06
-res$source
-#> [1] "bundled"
-res$digest
-#> [1] "sha256:86b53103a628e4cd6a76c7ee0ab8a4b7826afebe368b68cb5303e46d02c66dd9"
+resolve_resource("backbone", registry = reg, policy = "bundled")
+#> <getaca resolution> yourpkg/backbone@2026-06
+#>   policy    bundled
+#>   source    bundled registry
+#>   registry  sha256:86b53103a628e4cd6a76c7ee0ab8a4b7826afebe368b68cb5303e46d02c66dd9
+#>   sha256    9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f
 ```
 
 `source` and `digest` are recorded in the cache entry, so a provenance
@@ -199,10 +198,10 @@ ahead <- registry(
   )
 )
 
-resolve_resource("backbone", registry = ahead)$id
-#> <getaca resource> yourpkg/backbone@2026-09
-resolve_resource("backbone", registry = ahead, version = "2026-06")$id
-#> <getaca resource> yourpkg/backbone@2026-06
+format(resolve_resource("backbone", registry = ahead))
+#> [1] "yourpkg/backbone@2026-09"
+format(resolve_resource("backbone", registry = ahead, version = "2026-06"))
+#> [1] "yourpkg/backbone@2026-06"
 ```
 
 Users on `current` follow the head on their next session. Users on
@@ -227,7 +226,7 @@ tree:
 secret <- file.path(tempdir(), "yourpkg-signing.key")
 public <- registry_keygen(secret)
 substr(public, 1, 24)
-#> [1] "ed25519:3bd387aabdc7a9ca"
+#> [1] "ed25519:5f965f060d6448de"
 ```
 
 Declare the public half in the registry the package ships:
@@ -257,9 +256,9 @@ registry_sign(path, key = secret)
 
 cat(readLines(paste0(path, ".sig"))[1:4], sep = "\n")
 #> getaca-signature 1
-#> digest sha256:052665fcb64bd47594f09d00d26fb9608f41a214386c28f335eecbf9dbf0b30b
-#> created 2026-11-23T15:24:51Z
-#> expires 2027-02-21T15:24:51Z
+#> digest sha256:34e868f040e3a9954313d2047d01e43d90bca88eb718eddb238556dc32479bbf
+#> created 2026-11-23T17:20:38Z
+#> expires 2027-02-21T17:20:38Z
 ```
 
 Upload the `.sig` beside the registry; getaca fetches it from the
@@ -278,13 +277,21 @@ point:
 
 ``` r
 
-moved <- signed
-moved$resources[[1]]$urls <- "https://elsewhere.invalid/backbone-2026-06.zip"
-saveRDS(moved, path, version = 3)
+moved <- registry(
+  package = "yourpkg",
+  remote = "https://host.invalid/yourpkg.rds",
+  keys = public,
+  resources = list(
+    resource("backbone", "2026-06",
+             urls = "https://elsewhere.invalid/backbone-2026-06.zip",
+             sha256 = strrep("9f", 32), license = "CC-BY-4.0")
+  )
+)
+registry_write(moved, path)
 registry_verify(path)
 #> Error:
 #> ! The registry for 'yourpkg' could not be established as authentic.
-#>   the signature covers sha256:052665fcb64b but this registry is sha256:3c5f81ce417a
+#>   the signature covers sha256:34e868f040e3 but this registry is sha256:e30361a402bf
 #> 
 #> This package declares signing keys, so a remote registry that cannot be
 #> checked against one is refused rather than used. The bundled declaration
@@ -343,10 +350,10 @@ moved_on <- registry(
   )
 )
 
-resolve_resource("backbone", registry = moved_on)$id
-#> <getaca resource> yourpkg/backbone@2026-09
-resolve_resource("backbone", registry = moved_on, policy = "pinned")$id
-#> <getaca resource> yourpkg/backbone@2026-06
+format(resolve_resource("backbone", registry = moved_on))
+#> [1] "yourpkg/backbone@2026-09"
+format(resolve_resource("backbone", registry = moved_on, policy = "pinned"))
+#> [1] "yourpkg/backbone@2026-06"
 ```
 
 The installed registry has moved to `2026-09`; the pin holds the

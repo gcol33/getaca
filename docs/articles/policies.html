@@ -40,7 +40,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -183,13 +183,12 @@ is the whole answer; nothing is fetched to decide what a name means.</p>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"bundled"</span><span class="op">)</span></span>
-<span><span class="va">res</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-06</span></span>
-<span><span class="va">res</span><span class="op">$</span><span class="va">source</span></span>
-<span><span class="co">#&gt; [1] "bundled"</span></span>
-<span><span class="va">res</span><span class="op">$</span><span class="va">digest</span></span>
-<span><span class="co">#&gt; [1] "sha256:86b53103a628e4cd6a76c7ee0ab8a4b7826afebe368b68cb5303e46d02c66dd9"</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span>, policy <span class="op">=</span> <span class="st">"bundled"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;getaca resolution&gt; yourpkg/backbone@2026-06</span></span>
+<span><span class="co">#&gt;   policy    bundled</span></span>
+<span><span class="co">#&gt;   source    bundled registry</span></span>
+<span><span class="co">#&gt;   registry  sha256:86b53103a628e4cd6a76c7ee0ab8a4b7826afebe368b68cb5303e46d02c66dd9</span></span>
+<span><span class="co">#&gt;   sha256    9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f</span></span></code></pre></div>
 <p><code>source</code> and <code>digest</code> are recorded in the cache
 entry, so a provenance report can state which declaration chose the
 bytes and which policy read it. The digest comes from the channel that
@@ -305,10 +304,10 @@ is one registry:</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">ahead</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-09</span></span>
-<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">ahead</span>, version <span class="op">=</span> <span class="st">"2026-06"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-06</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">ahead</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "yourpkg/backbone@2026-09"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">ahead</span>, version <span class="op">=</span> <span class="st">"2026-06"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "yourpkg/backbone@2026-06"</span></span></code></pre></div>
 <p>Users on <code>current</code> follow the head on their next session.
 Users on <code>bundled</code> stay where their installed package put
 them. Users who named a version keep that version under every policy,
@@ -330,7 +329,7 @@ tree:</p>
 <code class="sourceCode R"><span><span class="va">secret</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"yourpkg-signing.key"</span><span class="op">)</span></span>
 <span><span class="va">public</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_keygen.html">registry_keygen</a></span><span class="op">(</span><span class="va">secret</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">public</span>, <span class="fl">1</span>, <span class="fl">24</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "ed25519:3bd387aabdc7a9ca"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "ed25519:5f965f060d6448de"</span></span></code></pre></div>
 <p>Declare the public half in the registry the package ships:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">signed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
@@ -352,9 +351,9 @@ is what stamps the publication time, and the signature binds it.</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">".sig"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; getaca-signature 1</span></span>
-<span><span class="co">#&gt; digest sha256:052665fcb64bd47594f09d00d26fb9608f41a214386c28f335eecbf9dbf0b30b</span></span>
-<span><span class="co">#&gt; created 2026-11-23T15:24:51Z</span></span>
-<span><span class="co">#&gt; expires 2027-02-21T15:24:51Z</span></span></code></pre></div>
+<span><span class="co">#&gt; digest sha256:34e868f040e3a9954313d2047d01e43d90bca88eb718eddb238556dc32479bbf</span></span>
+<span><span class="co">#&gt; created 2026-11-23T17:20:38Z</span></span>
+<span><span class="co">#&gt; expires 2027-02-21T17:20:38Z</span></span></code></pre></div>
 <p>Upload the <code>.sig</code> beside the registry; getaca fetches it
 from the registry’s own URL with <code>.sig</code> appended.
 <code><a href="../reference/registry_verify.html">registry_verify()</a></code> runs the same check a user’s session
@@ -364,13 +363,21 @@ will, which is worth doing before publishing:</p>
 <p>Editing the registry after signing breaks the link, which is the
 whole point:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">moved</span> <span class="op">&lt;-</span> <span class="va">signed</span></span>
-<span><span class="va">moved</span><span class="op">$</span><span class="va">resources</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">urls</span> <span class="op">&lt;-</span> <span class="st">"https://elsewhere.invalid/backbone-2026-06.zip"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">moved</span>, <span class="va">path</span>, version <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">moved</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">registry</a></span><span class="op">(</span></span>
+<span>  package <span class="op">=</span> <span class="st">"yourpkg"</span>,</span>
+<span>  remote <span class="op">=</span> <span class="st">"https://host.invalid/yourpkg.rds"</span>,</span>
+<span>  keys <span class="op">=</span> <span class="va">public</span>,</span>
+<span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, <span class="st">"2026-06"</span>,</span>
+<span>             urls <span class="op">=</span> <span class="st">"https://elsewhere.invalid/backbone-2026-06.zip"</span>,</span>
+<span>             sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"9f"</span>, <span class="fl">32</span><span class="op">)</span>, license <span class="op">=</span> <span class="st">"CC-BY-4.0"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/registry_write.html">registry_write</a></span><span class="op">(</span><span class="va">moved</span>, <span class="va">path</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry_verify.html">registry_verify</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> The registry for 'yourpkg' could not be established as authentic.</span></span>
-<span><span class="co">#&gt;   the signature covers sha256:052665fcb64b but this registry is sha256:3c5f81ce417a</span></span>
+<span><span class="co">#&gt;   the signature covers sha256:34e868f040e3 but this registry is sha256:e30361a402bf</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; This package declares signing keys, so a remote registry that cannot be</span></span>
 <span><span class="co">#&gt; checked against one is refused rather than used. The bundled declaration</span></span>
@@ -428,10 +435,10 @@ the remote registry has moved on.</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">moved_on</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-09</span></span>
-<span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">moved_on</span>, policy <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; &lt;getaca resource&gt; yourpkg/backbone@2026-06</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">moved_on</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "yourpkg/backbone@2026-09"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">moved_on</span>, policy <span class="op">=</span> <span class="st">"pinned"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "yourpkg/backbone@2026-06"</span></span></code></pre></div>
 <p>The installed registry has moved to <code>2026-09</code>; the pin
 holds the analysis at <code>2026-06</code>.</p>
 <p>In practice the pin file is written rather than hand-built:</p>

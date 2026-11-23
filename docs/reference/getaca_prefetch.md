@@ -36,4 +36,11 @@ getaca_prefetch(names = NULL, package = NULL, registry = NULL, quiet = FALSE)
 
 ## Value
 
-A character vector of paths, invisibly.
+A character vector of paths named by resource, invisibly.
+
+## Details
+
+The resources of one call are transferred together, up to
+`getaca.connections` at a time, and a file two of them name is moved
+once. One that cannot be retrieved does not stop the others: everything
+that could be had is cached before the first failure is raised.

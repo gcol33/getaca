@@ -24,7 +24,7 @@ function walks the channel; everything downstream deals only in records."><meta 
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -113,15 +113,31 @@ function walks the channel; everything downstream deals only in records.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list with <code>id</code>, <code>record</code>, <code>policy</code>, <code>source</code>, <code>digest</code>, <code>created</code>
-and <code>auth</code>. <code>policy</code> is the one actually in force, after the argument, the
-session setting, the registry default and the check clamp have been
-resolved. <code>digest</code> identifies the registry state that answered, and
-<code>created</code> says when that state was published, or <code>NA</code> for a declaration
-that was built in the session rather than read from a file. <code>auth</code> is the
-credential declaration, taken from the registry the package ships.</p>
+    <p>A <code>getaca_resolution</code>: a list with <code>id</code>, <code>record</code>, <code>policy</code>,
+<code>source</code>, <code>digest</code>, <code>created</code> and <code>auth</code>. <code>policy</code> is the one actually in
+force, after the argument, the session setting, the registry default and
+the check clamp have been resolved. <code>digest</code> identifies the registry state
+that answered, and <code>created</code> says when that state was published, or <code>NA</code>
+for a declaration that was built in the session rather than read from a
+file. <code>auth</code> is the credential declaration, taken from the registry the
+package ships.</p>
+<p>Printing one shows what was resolved and through what. <code><a href="https://rdrr.io/r/base/format.html" class="external-link">format()</a></code> gives
+the identity as <code>package/name@version</code>, which is the form to compare
+against in a test.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="registry.html">registry</a></span><span class="op">(</span><span class="st">"demo"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="resource.html">resource</a></span><span class="op">(</span><span class="st">"example"</span>, <span class="st">"1.0"</span>,</span>
+<span>           urls <span class="op">=</span> <span class="st">"https://example.org/example-1.0.csv"</span>,</span>
+<span>           sha256 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/strrep.html" class="external-link">strrep</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="fl">64</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">resolve_resource</span><span class="op">(</span><span class="st">"example"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span></span>
+<span><span class="va">res</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

@@ -30,7 +30,7 @@ retrieval, and getaca_clean() exists for the deliberate case.'><meta property="o
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,7 +91,8 @@ retrieval, and <code>getaca_clean()</code> exists for the deliberate case.</p>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  package <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  what <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"broken"</span>, <span class="st">"temp"</span>, <span class="st">"superseded"</span>, <span class="st">"lru"</span>, <span class="st">"unreferenced"</span><span class="op">)</span>,</span>
-<span>  dry_run <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  dry_run <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  version <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -109,11 +110,16 @@ retrieval, and <code>getaca_clean()</code> exists for the deliberate case.</p>
 
 <dt id="arg-what">what<a class="anchor" aria-label="anchor" href="#arg-what"></a></dt>
 <dd><p>Which sweeps to run. Any of <code>"broken"</code>, <code>"temp"</code>,
-<code>"superseded"</code>, <code>"lru"</code>, <code>"unreferenced"</code>.</p></dd>
+<code>"superseded"</code>, <code>"lru"</code>, <code>"unreferenced"</code>, which together are the
+default, and <code>"cached"</code>, which runs only when named.</p></dd>
 
 
 <dt id="arg-dry-run">dry_run<a class="anchor" aria-label="anchor" href="#arg-dry-run"></a></dt>
 <dd><p>Report what would be removed without removing it.</p></dd>
+
+
+<dt id="arg-version">version<a class="anchor" aria-label="anchor" href="#arg-version"></a></dt>
+<dd><p>Restrict to one version of the resources selected.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -134,13 +140,22 @@ old.</p>
 <p>A version slot holds a name for bytes the store owns, so the sweeps above
 remove names. Bytes go once the last name for them does, which is why the
 store sweep runs last.</p>
-<p>Never removed: pinned entries, the version the bundled registry currently
-names, and anything under an active lock.</p>
+<p>Never removed by those: pinned entries, the version the bundled registry
+currently names, and anything under an active lock.</p>
+<p>One further sweep is never run unless asked for. <code>"cached"</code> removes every
+cached copy the <code>name</code>, <code>package</code> and <code>version</code> arguments select, whatever
+state it is in and whether or not it is pinned, and then the bytes nothing
+references any more. It is how a resource you are finished with is given
+its disk back, and how a copy is dropped so that the next <code><a href="getaca.html">getaca()</a></code> call
+fetches it again. Only a copy under an active lock is left.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getaca_clean</span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getaca_clean</span><span class="op">(</span>dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Everything cached for one resource, as a report of what would go:</span></span>
+<span><span class="fu">getaca_clean</span><span class="op">(</span><span class="st">"backbone"</span>, package <span class="op">=</span> <span class="st">"yourpkg"</span>, what <span class="op">=</span> <span class="st">"cached"</span>, dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

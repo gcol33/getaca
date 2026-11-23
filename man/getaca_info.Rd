@@ -30,6 +30,13 @@ return the processed path. \code{FALSE} returns the raw artefact.}
 }
 \value{
 A \code{getaca_entry}, or \code{NULL} when the resource is not cached.
+Printing one shows the full record. \code{as.data.frame()} gives the same
+record as one row, for a report or for binding several together, with the
+columns \code{package}, \code{name}, \code{version}, \code{processor}, \code{parts}, \code{link}, \code{size},
+\code{sha256}, \code{license}, \code{doi}, \code{source}, \code{registry_digest},
+\code{registry_created}, \code{url}, \code{getaca_version}, \code{fetched_at}, \code{verified_at},
+\code{checked_at}, \code{accessed_at}, \code{pinned} and \code{path}. \code{format()} gives the
+identity as \code{package/name@version}.
 }
 \description{
 Answers, for a cached resource: which package declared it, which registry

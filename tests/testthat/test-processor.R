@@ -201,3 +201,59 @@ test_that("prefetching a package that declares nothing says so", {
   expect_error(getaca_prefetch(package = "stats"),
                class = "getaca_error_invalid_registry")
 })
+
+# The resources of one call are worked out together, so bytes two of them name
+# are moved once however many slots end up holding a view of them.
+test_that("prefetch moves a file two resources share once", {
+  local_fetchable()
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "payload")
+  reg <- registry("demopkg", list(
+    resource("one", "1.0", urls = "https://a.invalid/one", sha256 = f$sha256),
+    resource("two", "1.0", urls = "https://a.invalid/two", sha256 = f$sha256)
+  ))
+  asked <- character()
+  testthat::local_mocked_bindings(
+    try_one = function(url, dest, progress = NULL) {
+      asked <<- c(asked, url)
+      file.copy(f$path, dest, overwrite = TRUE)
+      list(success = TRUE, reason = NA_character_)
+    },
+    .package = "getaca"
+  )
+
+  paths <- getaca_prefetch(registry = reg, quiet = TRUE)
+
+  expect_equal(asked, "https://a.invalid/one")
+  expect_equal(names(paths), c("one", "two"))
+  expect_true(all(file.exists(paths)))
+})
+
+test_that("prefetch keeps what it could retrieve when one resource cannot be had", {
+  local_fetchable()
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "payload")
+  reg <- registry("demopkg", list(
+    resource("gone", "1.0", urls = "https://a.invalid/gone", sha256 = strrep("0", 64)),
+    resource("here", "1.0", urls = "https://a.invalid/here", sha256 = f$sha256)
+  ))
+  testthat::local_mocked_bindings(
+    try_one = function(url, dest, progress = NULL) {
+      if (grepl("gone$", url)) {
+        return(list(success = FALSE, reason = "HTTP 404", http = 404L))
+      }
+      file.copy(f$path, dest, overwrite = TRUE)
+      list(success = TRUE, reason = NA_character_)
+    },
+    .package = "getaca"
+  )
+
+  expect_error(getaca_prefetch(registry = reg, quiet = TRUE),
+               class = "getaca_error_unavailable")
+
+  out <- getaca_catalogue(registry = reg)
+  expect_equal(out$cached[out$name == "here"], TRUE)
+  expect_equal(out$cached[out$name == "gone"], FALSE)
+  # Nothing is left held once the call has returned.
+  expect_length(list.files(file.path(cache, ".locks")), 0L)
+})

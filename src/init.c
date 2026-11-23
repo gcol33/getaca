@@ -329,7 +329,15 @@ static SEXP ed25519_keypair_call(SEXP seed)
   return out;
 }
 
+SEXP getaca_process_stamp(SEXP pid);
+SEXP getaca_heartbeat(SEXP paths, SEXP every);
+SEXP getaca_heartbeat_count(void);
+void getaca_heartbeat_unload(void);
+
 static const R_CallMethodDef call_methods[] = {
+  {"process_stamp",    (DL_FUNC) &getaca_process_stamp, 1},
+  {"heartbeat",        (DL_FUNC) &getaca_heartbeat,     2},
+  {"heartbeat_count",  (DL_FUNC) &getaca_heartbeat_count, 0},
   {"sha256_file",      (DL_FUNC) &sha256_file,         1},
   {"sha256_raw",       (DL_FUNC) &sha256_raw,          2},
   {"sha256_backend",   (DL_FUNC) &sha256_backend,      0},
@@ -353,4 +361,10 @@ void attribute_visible R_init_getaca(DllInfo *dll)
   R_registerRoutines(dll, NULL, call_methods, NULL, NULL);
   R_useDynamicSymbols(dll, FALSE);
   R_forceSymbols(dll, TRUE);
+}
+
+void attribute_visible R_unload_getaca(DllInfo *dll)
+{
+  (void) dll;
+  getaca_heartbeat_unload();
 }

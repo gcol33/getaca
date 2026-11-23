@@ -343,7 +343,8 @@ installed package:
 
 test_that("the shipped registry resolves the version we think it does", {
   reg <- registry_for("yourpkg")
-  expect_equal(resolve_resource("backbone", registry = reg)$id$version, "2026-06")
+  expect_equal(format(resolve_resource("backbone", registry = reg)),
+               "yourpkg/backbone@2026-06")
 })
 ```
 

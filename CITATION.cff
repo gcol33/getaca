@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: If you use this software, please cite it as below.
 type: software
 title: 'getaca: Reproducible External Data Dependencies'
-version: 0.1.6
+version: 0.2.0
 authors:
 - family-names: Colling
   given-names: Gilles
@@ -20,4 +20,4 @@ preferred-citation:
   year: 2026
   doi: 10.32614/CRAN.package.getaca
   url: https://gillescolling.com/getaca/
-  notes: R package version 0.1.6
+  notes: R package version 0.2.0

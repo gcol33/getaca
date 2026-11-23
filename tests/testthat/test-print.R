@@ -163,3 +163,44 @@ test_that("printing a composed entry names the parts it was made from", {
   expect_match(out, "2 parts via 'concat'", fixed = TRUE)
   expect_match(out, "part      999999999999", fixed = TRUE)
 })
+
+test_that("a resolution prints what was resolved and formats as its identity", {
+  reg <- demo_registry(strrep("a", 64))
+  res <- resolve_resource("res", registry = reg, policy = "bundled")
+
+  expect_s3_class(res, "getaca_resolution")
+  expect_equal(format(res), "demopkg/res@1.0")
+  out <- capture.output(print(res))
+  expect_match(out[1], "<getaca resolution> demopkg/res@1.0", fixed = TRUE)
+  expect_true(any(grepl("policy    bundled", out, fixed = TRUE)))
+  expect_true(any(grepl(registry_digest(reg), out, fixed = TRUE)))
+  expect_true(any(grepl(strrep("a", 64), out, fixed = TRUE)))
+})
+
+test_that("a processor, a combiner and a reporter each format as their id", {
+  expect_equal(format(unpack("zip")), "unpack-zip")
+  expect_output(print(unpack("zip")), "<getaca processor> unpack-zip", fixed = TRUE)
+  expect_equal(format(combiner("bsdiff", function(parts, output) output)), "bsdiff")
+  expect_equal(format(reporter("log", function(event) NULL)), "log")
+})
+
+test_that("an entry formats as its identity and tabulates as one row", {
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir())
+  reg <- demo_registry(f$sha256, license = "CC-BY-4.0")
+  seed_cache(reg, f)
+  info <- getaca_info("res", registry = reg)
+
+  expect_equal(format(info), "demopkg/res@1.0")
+  row <- as.data.frame(info)
+  expect_equal(nrow(row), 1L)
+  expect_equal(row$version, "1.0")
+  expect_equal(row$sha256, f$sha256)
+  expect_equal(row$license, "CC-BY-4.0")
+  expect_true(is.na(row$processor))
+  expect_s3_class(row$fetched_at, "POSIXct")
+  # The facts a catalogue row also states go under the same names.
+  shared <- setdiff(names(getaca_catalogue(registry = reg)),
+                    c("current", "declared", "cached"))
+  expect_true(all(shared %in% names(row)))
+})

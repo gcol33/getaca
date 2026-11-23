@@ -9,7 +9,8 @@ getaca_clean(
   name = NULL,
   package = NULL,
   what = c("broken", "temp", "superseded", "lru", "unreferenced"),
-  dry_run = FALSE
+  dry_run = FALSE,
+  version = NULL
 )
 }
 \arguments{
@@ -18,9 +19,12 @@ getaca_clean(
 \item{package}{Restrict to one declaring package. \code{NULL} means all.}
 
 \item{what}{Which sweeps to run. Any of \code{"broken"}, \code{"temp"},
-\code{"superseded"}, \code{"lru"}, \code{"unreferenced"}.}
+\code{"superseded"}, \code{"lru"}, \code{"unreferenced"}, which together are the
+default, and \code{"cached"}, which runs only when named.}
 
 \item{dry_run}{Report what would be removed without removing it.}
+
+\item{version}{Restrict to one version of the resources selected.}
 }
 \value{
 A data frame of affected entries, invisibly when acting.
@@ -52,9 +56,19 @@ A version slot holds a name for bytes the store owns, so the sweeps above
 remove names. Bytes go once the last name for them does, which is why the
 store sweep runs last.
 
-Never removed: pinned entries, the version the bundled registry currently
-names, and anything under an active lock.
+Never removed by those: pinned entries, the version the bundled registry
+currently names, and anything under an active lock.
+
+One further sweep is never run unless asked for. \code{"cached"} removes every
+cached copy the \code{name}, \code{package} and \code{version} arguments select, whatever
+state it is in and whether or not it is pinned, and then the bytes nothing
+references any more. It is how a resource you are finished with is given
+its disk back, and how a copy is dropped so that the next \code{\link[=getaca]{getaca()}} call
+fetches it again. Only a copy under an active lock is left.
 }
 \examples{
 getaca_clean(dry_run = TRUE)
+
+# Everything cached for one resource, as a report of what would go:
+getaca_clean("backbone", package = "yourpkg", what = "cached", dry_run = TRUE)
 }

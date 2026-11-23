@@ -109,15 +109,27 @@ test_that("a setting from the environment arrives as a number", {
 test_that("each retention setting has its own name and default", {
   withr::local_options(list(getaca.supersede_days = NULL, getaca.verify_days = NULL,
                             getaca.max_bytes = NULL, getaca.timeout = NULL,
+                            getaca.stall_seconds = NULL, getaca.connect_seconds = NULL,
+                            getaca.retries = NULL, getaca.connections = NULL,
+                            getaca.temp_days = NULL, getaca.lock_wait_seconds = NULL,
                             getaca.lock_stale_seconds = NULL))
   withr::local_envvar(list(GETACA_SUPERSEDE_DAYS = "", GETACA_VERIFY_DAYS = "",
                            GETACA_MAX_BYTES = "", GETACA_TIMEOUT = "",
+                           GETACA_STALL_SECONDS = "", GETACA_CONNECT_SECONDS = "",
+                           GETACA_RETRIES = "", GETACA_CONNECTIONS = "",
+                           GETACA_TEMP_DAYS = "", GETACA_LOCK_WAIT_SECONDS = "",
                            GETACA_LOCK_STALE_SECONDS = ""))
 
   expect_equal(getaca:::setting_supersede_days(), 30)
   expect_equal(getaca:::setting_verify_days(), 90)
   expect_equal(getaca:::setting_max_bytes(), 20 * 1024^3)
-  expect_equal(getaca:::setting_timeout(), 3600)
+  expect_equal(getaca:::setting_timeout(), 0)
+  expect_equal(getaca:::setting_stall(), 60)
+  expect_equal(getaca:::setting_connect(), 30)
+  expect_equal(getaca:::setting_retries(), 3)
+  expect_equal(getaca:::setting_connections(), 4)
+  expect_equal(getaca:::setting_temp_days(), 7)
+  expect_equal(getaca:::setting_lock_wait(), Inf)
   expect_equal(getaca:::setting_lock_stale(), 1800)
 })
 

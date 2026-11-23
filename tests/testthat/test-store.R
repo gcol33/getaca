@@ -362,3 +362,31 @@ test_that("a copy that cannot be linked into the store is not adopted", {
   expect_false(getaca:::adopt(id, rec))
   expect_false(getaca:::blob_exists(f$sha256))
 })
+
+# The store files a blob under the digest it had when it was admitted. Giving
+# it a new name stamps that name as verified, so the bytes are hashed first,
+# and a blob that no longer matches is dropped and fetched again.
+test_that("stored bytes that have rotted are fetched again rather than given a new name", {
+  local_fetchable()
+  cache <- local_cache()
+  f <- seed_file(withr::local_tempdir(), contents = "payload")
+  reg <- demo_registry(f$sha256)
+  staged <- file.path(getaca:::cache_tmp_dir(), "rotting")
+  file.copy(f$path, staged)
+  blob <- getaca:::admit(staged, f$sha256)
+  corrupt(blob, "pAyload")
+  asked <- 0L
+  testthat::local_mocked_bindings(
+    try_one = function(url, dest, progress = NULL) {
+      asked <<- asked + 1L
+      file.copy(f$path, dest, overwrite = TRUE)
+      list(success = TRUE, reason = NA_character_)
+    },
+    .package = "getaca"
+  )
+
+  path <- getaca("res", registry = reg, quiet = TRUE)
+
+  expect_equal(asked, 1L)
+  expect_equal(getaca:::sha256_file(path), f$sha256)
+})

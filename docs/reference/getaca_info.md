@@ -51,7 +51,16 @@ getaca_info(
 
 ## Value
 
-A `getaca_entry`, or `NULL` when the resource is not cached.
+A `getaca_entry`, or `NULL` when the resource is not cached. Printing
+one shows the full record.
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) gives the
+same record as one row, for a report or for binding several together,
+with the columns `package`, `name`, `version`, `processor`, `parts`,
+`link`, `size`, `sha256`, `license`, `doi`, `source`, `registry_digest`,
+`registry_created`, `url`, `getaca_version`, `fetched_at`,
+`verified_at`, `checked_at`, `accessed_at`, `pinned` and `path`.
+[`format()`](https://rdrr.io/r/base/format.html) gives the identity as
+`package/name@version`.
 
 ## Details
 

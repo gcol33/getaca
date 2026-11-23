@@ -33,8 +33,8 @@
 #'
 #' @examples
 #' unpack()
-#' unpack("zip")$id
-#' unpack("zip", members = "backbone/names.csv")$id
+#' unpack("zip")
+#' unpack("zip", members = "backbone/names.csv")
 #'
 #' resource("backbone", "2026-06",
 #'          urls      = "https://example.org/backbone-2026-06.zip",

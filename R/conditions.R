@@ -180,8 +180,9 @@ err_cache_corrupt <- function(id, path, expected, observed, call = NULL) {
       sprintf("  declared SHA-256: %s", expected),
       sprintf("  observed SHA-256: %s", observed),
       "",
-      sprintf("Action: getaca_clean(\"%s\", package = \"%s\"), then retry.",
-              id$name, id$package)
+      sprintf("Action: getaca_clean(\"%s\", package = \"%s\", what = \"cached\"),",
+              id$name, id$package),
+      "then retry."
     ),
     actor = "user",
     data = list(id = id, path = path, expected = expected, observed = observed),
@@ -204,8 +205,9 @@ err_redeclared <- function(id, cached, declared, call = NULL) {
       "one.",
       "",
       "Action: if the new declaration is the correct one, drop the old copy",
-      sprintf("with getaca_clean(\"%s\", package = \"%s\") and retry.",
-              id$name, id$package)
+      sprintf("with getaca_clean(\"%s\", package = \"%s\", what = \"cached\")",
+              id$name, id$package),
+      "and retry."
     ),
     actor = "author",
     data = list(id = id, cached = cached, declared = declared),

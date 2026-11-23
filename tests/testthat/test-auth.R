@@ -232,7 +232,8 @@ test_that("a mixed set of failures keeps the broader condition", {
 
   expect_error(
     getaca:::fetch_to_temp(id, reg$resources[["res"]], quiet = TRUE,
-                           transport = mixed, auth = reg$auth),
+                           transport = mixed, auth = reg$auth,
+                           sleep = function(seconds) NULL),
     class = "getaca_error_unavailable"
   )
 })

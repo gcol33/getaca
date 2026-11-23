@@ -300,8 +300,11 @@ when a build has to be byte-reproducible.
 
 ``` r
 
-registry_read(path)$created
-#> [1] "2026-11-23 16:24:41 CET"
+registry_read(path)
+#> <getaca registry> yourpkg  (policy "bundled")
+#>   digest: sha256:2306bcc9fb14
+#>   created: 2026-11-23 18:20:26
+#>   - backbone@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 ```
 
 ## Naming the channel head
@@ -663,8 +666,8 @@ not carry one:
 
 ``` r
 
-unpack("gzip")$id
-#> [1] "unpack-gzip"
+unpack("gzip")
+#> <getaca processor> unpack-gzip
 ```
 
 A large archive holding one subtree you need takes `members`, which
@@ -672,8 +675,8 @@ names a file, or a directory and everything under it:
 
 ``` r
 
-unpack(members = "tables")$id
-#> [1] "unpack-d98a034f"
+unpack(members = "tables")
+#> <getaca processor> unpack-d98a034f
 ```
 
 The id encodes the settings for a reason. It is what the cache slot and
@@ -694,8 +697,8 @@ index <- processor("index-v1", function(input, output_dir) {
   write.table(read.csv(input), out, sep = "\t", row.names = FALSE)
   out
 })
-index$id
-#> [1] "index-v1"
+index
+#> <getaca processor> index-v1
 ```
 
 The function receives the verified input path and a staging directory,
@@ -915,7 +918,8 @@ testable without a network:
 test_that("the shipped registry is valid and names a head", {
   reg <- registry_for("yourpkg")
   expect_s3_class(reg, "getaca_registry")
-  expect_equal(resolve_resource("backbone", registry = reg)$id$version, "2026-06")
+  expect_equal(format(resolve_resource("backbone", registry = reg)),
+               "yourpkg/backbone@2026-06")
 })
 
 test_that("the backbone parses when it is available", {

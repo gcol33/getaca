@@ -156,16 +156,16 @@ multi <- registry(
   )
 )
 
-resolve_resource("backbone", registry = multi)$id
-#> <getaca resource> yourpkg/backbone@2026-09
+format(resolve_resource("backbone", registry = multi))
+#> [1] "yourpkg/backbone@2026-09"
 ```
 
 The older record stays resolvable by asking for it:
 
 ``` r
 
-resolve_resource("backbone", registry = multi, version = "2026-06")$id
-#> <getaca resource> yourpkg/backbone@2026-06
+format(resolve_resource("backbone", registry = multi, version = "2026-06"))
+#> [1] "yourpkg/backbone@2026-06"
 ```
 
 Version strings here are labels rather than semantic versions.

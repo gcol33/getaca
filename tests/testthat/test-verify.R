@@ -40,7 +40,7 @@ test_that("the refusal blames the author and says how to accept the new bytes", 
   expect_equal(cond$cached, f$sha256)
   expect_equal(cond$declared, strrep("b", 64))
   expect_match(conditionMessage(cond),
-               "getaca_clean\\(\"res\", package = \"demopkg\"\\)")
+               "getaca_clean\\(\"res\", package = \"demopkg\", what = \"cached\"\\)")
 })
 
 test_that("verify = TRUE compares against the declaration, not the entry's memory", {

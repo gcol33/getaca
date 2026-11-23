@@ -1,0 +1,2 @@
+# pthread_create and friends, for the thread that keeps held locks touched.
+PKG_LIBS = -pthread

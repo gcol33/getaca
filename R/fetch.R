@@ -70,69 +70,166 @@ getaca <- function(name, package = NULL, registry = NULL, version = NULL,
                    quiet = FALSE) {
   res <- resolve_resource(name, package = package, registry = registry,
                           policy = policy, version = version)
-  id <- res$id
-  record <- res$record
-  proc <- if (processed) record$processor else NULL
-  proc_id <- if (is.null(proc)) NULL else proc$id
+  out <- retrieve(list(list(res = res, processed = processed, verify = verify)),
+                  quiet = quiet)[[1]]
+  if (inherits(out, "condition")) stop(out)
+  out
+}
 
-  entry <- get_entry(id, proc_id)
-  if (!is.null(entry) && path_exists(entry$path)) {
-    entry <- validate_cached(entry, record, force = verify)
-    return(entry$path)
+# The one retrieval path, for however many resources are asked for at once.
+# Each request is a resolution together with what the caller wants of it, and
+# each comes back as a path or as the condition that stopped it, so one
+# resource failing leaves the others to finish.
+#
+# The steps are the ones a single retrieval takes, each applied to every
+# request before the next begins: answer from the cache, take the locks, look
+# again, work out which bytes are missing, transfer them together, and then
+# finish each resource on its own. Bytes are counted by digest throughout, so
+# a file two requests both name, or a part two series share, moves once.
+retrieve <- function(requests, quiet = FALSE) {
+  n <- length(requests)
+  out <- vector("list", n)
+  unsettled <- function() which(vapply(out, is.null, logical(1)))
+  ids <- lapply(requests, function(r) r$res$id)
+  records <- lapply(requests, function(r) r$res$record)
+  shas <- vapply(records, function(r) r$sha256, character(1))
+
+  answer <- function(todo) {
+    for (i in todo) {
+      hit <- tryCatch(cached_path(requests[[i]]), error = function(e) e)
+      if (!is.null(hit)) out[[i]] <<- hit
+    }
   }
+  answer(seq_len(n))
 
   # The policy resolution already folded in the argument, the session setting,
   # the registry default and the check clamp, so asking again here would answer
   # a narrower question than the one that chose the record.
-  if (identical(res$policy, "offline")) {
-    err_offline(id, if (in_r_check()) "running under R CMD check" else "offline mode is in effect")
+  for (i in unsettled()) {
+    if (identical(requests[[i]]$res$policy, "offline")) {
+      why <- if (in_r_check()) "running under R CMD check" else "offline mode is in effect"
+      out[[i]] <- tryCatch(err_offline(ids[[i]], why), error = function(e) e)
+    }
+  }
+  todo <- unsettled()
+  if (!length(todo)) return(out)
+
+  # In the order of the digests, so two sessions asking for overlapping sets
+  # reach for the shared locks in the same order.
+  locks <- list()
+  on.exit(release_locks(locks), add = TRUE)
+  for (sha in sort(unique(shas[todo]))) {
+    label <- format(ids[[todo[match(sha, shas[todo])]]])
+    locks[[length(locks) + 1L]] <- acquire_lock(sha, label, quiet = quiet)
   }
 
-  lock <- acquire_lock(record$sha256, format(id))
-  on.exit(release_lock(lock), add = TRUE)
-
-  # Another session may have finished while this one waited for the lock.
-  entry <- get_entry(id, proc_id)
-  if (!is.null(entry) && path_exists(entry$path)) {
-    entry <- validate_cached(entry, record, force = verify)
-    return(entry$path)
-  }
+  # Another session may have finished while this one waited for the locks.
+  answer(todo)
+  todo <- unsettled()
 
   # Bytes already in the store, or a copy in the slot that hashes to the
   # declaration, are both reasons not to transfer anything. This is checked
   # ahead of the parts, since an artefact already composed needs none of them.
-  if (blob_exists(record$sha256) || adopt(id, record)) {
-    placed <- place(id, record)
-    url_used <- NA_character_
-  } else if (length(record$parts)) {
-    # Held until this call returns, which is after the entry naming the parts
-    # has been written. Until then nothing else knows the blobs are wanted.
-    held <- lock_parts(id, record, held = record$sha256)
-    on.exit(release_locks(held), add = TRUE)
-    placed <- promote(id, record,
-                      compose_parts(id, record, quiet = quiet,
-                                    reporter = effective_reporter(quiet),
-                                    auth = res$auth))
-    # No single location served these bytes. What produced them is the part
-    # series the entry records.
-    url_used <- NA_character_
-  } else {
-    got <- fetch_to_temp(id, record, quiet = quiet,
-                         reporter = effective_reporter(quiet),
-                         auth = res$auth)
-    placed <- promote(id, record, got$path)
-    url_used <- got$url
+  route <- character(n)
+  need <- list()
+  for (i in todo) {
+    route[i] <- if (stored_intact(records[[i]]) || adopt(ids[[i]], records[[i]])) {
+      "store"
+    } else if (length(records[[i]]$parts)) {
+      "parts"
+    } else {
+      "whole"
+    }
+    if (identical(route[i], "whole") && is.null(need[[shas[i]]])) {
+      need[[shas[i]]] <- list(id = ids[[i]], record = records[[i]],
+                              auth = requests[[i]]$res$auth)
+    }
   }
 
-  final <- if (is.null(proc)) placed$path else apply_processor(id, proc, placed$path)
+  # Part locks are held until this call returns, which is after the entries
+  # naming the parts have been written. Until then nothing else knows the blobs
+  # are wanted.
+  composed <- todo[route[todo] == "parts"]
+  part_shas <- unlist(lapply(records[composed], part_digests), use.names = FALSE)
+  for (sha in sort(setdiff(unique(part_shas), shas[todo]))) {
+    owner <- composed[vapply(records[composed], function(r) {
+      sha %in% part_digests(r)
+    }, logical(1))][1]
+    locks[[length(locks) + 1L]] <- acquire_lock(
+      sha, sprintf("a part of %s", format(ids[[owner]])), quiet = quiet
+    )
+  }
+  for (i in composed) {
+    items <- part_items(ids[[i]], records[[i]], auth = requests[[i]]$res$auth)
+    for (sha in setdiff(names(items), names(need))) need[[sha]] <- items[[sha]]
+  }
 
-  entry <- new_entry(id, record, final, record$sha256,
-                     source = res$source, digest = res$digest,
-                     created = res$created,
-                     url_used = url_used, processor_id = proc_id,
-                     link = placed$link)
-  put_entry(entry)
-  gc_opportunistic(id$package)
+  got <- stats::setNames(
+    fetch_many(unname(need), quiet = quiet, reporter = effective_reporter(quiet)),
+    names(need)
+  )
+  arrived <- function(sha) {
+    if (inherits(got[[sha]], "condition")) stop(got[[sha]])
+    got[[sha]]
+  }
+
+  for (i in todo) {
+    out[[i]] <- tryCatch({
+      id <- ids[[i]]
+      record <- records[[i]]
+      url_used <- NA_character_
+      placed <- switch(
+        route[i],
+        store = place(id, record),
+        whole = {
+          from <- arrived(shas[i])
+          url_used <- from$url
+          promote(id, record, from$path)
+        },
+        parts = {
+          # No single location served these bytes. What produced them is the
+          # part series the entry records.
+          for (sha in intersect(unique(part_digests(record)), names(got))) {
+            admit(arrived(sha)$path, sha)
+          }
+          promote(id, record, combine_parts(id, record))
+        }
+      )
+      finish(requests[[i]], placed, url_used)
+    }, error = function(e) e)
+  }
+
+  done <- todo[!vapply(out[todo], inherits, logical(1), what = "condition")]
+  for (package in unique(vapply(ids[done], function(id) id$package, character(1)))) {
+    gc_opportunistic(package)
+  }
+  out
+}
+
+request_processor <- function(request) {
+  if (isTRUE(request$processed)) request$res$record$processor else NULL
+}
+
+# The path a request is answered with when the cache already holds it, checked
+# against the declaration in force, and NULL when it does not.
+cached_path <- function(request) {
+  proc <- request_processor(request)
+  entry <- get_entry(request$res$id, if (is.null(proc)) NULL else proc$id)
+  if (is.null(entry) || !path_exists(entry$path)) return(NULL)
+  validate_cached(entry, request$res$record, force = request$verify)$path
+}
+
+# The bytes are in the store and named in the version slot. What remains is
+# the processor, where one was asked for, and the record of what was done.
+finish <- function(request, placed, url_used) {
+  res <- request$res
+  proc <- request_processor(request)
+  final <- if (is.null(proc)) placed$path else apply_processor(res$id, proc, placed$path)
+  put_entry(new_entry(res$id, res$record, final, res$record$sha256,
+                      source = res$source, digest = res$digest,
+                      created = res$created, url_used = url_used,
+                      processor_id = if (is.null(proc)) NULL else proc$id,
+                      link = placed$link))
   final
 }
 
@@ -220,6 +317,13 @@ err_offline <- function(id, why, call = NULL) {
 #'
 #' @inheritParams getaca
 #' @return A `getaca_entry`, or `NULL` when the resource is not cached.
+#'   Printing one shows the full record. `as.data.frame()` gives the same
+#'   record as one row, for a report or for binding several together, with the
+#'   columns `package`, `name`, `version`, `processor`, `parts`, `link`, `size`,
+#'   `sha256`, `license`, `doi`, `source`, `registry_digest`,
+#'   `registry_created`, `url`, `getaca_version`, `fetched_at`, `verified_at`,
+#'   `checked_at`, `accessed_at`, `pinned` and `path`. `format()` gives the
+#'   identity as `package/name@version`.
 #' @export
 getaca_info <- function(name, package = NULL, registry = NULL, version = NULL,
                         processed = TRUE) {
@@ -418,7 +522,13 @@ packages_declaring_resources <- function() {
 #' @param names Resource names. `NULL` prefetches everything the package
 #'   declares.
 #' @inheritParams getaca
-#' @return A character vector of paths, invisibly.
+#' @details
+#' The resources of one call are transferred together, up to
+#' `getaca.connections` at a time, and a file two of them name is moved once.
+#' One that cannot be retrieved does not stop the others: everything that could
+#' be had is cached before the first failure is raised.
+#'
+#' @return A character vector of paths named by resource, invisibly.
 #' @export
 getaca_prefetch <- function(names = NULL, package = NULL, registry = NULL,
                             quiet = FALSE) {
@@ -429,8 +539,13 @@ getaca_prefetch <- function(names = NULL, package = NULL, registry = NULL,
     )
   }
   names <- names %||% unique(vapply(reg$resources, function(r) r$name, character(1)))
-  paths <- vapply(names, function(n) {
-    getaca(n, registry = reg, quiet = quiet)
-  }, character(1))
-  invisible(paths)
+  requests <- lapply(names, function(n) {
+    list(res = resolve_resource(n, registry = reg), processed = TRUE, verify = FALSE)
+  })
+  out <- retrieve(requests, quiet = quiet)
+  # Everything that could be retrieved has been, and stays cached. The first
+  # resource that could not is the one reported.
+  failed <- Filter(function(x) inherits(x, "condition"), out)
+  if (length(failed)) stop(failed[[1]])
+  invisible(stats::setNames(unlist(out), names))
 }

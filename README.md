@@ -334,7 +334,7 @@ To cite getaca in publications use:
 Colling G (2026). _getaca: Reproducible External Data Dependencies_.
 doi:10.32614/CRAN.package.getaca
 <https://doi.org/10.32614/CRAN.package.getaca>. R package version
-0.1.6, <https://gillescolling.com/getaca/>.
+0.2.0, <https://gillescolling.com/getaca/>.
 ```
 
 BibTeX:
@@ -344,7 +344,7 @@ BibTeX:
   title = {getaca: Reproducible External Data Dependencies},
   author = {Gilles Colling},
   year = {2026},
-  note = {R package version 0.1.6},
+  note = {R package version 0.2.0},
   doi = {10.32614/CRAN.package.getaca},
   url = {https://gillescolling.com/getaca/},
 }

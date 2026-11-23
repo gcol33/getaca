@@ -10,14 +10,30 @@
 #' @param policy Resolution policy, defaulting to [getaca_policy()].
 #' @param version Optional explicit version, bypassing channel resolution.
 #'
-#' @return A list with `id`, `record`, `policy`, `source`, `digest`, `created`
-#'   and `auth`. `policy` is the one actually in force, after the argument, the
-#'   session setting, the registry default and the check clamp have been
-#'   resolved. `digest` identifies the registry state that answered, and
-#'   `created` says when that state was published, or `NA` for a declaration
-#'   that was built in the session rather than read from a file. `auth` is the
-#'   credential declaration, taken from the registry the package ships.
+#' @return A `getaca_resolution`: a list with `id`, `record`, `policy`,
+#'   `source`, `digest`, `created` and `auth`. `policy` is the one actually in
+#'   force, after the argument, the session setting, the registry default and
+#'   the check clamp have been resolved. `digest` identifies the registry state
+#'   that answered, and `created` says when that state was published, or `NA`
+#'   for a declaration that was built in the session rather than read from a
+#'   file. `auth` is the credential declaration, taken from the registry the
+#'   package ships.
+#'
+#'   Printing one shows what was resolved and through what. `format()` gives
+#'   the identity as `package/name@version`, which is the form to compare
+#'   against in a test.
 #' @export
+#'
+#' @examples
+#' reg <- registry("demo", list(
+#'   resource("example", "1.0",
+#'            urls = "https://example.org/example-1.0.csv",
+#'            sha256 = strrep("a", 64))
+#' ))
+#'
+#' res <- resolve_resource("example", registry = reg)
+#' res
+#' format(res)
 resolve_resource <- function(name, package = NULL, registry = NULL,
                              policy = NULL, version = NULL) {
   reg <- registry %||% registry_for(package)
@@ -47,7 +63,7 @@ resolve_resource <- function(name, package = NULL, registry = NULL,
     )
   }
 
-  list(
+  structure(list(
     id = resource_id(reg$package, rec$name, rec$version),
     record = rec,
     policy = policy,
@@ -62,7 +78,23 @@ resolve_resource <- function(name, package = NULL, registry = NULL,
     # nominate its own, and the checksum failing afterwards is no consolation
     # once the credential has been handed over.
     auth = reg$auth
-  )
+  ), class = "getaca_resolution")
+}
+
+#' @export
+format.getaca_resolution <- function(x, ...) format(x$id)
+
+#' @export
+print.getaca_resolution <- function(x, ...) {
+  cat("<getaca resolution> ", format(x$id), "\n", sep = "")
+  cat("  policy    ", x$policy, "\n", sep = "")
+  cat("  source    ", x$source, " registry\n", sep = "")
+  cat("  registry  ", x$digest, "\n", sep = "")
+  if (!is.na(x$created)) {
+    cat("  published ", format(x$created, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
+  }
+  cat("  sha256    ", x$record$sha256, "\n", sep = "")
+  invisible(x)
 }
 
 select_record <- function(channel, name, version = NULL) {

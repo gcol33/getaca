@@ -166,6 +166,43 @@ file_size <- function(path) {
 }
 
 #' @export
+format.getaca_entry <- function(x, ...) {
+  paste0(format(x$id), if (!is.null(x$processor_id)) paste0("#", x$processor_id))
+}
+
+# One row, under the names getaca_catalogue() uses for the same facts, so a
+# provenance record and a catalogue row can be bound or compared directly.
+#' @export
+as.data.frame.getaca_entry <- function(x, row.names = NULL, optional = FALSE, ...) {
+  text <- function(v) if (is.null(v) || !length(v)) NA_character_ else as.character(v)[1]
+  data.frame(
+    package = x$package,
+    name = x$id$name,
+    version = x$id$version,
+    processor = text(x$processor_id),
+    parts = length(x$parts),
+    link = text(x$link),
+    size = as.numeric(x$size),
+    sha256 = text(x$observed_sha256),
+    license = text(x$license),
+    doi = text(x$doi),
+    source = text(x$source),
+    registry_digest = text(x$registry_digest),
+    registry_created = x$registry_created %||% na_time(),
+    url = text(x$url_used),
+    getaca_version = text(x$getaca_version),
+    fetched_at = x$fetched_at,
+    verified_at = x$verified_at,
+    checked_at = x$checked_at,
+    accessed_at = x$accessed_at,
+    pinned = isTRUE(x$pinned),
+    path = x$path,
+    row.names = row.names,
+    stringsAsFactors = FALSE
+  )
+}
+
+#' @export
 print.getaca_entry <- function(x, ...) {
   cat("<getaca cache entry> ", format(x$id), "\n", sep = "")
   cat("  path        ", x$path, "\n", sep = "")

@@ -22,12 +22,20 @@
 #'     the mirror. `total` is the declared size in bytes, or `NA` when the
 #'     declaration gives none. `offset` is what was already on disk, which is
 #'     non-zero when an interrupted transfer resumes.}
-#'   \item{`"bytes"`}{Bytes have arrived. `bytes` is the cumulative total for
-#'     this attempt including `offset`, so it can be compared against `total`
-#'     directly. Fires often; a reporter that draws is expected to throttle.}
-#'   \item{`"end"`}{The attempt finished. `status` is `"ok"` or `"failed"`,
-#'     `reason` is the failure reason or `NA`, and `bytes` is what arrived.}
+#'   \item{`"bytes"`}{Bytes have arrived. `id` is the resource they belong
+#'     to. `bytes` is the cumulative total for this attempt including `offset`,
+#'     so it can be compared against `total` directly. Fires often; a reporter
+#'     that draws is expected to throttle.}
+#'   \item{`"end"`}{The attempt finished. `id` is the resource, `status` is
+#'     `"ok"` or `"failed"`, `reason` is the failure reason or `NA`, and `bytes`
+#'     is what arrived.}
 #' }
+#'
+#' Several transfers may be under way at once: the parts of a series, or the
+#' resources of one [getaca_prefetch()] call, move together. Their events
+#' interleave, and `id` is what says which transfer an event belongs to. A
+#' mirror that is asked again, after a dropped connection or a busy server,
+#' ends one attempt and begins another.
 #'
 #' A reporter never affects the outcome of a retrieval. An error raised inside
 #' one is caught, reported once as a warning, and the reporter is switched off
@@ -131,6 +139,9 @@ reporter <- function(id, fn) {
 }
 
 #' @export
+format.getaca_reporter <- function(x, ...) x$id
+
+#' @export
 print.getaca_reporter <- function(x, ...) {
   cat("<getaca reporter> ", x$id, "\n", sep = "")
   invisible(x)
@@ -198,16 +209,21 @@ reporter_none <- function() reporter("none", function(event) invisible(NULL))
 # One line as a transfer starts and one as it ends. Deliberately not a redraw:
 # this is the style for a log, where a bar leaves thousands of fragments.
 reporter_line <- function(con = stderr(), now = Sys.time) {
-  started <- NULL
+  # Keyed by what is moving, since several transfers may be under way at once
+  # and each ends against its own start.
+  began <- list()
   reporter("line", function(event) {
+    label <- if (is.null(event$id)) "" else format(event$id)
     if (identical(event$type, "begin")) {
-      started <<- now()
+      began[[label]] <<- now()
       resumed <- if (isTRUE(event$offset > 0)) {
         sprintf(", resuming from %s", human_bytes(event$offset))
       } else ""
       writeLines(sprintf("getaca: downloading %s (%s%s)", format(event$id),
                          human_bytes(event$total), resumed), con = con)
     } else if (identical(event$type, "end")) {
+      started <- began[[label]]
+      began[[label]] <<- NULL
       elapsed <- if (is.null(started)) NA_real_ else
         as.numeric(difftime(now(), started, units = "secs"))
       writeLines(
@@ -229,40 +245,85 @@ reporter_line <- function(con = stderr(), now = Sys.time) {
 # that cannot be tested.
 reporter_bar <- function(con = stderr(), now = Sys.time) {
   st <- new.env(parent = emptyenv())
+  # Everything under way, by what it is. One transfer draws as itself; several
+  # draw as one line that adds them up, since a terminal has one line to redraw
+  # and what the reader wants of several transfers is when they will be done.
+  st$moving <- list()
+  replan <- function() {
+    st$drawn <- NULL
+    st$cells <- if (length(st$moving)) {
+      view <- bar_view(st$moving)
+      plan_cells(view$label, view$total, bar_width())
+    } else 0L
+  }
   reporter("bar", function(event) {
+    # An event that does not say which transfer it belongs to can only belong
+    # to the one under way.
+    label <- if (!is.null(event$id)) {
+      format(event$id)
+    } else if (length(st$moving) == 1L) {
+      names(st$moving)
+    } else {
+      return(invisible(NULL))
+    }
     switch(
       event$type,
       begin = {
-        st$started <- now()
-        st$drawn <- NULL
-        st$label <- format(event$id)
-        st$total <- event$total
-        st$offset <- event$offset %||% 0
-        st$bytes <- st$offset
-        st$cells <- plan_cells(st$label, st$total, bar_width())
+        offset <- event$offset %||% 0
+        st$moving[[label]] <- list(label = label, started = now(),
+                                   total = event$total, offset = offset,
+                                   bytes = offset)
+        replan()
       },
       bytes = {
-        st$bytes <- event$bytes
+        if (is.null(st$moving[[label]])) return(invisible(NULL))
+        st$moving[[label]]$bytes <- event$bytes
         # Ten redraws a second is past what an eye resolves, and a 4 GB
         # transfer delivers a few hundred thousand chunks.
         if (is.null(st$drawn) ||
             as.numeric(difftime(now(), st$drawn, units = "secs")) >= 0.1) {
           st$drawn <- now()
-          draw_bar(con, bar_line(st, now(), width = bar_width(), cells = st$cells))
+          draw_bar(con, bar_line(bar_view(st$moving, now()), now(),
+                                 width = bar_width(), cells = st$cells))
         }
       },
       end = {
-        st$bytes <- event$bytes %||% st$bytes
+        job <- st$moving[[label]] %||% list(label = label, started = now(),
+                                            total = NA_real_, offset = 0, bytes = 0)
+        st$moving[[label]] <- NULL
+        job$bytes <- event$bytes %||% job$bytes
         if (identical(event$status, "ok")) {
-          draw_bar(con, bar_line(st, now(), done = TRUE, width = bar_width(), cells = st$cells))
+          draw_bar(con, bar_line(job, now(), done = TRUE, width = bar_width(),
+                                 cells = plan_cells(job$label, job$total, bar_width())))
         } else {
-          draw_bar(con, sprintf("%s  failed: %s", st$label %||% "", event$reason))
+          draw_bar(con, sprintf("%s  failed: %s", label, event$reason))
         }
         writeLines("", con = con)
+        replan()
       },
       invisible(NULL)
     )
   })
+}
+
+# What the bar draws for the transfers under way. One is drawn as it is.
+# Several are summed, and their rate is the sum of each one's own, since they
+# started at different moments and a single elapsed time would be wrong for
+# all but one of them. A total is known only when every transfer declares one.
+bar_view <- function(moving, at = NULL) {
+  if (length(moving) == 1L) return(moving[[1]])
+  field <- function(name) vapply(moving, function(j) as.numeric(j[[name]]), numeric(1))
+  rate <- if (is.null(at)) NULL else {
+    elapsed <- vapply(moving, function(j) {
+      as.numeric(difftime(at, j$started, units = "secs"))
+    }, numeric(1))
+    moved <- field("bytes") - field("offset")
+    sum(ifelse(is.finite(elapsed) & elapsed > 0, moved / elapsed, 0))
+  }
+  list(label = sprintf("%d transfers", length(moving)),
+       started = do.call(min, lapply(moving, function(j) j$started)),
+       total = sum(field("total")), offset = sum(field("offset")),
+       bytes = sum(field("bytes")), rate = rate)
 }
 
 bar_width <- function() as.integer(getOption("width", 80L))
@@ -297,7 +358,8 @@ bar_line <- function(st, at, done = FALSE, width = getOption("width", 80L),
                      cells = NULL) {
   elapsed <- as.numeric(difftime(at, st$started, units = "secs"))
   moved <- st$bytes - st$offset
-  rate <- if (is.finite(elapsed) && elapsed > 0) moved / elapsed else NA_real_
+  rate <- st$rate %||%
+    (if (is.finite(elapsed) && elapsed > 0) moved / elapsed else NA_real_)
 
   size <- pad_field(human_bytes(st$bytes), BYTES_FIELD)
   if (!is.na(st$total)) size <- paste0(size, " / ", human_bytes(st$total))

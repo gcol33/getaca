@@ -44,10 +44,29 @@ resolve_resource(
 
 ## Value
 
-A list with `id`, `record`, `policy`, `source`, `digest`, `created` and
-`auth`. `policy` is the one actually in force, after the argument, the
-session setting, the registry default and the check clamp have been
-resolved. `digest` identifies the registry state that answered, and
-`created` says when that state was published, or `NA` for a declaration
-that was built in the session rather than read from a file. `auth` is
-the credential declaration, taken from the registry the package ships.
+A `getaca_resolution`: a list with `id`, `record`, `policy`, `source`,
+`digest`, `created` and `auth`. `policy` is the one actually in force,
+after the argument, the session setting, the registry default and the
+check clamp have been resolved. `digest` identifies the registry state
+that answered, and `created` says when that state was published, or `NA`
+for a declaration that was built in the session rather than read from a
+file. `auth` is the credential declaration, taken from the registry the
+package ships.
+
+Printing one shows what was resolved and through what.
+[`format()`](https://rdrr.io/r/base/format.html) gives the identity as
+`package/name@version`, which is the form to compare against in a test.
+
+## Examples
+
+``` r
+reg <- registry("demo", list(
+  resource("example", "1.0",
+           urls = "https://example.org/example-1.0.csv",
+           sha256 = strrep("a", 64))
+))
+
+res <- resolve_resource("example", registry = reg)
+res
+format(res)
+```

@@ -32,14 +32,24 @@ release adding an event type leaves an existing reporter working.
 
 - `"bytes"`:
 
-  Bytes have arrived. `bytes` is the cumulative total for this attempt
-  including `offset`, so it can be compared against `total` directly.
-  Fires often; a reporter that draws is expected to throttle.
+  Bytes have arrived. `id` is the resource they belong to. `bytes` is
+  the cumulative total for this attempt including `offset`, so it can be
+  compared against `total` directly. Fires often; a reporter that draws
+  is expected to throttle.
 
 - `"end"`:
 
-  The attempt finished. `status` is `"ok"` or `"failed"`, `reason` is
-  the failure reason or `NA`, and `bytes` is what arrived.
+  The attempt finished. `id` is the resource, `status` is `"ok"` or
+  `"failed"`, `reason` is the failure reason or `NA`, and `bytes` is
+  what arrived.
+
+Several transfers may be under way at once: the parts of a series, or
+the resources of one
+[`getaca_prefetch()`](https://gillescolling.com/getaca/reference/getaca_prefetch.md)
+call, move together. Their events interleave, and `id` is what says
+which transfer an event belongs to. A mirror that is asked again, after
+a dropped connection or a busy server, ends one attempt and begins
+another.
 
 A reporter never affects the outcome of a retrieval. An error raised
 inside one is caught, reported once as a warning, and the reporter is

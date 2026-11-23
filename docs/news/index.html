@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,6 +65,53 @@
       <small>Source: <a href="https://github.com/gcol33/getaca/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="getaca-020">getaca 0.2.0<a class="anchor" aria-label="anchor" href="#getaca-020"></a></h2>
+<div class="section level3">
+<h3 id="transfers-that-take-long-0-2-0">Transfers that take long<a class="anchor" aria-label="anchor" href="#transfers-that-take-long-0-2-0"></a></h3>
+<ul><li>A transfer is given up on for standing still, no longer for taking long. A connection that delivers nothing for <code>getaca.stall_seconds</code>, 60 by default, is dropped, and one that keeps delivering runs for as long as the file takes. Until now the limit was on the whole transfer, an hour by default, so a file too large for the link it arrived over failed every time it was asked for. <code>getaca.timeout</code> still sets such a limit and is now off unless set.</li>
+<li>A connection that drops partway is resumed on the same mirror, for as long as each attempt gets further. It was previously recorded as an unreachable mirror, and the next one was started from zero.</li>
+<li>A mirror that answers that it is busy (HTTP 408, 429, 500, 502, 503, 504) is asked again, after a wait that doubles from two seconds or after the interval its <code>Retry-After</code> header names, never more than a minute. <code>getaca.retries</code>, 3 by default, bounds the attempts that move nothing. A mirror that never answered, or answered that the file is not there, is not asked twice.</li>
+<li>The parts of a series and the resources of one <code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> call are transferred together, over up to <code>getaca.connections</code> connections, 4 by default. A file two resources name, or a part two series share, moves once.</li>
+<li>
+<code><a href="../reference/getaca_prefetch.html">getaca_prefetch()</a></code> no longer stops at the first resource that cannot be retrieved. Everything that could be had is cached, and the first failure is then raised.</li>
+<li>The bar draws several transfers as one line that adds them up, and the <code>"line"</code> style times each against its own start. <code>bytes</code> and <code>end</code> events carry the <code>id</code> of the transfer they belong to.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="two-sessions-one-download-0-2-0">Two sessions, one download<a class="anchor" aria-label="anchor" href="#two-sessions-one-download-0-2-0"></a></h3>
+<ul><li>A lock is held for as long as the session holding it is running. It was judged by the age of a file written once, against a 30-minute threshold, so a transfer longer than that lost its lock and a second session began writing the same partial file. A lock now records its process, and a waiter asks the operating system whether that process is still there: a transfer of any length keeps its lock, and a session that crashed loses it at once.</li>
+<li>On a cache shared between machines, where a waiter cannot ask about another machine’s process, the holder touches its lock on a timer for as long as it holds it, from a second thread, so a <code><a href="../reference/processor.html">processor()</a></code> of any length keeps its lock too. <code>getaca.lock_stale_seconds</code> is how long a crash on another machine takes to be noticed.</li>
+<li>A waiter waits for as long as the holder is alive, and says once whom it is waiting for. It used to give up after five minutes with advice to delete the lock. <code>getaca.lock_wait_seconds</code> bounds the wait where that is wanted.</li>
+<li>Bytes under a lock that no session is behind any more are collected like any others.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="removing-a-cached-copy-0-2-0">Removing a cached copy<a class="anchor" aria-label="anchor" href="#removing-a-cached-copy-0-2-0"></a></h3>
+<ul><li>
+<code>getaca_clean(what = "cached")</code> removes every cached copy the <code>name</code>, <code>package</code> and new <code>version</code> arguments select, whatever state it is in, and then the bytes nothing references any more. It runs only when named.</li>
+<li>The messages of <code>getaca_error_cache_corrupt</code> and <code>getaca_error_redeclared</code> name that call. The call they named before removed nothing from a copy that was healthy, or damaged without changing size.</li>
+<li>Bytes already in the store are hashed before a second resource is given a view of them. A stored file that no longer matches its digest is dropped and fetched again.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="what-an-object-says-about-itself-0-2-0">What an object says about itself<a class="anchor" aria-label="anchor" href="#what-an-object-says-about-itself-0-2-0"></a></h3>
+<ul><li>
+<code><a href="../reference/resolve_resource.html">resolve_resource()</a></code> returns a <code>getaca_resolution</code>, which prints what was resolved and through which registry state. <code><a href="https://rdrr.io/r/base/format.html" class="external-link">format()</a></code> gives the identity as <code>package/name@version</code>.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> on a <code><a href="../reference/getaca_info.html">getaca_info()</a></code> result gives the provenance record as one row, under the column names <code><a href="../reference/getaca_catalogue.html">getaca_catalogue()</a></code> uses.</li>
+<li>A <code><a href="../reference/processor.html">processor()</a></code> prints its id, and <code><a href="https://rdrr.io/r/base/format.html" class="external-link">format()</a></code> gives the id of a processor, a combiner or a reporter.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="settings-0-2-0">Settings<a class="anchor" aria-label="anchor" href="#settings-0-2-0"></a></h3>
+<ul><li>New: <code>getaca.stall_seconds</code>, <code>getaca.connect_seconds</code>, <code>getaca.retries</code>, <code>getaca.connections</code>, <code>getaca.lock_wait_seconds</code> and <code>getaca.temp_days</code>, each also readable from the matching <code>GETACA_</code> environment variable.</li>
+<li>
+<code>getaca.timeout</code> defaults to no limit, where it was 3600.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="under-the-hood-0-2-0">Under the hood<a class="anchor" aria-label="anchor" href="#under-the-hood-0-2-0"></a></h3>
+<ul><li>
+<code>src/process.c</code> answers whether a process id is running and when that process started. No new dependency: <code>Imports</code> is still <code>curl</code> plus three base packages.</li>
+<li>See <code>dev_notes/adr-012-lock-liveness.md</code> and <code>dev_notes/adr-013-transfers-that-take-long.md</code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.6" id="getaca-016">getaca 0.1.6<a class="anchor" aria-label="anchor" href="#getaca-016"></a></h2><p class="text-muted">CRAN release: 2026-09-01</p>
 <div class="section level3">

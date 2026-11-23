@@ -26,6 +26,7 @@ processor(id, fn)
 ## Value
 
 An object of class `getaca_processor`.
+[`format()`](https://rdrr.io/r/base/format.html) gives its id.
 
 ## Details
 

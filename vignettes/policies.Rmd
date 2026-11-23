@@ -70,10 +70,7 @@ reg <- registry(
   resources = list(rec)
 )
 
-res <- resolve_resource("backbone", registry = reg, policy = "bundled")
-res$id
-res$source
-res$digest
+resolve_resource("backbone", registry = reg, policy = "bundled")
 ```
 
 `source` and `digest` are recorded in the cache entry, so a provenance report
@@ -189,8 +186,8 @@ ahead <- registry(
   )
 )
 
-resolve_resource("backbone", registry = ahead)$id
-resolve_resource("backbone", registry = ahead, version = "2026-06")$id
+format(resolve_resource("backbone", registry = ahead))
+format(resolve_resource("backbone", registry = ahead, version = "2026-06"))
 ```
 
 Users on `current` follow the head on their next session. Users on `bundled`
@@ -251,9 +248,17 @@ registry_verify(path)
 Editing the registry after signing breaks the link, which is the whole point:
 
 ```{r, error = TRUE}
-moved <- signed
-moved$resources[[1]]$urls <- "https://elsewhere.invalid/backbone-2026-06.zip"
-saveRDS(moved, path, version = 3)
+moved <- registry(
+  package = "yourpkg",
+  remote = "https://host.invalid/yourpkg.rds",
+  keys = public,
+  resources = list(
+    resource("backbone", "2026-06",
+             urls = "https://elsewhere.invalid/backbone-2026-06.zip",
+             sha256 = strrep("9f", 32), license = "CC-BY-4.0")
+  )
+)
+registry_write(moved, path)
 registry_verify(path)
 ```
 
@@ -300,8 +305,8 @@ moved_on <- registry(
   )
 )
 
-resolve_resource("backbone", registry = moved_on)$id
-resolve_resource("backbone", registry = moved_on, policy = "pinned")$id
+format(resolve_resource("backbone", registry = moved_on))
+format(resolve_resource("backbone", registry = moved_on, policy = "pinned"))
 ```
 
 The installed registry has moved to `2026-09`; the pin holds the analysis at

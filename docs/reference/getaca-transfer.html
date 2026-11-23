@@ -24,7 +24,7 @@ and a failed transfer never touches a copy that was already good."><meta propert
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,8 +88,39 @@ buys is the response status before the first byte is written, and a count of
 the bytes as they arrive. The first decides where they go; the second is
 what <a href="getaca-progress.html">getaca-progress</a> reports.</p>
     </div>
+    <div class="section level2">
+    <h2 id="when-a-transfer-is-given-up-on">When a transfer is given up on<a class="anchor" aria-label="anchor" href="#when-a-transfer-is-given-up-on"></a></h2>
 
-  </main></div>
+
+<p>A transfer is given up on for standing still, never for taking long. A
+connection that takes longer than <code>getaca.connect_seconds</code>, 30 by default,
+to open, or that delivers nothing for <code>getaca.stall_seconds</code>, 60 by
+default, is dropped. One that keeps delivering runs for as long as the file
+takes. <code>getaca.timeout</code> limits a whole transfer, in seconds, and is off
+unless set.</p>
+<p>A connection that dropped after delivering bytes is resumed on the same
+mirror, for as long as each attempt gets further. A mirror that answers
+that it is busy (HTTP 408, 429, 500, 502, 503 or 504) is asked again after
+a wait that doubles from two seconds, or after the interval its
+<code>Retry-After</code> header names, and never after more than a minute. Attempts
+that move nothing are counted against <code>getaca.retries</code>, 3 by default, after
+which the next mirror is tried. A mirror that never answered, or answered
+that the file is not there, is not asked twice.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="several-files-at-once">Several files at once<a class="anchor" aria-label="anchor" href="#several-files-at-once"></a></h2>
+
+
+<p>The parts of a series, and the resources of one <code><a href="getaca_prefetch.html">getaca_prefetch()</a></code> call,
+share up to <code>getaca.connections</code> connections, 4 by default. A file two of
+them name is transferred once.</p>
+<p>Each setting is also read from an environment variable,
+<code>GETACA_STALL_SECONDS</code> for <code>getaca.stall_seconds</code> and so on, when the
+option is unset.</p>
+    </div>
+
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

@@ -31,7 +31,7 @@ resuming_transport <- function(...) {
     on.exit(close(con))
     if (is.null(r$contents)) {
       writeBin(charToRaw("<html>not found</html>"), con)
-      return(list(success = FALSE, reason = r$reason %||% "HTTP 404"))
+      return(list(success = FALSE, reason = r$reason %||% "HTTP 404", http = 404L))
     }
     writeBin(charToRaw(r$contents), con)
     list(success = TRUE, reason = NA_character_)
@@ -346,11 +346,206 @@ test_that("an interrupted transfer keeps its partial for the next attempt", {
   }
 
   expect_error(
-    getaca:::fetch_to_temp(id, rec, quiet = TRUE, transport = cut_short),
+    getaca:::fetch_to_temp(id, rec, quiet = TRUE, transport = cut_short,
+                           sleep = function(seconds) NULL),
     class = "getaca_error_unavailable"
   )
   expect_true(file.exists(part))
   expect_equal(file.info(part)$size, 3)
+})
+
+# A connection that drops partway has left bytes this mirror can continue from.
+# Moving to the next mirror would abandon them for a transfer from zero, so the
+# same mirror is asked again, and it resumes.
+test_that("a connection that drops after delivering is resumed on the same mirror", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", c("https://a.invalid/f", "https://b.invalid/f"))
+  asked <- character()
+  pieces <- c("pay", "lo", "ad")
+  drops <- function(url, dest, progress = NULL) {
+    asked <<- c(asked, url)
+    con <- file(dest, open = "ab")
+    writeBin(charToRaw(pieces[length(asked)]), con)
+    close(con)
+    done <- length(asked) == length(pieces)
+    list(success = done, reason = if (done) NA_character_ else "connection reset",
+         http = NA_integer_)
+  }
+
+  got <- getaca:::fetch_to_temp(id, rec, quiet = TRUE, transport = drops,
+                                sleep = function(seconds) NULL)
+
+  expect_equal(asked, rep("https://a.invalid/f", 3))
+  expect_equal(got$url, "https://a.invalid/f")
+  expect_equal(got$sha256, rec$sha256)
+})
+
+test_that("a mirror that never answers is not asked twice", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", c("https://a.invalid/f", "https://b.invalid/f"))
+  asked <- character()
+  silent_then_served <- function(url, dest, progress = NULL) {
+    asked <<- c(asked, url)
+    if (grepl("//a\\.", url)) {
+      return(list(success = FALSE, reason = "could not resolve host",
+                  http = NA_integer_))
+    }
+    writeBin(charToRaw("payload"), dest)
+    list(success = TRUE, reason = NA_character_, http = 200L)
+  }
+
+  got <- getaca:::fetch_to_temp(id, rec, quiet = TRUE,
+                                transport = silent_then_served,
+                                sleep = function(seconds) stop("nothing to wait for"))
+
+  expect_equal(asked, c("https://a.invalid/f", "https://b.invalid/f"))
+  expect_equal(got$url, "https://b.invalid/f")
+})
+
+# A busy server has said the request was fine and the moment was not. It is
+# asked again after the interval it named, and a file that is not there is not.
+test_that("a busy mirror is asked again after the interval it names", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/f")
+  calls <- 0L
+  waited <- numeric()
+  busy_once <- function(url, dest, progress = NULL) {
+    calls <<- calls + 1L
+    if (calls == 1L) {
+      return(list(success = FALSE, reason = "HTTP 429", http = 429L,
+                  retry_after = 7))
+    }
+    writeBin(charToRaw("payload"), dest)
+    list(success = TRUE, reason = NA_character_, http = 200L)
+  }
+
+  got <- getaca:::fetch_to_temp(id, rec, quiet = TRUE, transport = busy_once,
+                                sleep = function(seconds) waited <<- c(waited, seconds))
+
+  expect_equal(calls, 2L)
+  expect_equal(waited, 7)
+  expect_equal(got$sha256, rec$sha256)
+})
+
+test_that("a mirror that stays busy is given up on after the retries allowed", {
+  cache <- local_cache()
+  withr::local_options(list(getaca.retries = 2))
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/f")
+  calls <- 0L
+  waited <- numeric()
+  always_busy <- function(url, dest, progress = NULL) {
+    calls <<- calls + 1L
+    list(success = FALSE, reason = "HTTP 503", http = 503L)
+  }
+
+  expect_error(
+    getaca:::fetch_to_temp(id, rec, quiet = TRUE, transport = always_busy,
+                           sleep = function(seconds) waited <<- c(waited, seconds)),
+    class = "getaca_error_unavailable"
+  )
+  # The first attempt and two more, with the wait doubling between them.
+  expect_equal(calls, 3L)
+  expect_equal(waited, c(2, 4))
+})
+
+test_that("a file that is not there is not asked for again", {
+  cache <- local_cache()
+  id <- resource_id("demopkg", "res", "1.0")
+  rec <- fake_record("payload", "https://a.invalid/f")
+  calls <- 0L
+  missing <- function(url, dest, progress = NULL) {
+    calls <<- calls + 1L
+    list(success = FALSE, reason = "HTTP 404", http = 404L)
+  }
+
+  expect_error(
+    getaca:::fetch_to_temp(id, rec, quiet = TRUE, transport = missing,
+                           sleep = function(seconds) stop("nothing to wait for")),
+    class = "getaca_error_unavailable"
+  )
+  expect_equal(calls, 1L)
+})
+
+test_that("a wait is never longer than a minute, whatever the server asks", {
+  expect_equal(getaca:::retry_wait(1L), 2)
+  expect_equal(getaca:::retry_wait(3L), 8)
+  expect_equal(getaca:::retry_wait(10L), 60)
+  expect_equal(getaca:::retry_wait(1L, retry_after = 5), 5)
+  expect_equal(getaca:::retry_wait(1L, retry_after = 86400), 60)
+  expect_equal(getaca:::retry_wait(1L, retry_after = NA_real_), 2)
+})
+
+test_that("Retry-After is read as seconds or as a date, from the last response", {
+  now <- as.POSIXct("2026-01-01 00:00:00", tz = "UTC")
+  headers <- function(...) charToRaw(paste0(paste(c(...), collapse = "\r\n"), "\r\n\r\n"))
+
+  expect_equal(getaca:::retry_after(headers("HTTP/1.1 429 Too Many Requests",
+                                            "Retry-After: 30"), now), 30)
+  expect_equal(getaca:::retry_after(headers("HTTP/1.1 503 Service Unavailable",
+                                            "retry-after: Thu, 01 Jan 2026 00:02:00 GMT"),
+                                    now), 120)
+  expect_true(is.na(getaca:::retry_after(headers("HTTP/1.1 503 Service Unavailable"), now)))
+  expect_true(is.na(getaca:::retry_after(headers("HTTP/1.1 503 Service Unavailable",
+                                                 "Retry-After: soon"), now)))
+})
+
+# Several files move in one call and each is judged on its own, so one that
+# cannot be had does not take the others with it.
+test_that("several files are fetched together and settle separately", {
+  cache <- local_cache()
+  good <- fake_record("payload", "https://a.invalid/good")
+  bad <- fake_record("other payload", "https://a.invalid/bad")
+  serves_one <- function(url, dest, progress = NULL) {
+    if (grepl("bad$", url)) {
+      return(list(success = FALSE, reason = "HTTP 404", http = 404L))
+    }
+    writeBin(charToRaw("payload"), dest)
+    list(success = TRUE, reason = NA_character_, http = 200L)
+  }
+
+  got <- getaca:::fetch_many(
+    list(list(id = resource_id("demopkg", "good", "1.0"), record = good),
+         list(id = resource_id("demopkg", "bad", "1.0"), record = bad)),
+    quiet = TRUE, transport = serves_one
+  )
+
+  expect_equal(got[[1]]$sha256, good$sha256)
+  expect_s3_class(got[[2]], "getaca_error_unavailable")
+})
+
+# A transport that can move several attempts at once is handed all of a round's
+# attempts together, which is what makes the transfers concurrent.
+test_that("a transport that moves several attempts is given them together", {
+  cache <- local_cache()
+  one <- fake_record("payload", "https://a.invalid/one")
+  two <- fake_record("payload two", "https://a.invalid/two")
+  batches <- list()
+  contents <- c("https://a.invalid/one" = "payload",
+                "https://a.invalid/two" = "payload two")
+  together <- structure(
+    function(url, dest, progress = NULL) stop("attempts should arrive as a batch"),
+    many = function(attempts) {
+      batches[[length(batches) + 1L]] <<- vapply(attempts, function(a) a$url, character(1))
+      lapply(attempts, function(a) {
+        writeBin(charToRaw(contents[[a$url]]), a$dest)
+        list(success = TRUE, reason = NA_character_, http = 200L)
+      })
+    }
+  )
+
+  got <- getaca:::fetch_many(
+    list(list(id = resource_id("demopkg", "one", "1.0"), record = one),
+         list(id = resource_id("demopkg", "two", "1.0"), record = two)),
+    quiet = TRUE, transport = together
+  )
+
+  expect_equal(batches, list(c("https://a.invalid/one", "https://a.invalid/two")))
+  expect_equal(got[[1]]$sha256, one$sha256)
+  expect_equal(got[[2]]$sha256, two$sha256)
 })
 
 test_that("an end-to-end retrieval records the mirror that served it", {

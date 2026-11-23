@@ -40,7 +40,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -373,8 +373,11 @@ so writing an unchanged registry out again leaves its identity alone.
 Pass a fixed <code>created</code> when a build has to be
 byte-reproducible.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_write.html">registry_read</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span><span class="op">$</span><span class="va">created</span></span>
-<span><span class="co">#&gt; [1] "2026-11-23 16:24:41 CET"</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/registry_write.html">registry_read</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;getaca registry&gt; yourpkg  (policy "bundled")</span></span>
+<span><span class="co">#&gt;   digest: sha256:2306bcc9fb14</span></span>
+<span><span class="co">#&gt;   created: 2026-11-23 18:20:26</span></span>
+<span><span class="co">#&gt;   - backbone@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="naming-the-channel-head">Naming the channel head<a class="anchor" aria-label="anchor" href="#naming-the-channel-head"></a>
@@ -688,14 +691,14 @@ file’s name:</p>
 own name with the extension dropped. Name the format for a file whose
 name does not carry one:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/unpack.html">unpack</a></span><span class="op">(</span><span class="st">"gzip"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; [1] "unpack-gzip"</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/unpack.html">unpack</a></span><span class="op">(</span><span class="st">"gzip"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;getaca processor&gt; unpack-gzip</span></span></code></pre></div>
 <p>A large archive holding one subtree you need takes
 <code>members</code>, which names a file, or a directory and everything
 under it:</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/unpack.html">unpack</a></span><span class="op">(</span>members <span class="op">=</span> <span class="st">"tables"</span><span class="op">)</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; [1] "unpack-d98a034f"</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/unpack.html">unpack</a></span><span class="op">(</span>members <span class="op">=</span> <span class="st">"tables"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;getaca processor&gt; unpack-d98a034f</span></span></code></pre></div>
 <p>The id encodes the settings for a reason. It is what the cache slot
 and the registry manifest are keyed on, so two records asking for
 different subsets of one archive must not resolve to one slot. A name
@@ -712,8 +715,8 @@ of it: an empty slot would pass every later check.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">input</span><span class="op">)</span>, <span class="va">out</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>  <span class="va">out</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
-<span><span class="va">index</span><span class="op">$</span><span class="va">id</span></span>
-<span><span class="co">#&gt; [1] "index-v1"</span></span></code></pre></div>
+<span><span class="va">index</span></span>
+<span><span class="co">#&gt; &lt;getaca processor&gt; index-v1</span></span></code></pre></div>
 <p>The function receives the verified input path and a staging
 directory, and returns a path inside that directory. <code>getaca</code>
 renames the staging directory into place once the function returns, so a
@@ -893,7 +896,8 @@ testable without a network:</p>
 <code class="sourceCode R"><span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the shipped registry is valid and names a head"</span>, <span class="op">{</span></span>
 <span>  <span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry_for.html">registry_for</a></span><span class="op">(</span><span class="st">"yourpkg"</span><span class="op">)</span></span>
 <span>  <span class="fu">expect_s3_class</span><span class="op">(</span><span class="va">reg</span>, <span class="st">"getaca_registry"</span><span class="op">)</span></span>
-<span>  <span class="fu">expect_equal</span><span class="op">(</span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">version</span>, <span class="st">"2026-06"</span><span class="op">)</span></span>
+<span>  <span class="fu">expect_equal</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="../reference/resolve_resource.html">resolve_resource</a></span><span class="op">(</span><span class="st">"backbone"</span>, registry <span class="op">=</span> <span class="va">reg</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>               <span class="st">"yourpkg/backbone@2026-06"</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">test_that</span><span class="op">(</span><span class="st">"the backbone parses when it is available"</span>, <span class="op">{</span></span>

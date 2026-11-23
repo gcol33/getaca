@@ -259,3 +259,26 @@ test_that("a remote registry served from the wrong place is refused, not trusted
     class = "getaca_error_invalid_registry"
   ))
 })
+
+# Several attempts in one pool. Each has its own destination, its own status
+# and its own result, and one that is refused leaves the others as they were.
+test_that("several real transfers move together and are answered separately", {
+  online_only()
+  first <- withr::local_tempfile()
+  second <- withr::local_tempfile()
+  absent <- withr::local_tempfile()
+
+  res <- getaca:::try_many(list(
+    list(url = FIXTURE_URL, dest = first, progress = NULL),
+    list(url = MISSING_URL, dest = absent, progress = NULL),
+    list(url = FIXTURE_URL, dest = second, progress = NULL)
+  ))
+  served(res[[1]])
+  served(res[[3]])
+
+  expect_false(res[[2]]$success)
+  expect_equal(res[[2]]$http, 404L)
+  expect_false(file.exists(absent))
+  expect_gt(file.info(first)$size, 0)
+  expect_equal(getaca:::sha256_file(first), getaca:::sha256_file(second))
+})

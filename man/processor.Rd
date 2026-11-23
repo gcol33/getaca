@@ -15,7 +15,7 @@ the id, which invalidates previously processed copies.}
 \code{output_dir}.}
 }
 \value{
-An object of class \code{getaca_processor}.
+An object of class \code{getaca_processor}. \code{format()} gives its id.
 }
 \description{
 A processor turns one verified path into another path: unpacking an

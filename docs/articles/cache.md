@@ -247,8 +247,9 @@ for a finished resource.
 
 The lock is a directory under `.locks/`, named for the declared
 checksum. [`dir.create()`](https://rdrr.io/r/base/files2.html) is atomic
-on both POSIX and Windows, which makes a directory a portable mutex with
-no compiled dependency and no lockfile library.
+on both POSIX and Windows, and on the network filesystems a shared cache
+tends to live on, which makes a directory a mutex that works wherever
+the cache does.
 
 Keying it on the checksum rather than on the resource triple means the
 two sessions need not be asking on behalf of the same package. Two
@@ -259,10 +260,10 @@ What a second session does:
 
 1.  tries to create the lock directory, and fails
 
-2.  checks whether the lock is stale, by the age of the holder file
-    inside it
+2.  checks whether the session that holds it is still there
 
-3.  waits, polling, until the holder releases
+3.  says once whom it is waiting for, and waits until the holder
+    releases
 
 4.  re-reads the cache index, finds the first session’s entry, and
     returns that path
@@ -280,20 +281,37 @@ composed from it is written, so the lock is also what tells another
 session that bytes nothing references yet are wanted: the `unreferenced`
 sweep treats a blob under an active lock as live.
 
-A lock whose holder died leaves a directory behind. It goes stale after
-`getaca.lock_stale_seconds`, defaulting to 1800, after which the next
-session removes it and takes over. A session that waits longer than its
-timeout gets an error naming the lock path and the
-[`unlink()`](https://rdrr.io/r/base/unlink.html) call that clears it, so
-a genuinely wedged lock is a one-line fix rather than a support thread.
+A lock whose holder died leaves a directory behind, so a waiter has to
+tell a holder that is busy from one that is gone. The lock records the
+process that took it, the machine it runs on and when that process
+started, and a waiter on the same machine asks the operating system
+whether that process is still running. A lock is therefore held for
+exactly as long as its holder lives: a transfer of any length keeps it,
+and a session that crashed loses it to the next one that asks. The start
+time is part of the question because process ids are reused, and a later
+process handed the same number is not the holder.
+
+A cache on a shared filesystem can be reached from several machines, and
+a waiter on another machine cannot ask about a process it cannot see.
+There the holder shows it is alive by touching its lock every half
+minute for as long as it holds it. The touching is done from a second
+thread, so it goes on under a transfer and under a
+[`processor()`](https://gillescolling.com/getaca/reference/processor.md)
+that runs for an hour alike. The lock is abandoned once it has gone
+untouched for `getaca.lock_stale_seconds`, defaulting to 1800, which is
+how long a session that crashed on another machine keeps the others
+waiting.
+
+A waiter waits for as long as the holder is alive, since the alternative
+is a second transfer of the same bytes. Where a bounded wait is wanted,
+`getaca.lock_wait_seconds` sets one, and a session that waits past it
+gets an error naming the holder, the lock path and the
+[`unlink()`](https://rdrr.io/r/base/unlink.html) call that clears it.
 
 ``` r
 
-options(getaca.lock_stale_seconds = 600)
+options(getaca.lock_wait_seconds = 600)
 ```
-
-Set it lower for short downloads on a shared machine, higher when a
-single transfer legitimately runs for an hour.
 
 ## How bytes get in
 
@@ -317,6 +335,29 @@ partial file rather than the publisher, so the same mirror is asked once
 more from empty before any conclusion is drawn about upstream. Without
 that, one stale temporary file makes a resource permanently unfetchable
 and blames the wrong party for it.
+
+A transfer is given up on for standing still, never for taking long. A
+connection that delivers nothing for `getaca.stall_seconds`, 60 by
+default, is dropped; one that keeps delivering runs for as long as the
+file takes, since a limit on the whole transfer would fail every file
+too large for the link it arrives over. `getaca.timeout` sets such a
+limit for a caller who wants one, and is off unless set.
+
+A mirror is asked again in two cases. A connection that dropped after
+delivering bytes has left a partial that mirror can continue, so the
+transfer resumes there for as long as each attempt gets further. A
+server that answers that it is busy (HTTP 408, 429, 500, 502, 503 or
+504) is asked again after a wait that doubles from two seconds, or after
+the interval its `Retry-After` header names, and never after more than a
+minute. Attempts that move nothing are counted against `getaca.retries`,
+3 by default, after which the next mirror is tried. A mirror that never
+answered, or answered that the file is not there, is not asked twice.
+
+Several files move at once. The parts of a series, and the resources of
+one
+[`getaca_prefetch()`](https://gillescolling.com/getaca/reference/getaca_prefetch.md)
+call, share up to `getaca.connections` connections, 4 by default, and a
+file two of them name is transferred once.
 
 Verified bytes are then admitted to the store under their own checksum,
 and the version slot is given a name for them. Admission is a rename,
@@ -409,10 +450,18 @@ Five sweeps, cheapest and safest first:
 | Sweep | Removes | Clock |
 |----|----|----|
 | `broken` | entries whose path is missing or fails the cheap check | none |
-| `temp` | abandoned transfers in `.tmp/` | 7 days by mtime |
+| `temp` | abandoned transfers in `.tmp/` | `getaca.temp_days` by mtime, default 7 |
 | `superseded` | unpinned versions the registry no longer names | `getaca.supersede_days`, default 30 |
 | `lru` | least recently used unpinned entries | only above `getaca.max_bytes`, default 20 GB |
 | `unreferenced` | bytes in the store that no entry names any more | none |
+
+A sixth, `cached`, is never run unless named. It removes every cached
+copy the `name`, `package` and `version` arguments select, whatever
+state it is in and whether or not it is pinned, and then the bytes
+nothing references any more. It is how a resource you are finished with
+gives its disk back, and how a copy is dropped so that the next
+[`getaca()`](https://gillescolling.com/getaca/reference/getaca.md) call
+fetches it again.
 
 The first four sweeps remove names. `unreferenced` runs last and removes
 the bytes those names were for, once the last one is gone. A blob under
@@ -436,13 +485,14 @@ expensive resource that is still the current version is never dropped
 merely for being old; it is dropped only when the cache is over its
 ceiling, and then only after everything already useless has gone.
 
-Three things are never removed: pinned entries, the version the registry
-currently names, and anything under an active lock.
+Three things are never removed by those five: pinned entries, the
+version the registry currently names, and anything under an active lock.
 
-The automatic pass after a retrieval runs only `broken` and `temp`, the
-two sweeps that can only ever remove material which is already useless.
-Reclaiming a superseded four-gigabyte version is a decision, so it
-happens on a schedule rather than as a side effect of a download.
+The automatic pass after a retrieval runs only `broken`, `temp` and
+`unreferenced`, the sweeps that can only ever remove material which is
+already useless. Reclaiming a superseded four-gigabyte version is a
+decision, so it happens on a schedule rather than as a side effect of a
+download.
 
 ## Cleaning by hand
 
@@ -468,6 +518,10 @@ getaca_clean()                                 # run every sweep
 getaca_clean(what = "temp")                    # just the abandoned transfers
 getaca_clean(package = "yourpkg")              # one package
 getaca_clean("backbone", package = "yourpkg")  # one resource name
+
+# Everything cached for one resource, or for one version of it, healthy or not:
+getaca_clean("backbone", package = "yourpkg", what = "cached")
+getaca_clean("backbone", package = "yourpkg", version = "2026-03", what = "cached")
 ```
 
 Keeping something the sweeps would otherwise take:
@@ -495,15 +549,19 @@ with the option taking precedence.
 | `getaca.verify_days` | `GETACA_VERIFY_DAYS` | 90 | scheduled re-hash interval |
 | `getaca.supersede_days` | `GETACA_SUPERSEDE_DAYS` | 30 | retention for undeclared versions |
 | `getaca.max_bytes` | `GETACA_MAX_BYTES` | 20 GB | ceiling above which LRU runs |
-| `getaca.timeout` | `GETACA_TIMEOUT` | 3600 | transfer timeout in seconds |
-| `getaca.lock_stale_seconds` | `GETACA_LOCK_STALE_SECONDS` | 1800 | when a lock is abandoned |
+| `getaca.temp_days` | `GETACA_TEMP_DAYS` | 7 | when an unfinished transfer is abandoned |
+| `getaca.stall_seconds` | `GETACA_STALL_SECONDS` | 60 | how long a connection may deliver nothing |
+| `getaca.connect_seconds` | `GETACA_CONNECT_SECONDS` | 30 | how long a connection may take to open |
+| `getaca.timeout` | `GETACA_TIMEOUT` | 0, no limit | a limit on a whole transfer, in seconds |
+| `getaca.retries` | `GETACA_RETRIES` | 3 | attempts at one mirror that may move nothing |
+| `getaca.connections` | `GETACA_CONNECTIONS` | 4 | transfers under way at once |
+| `getaca.lock_stale_seconds` | `GETACA_LOCK_STALE_SECONDS` | 1800 | when a lock held on another machine is abandoned |
+| `getaca.lock_wait_seconds` | `GETACA_LOCK_WAIT_SECONDS` | no limit | how long to wait for another session |
 | `getaca.pin_file` |  | `getaca.pins.rds` in the working directory | where pins are read from |
 
 The defaults suit a laptop holding a couple of large reference datasets.
-Two are worth revisiting on a shared machine: raise `getaca.max_bytes`
-when the cache lives on a volume sized for it, and lower
-`getaca.lock_stale_seconds` when transfers are short and a wedged lock
-costs more than a rare duplicate download.
+On a shared machine, raise `getaca.max_bytes` when the cache lives on a
+volume sized for it.
 
 ``` r
 

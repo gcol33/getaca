@@ -1,5 +1,107 @@
 # Changelog
 
+## getaca 0.2.0
+
+### Transfers that take long
+
+- A transfer is given up on for standing still, no longer for taking
+  long. A connection that delivers nothing for `getaca.stall_seconds`,
+  60 by default, is dropped, and one that keeps delivering runs for as
+  long as the file takes. Until now the limit was on the whole transfer,
+  an hour by default, so a file too large for the link it arrived over
+  failed every time it was asked for. `getaca.timeout` still sets such a
+  limit and is now off unless set.
+- A connection that drops partway is resumed on the same mirror, for as
+  long as each attempt gets further. It was previously recorded as an
+  unreachable mirror, and the next one was started from zero.
+- A mirror that answers that it is busy (HTTP 408, 429, 500, 502,
+  503, 504) is asked again, after a wait that doubles from two seconds
+  or after the interval its `Retry-After` header names, never more than
+  a minute. `getaca.retries`, 3 by default, bounds the attempts that
+  move nothing. A mirror that never answered, or answered that the file
+  is not there, is not asked twice.
+- The parts of a series and the resources of one
+  [`getaca_prefetch()`](https://gillescolling.com/getaca/reference/getaca_prefetch.md)
+  call are transferred together, over up to `getaca.connections`
+  connections, 4 by default. A file two resources name, or a part two
+  series share, moves once.
+- [`getaca_prefetch()`](https://gillescolling.com/getaca/reference/getaca_prefetch.md)
+  no longer stops at the first resource that cannot be retrieved.
+  Everything that could be had is cached, and the first failure is then
+  raised.
+- The bar draws several transfers as one line that adds them up, and the
+  `"line"` style times each against its own start. `bytes` and `end`
+  events carry the `id` of the transfer they belong to.
+
+### Two sessions, one download
+
+- A lock is held for as long as the session holding it is running. It
+  was judged by the age of a file written once, against a 30-minute
+  threshold, so a transfer longer than that lost its lock and a second
+  session began writing the same partial file. A lock now records its
+  process, and a waiter asks the operating system whether that process
+  is still there: a transfer of any length keeps its lock, and a session
+  that crashed loses it at once.
+- On a cache shared between machines, where a waiter cannot ask about
+  another machine’s process, the holder touches its lock on a timer for
+  as long as it holds it, from a second thread, so a
+  [`processor()`](https://gillescolling.com/getaca/reference/processor.md)
+  of any length keeps its lock too. `getaca.lock_stale_seconds` is how
+  long a crash on another machine takes to be noticed.
+- A waiter waits for as long as the holder is alive, and says once whom
+  it is waiting for. It used to give up after five minutes with advice
+  to delete the lock. `getaca.lock_wait_seconds` bounds the wait where
+  that is wanted.
+- Bytes under a lock that no session is behind any more are collected
+  like any others.
+
+### Removing a cached copy
+
+- `getaca_clean(what = "cached")` removes every cached copy the `name`,
+  `package` and new `version` arguments select, whatever state it is in,
+  and then the bytes nothing references any more. It runs only when
+  named.
+- The messages of `getaca_error_cache_corrupt` and
+  `getaca_error_redeclared` name that call. The call they named before
+  removed nothing from a copy that was healthy, or damaged without
+  changing size.
+- Bytes already in the store are hashed before a second resource is
+  given a view of them. A stored file that no longer matches its digest
+  is dropped and fetched again.
+
+### What an object says about itself
+
+- [`resolve_resource()`](https://gillescolling.com/getaca/reference/resolve_resource.md)
+  returns a `getaca_resolution`, which prints what was resolved and
+  through which registry state.
+  [`format()`](https://rdrr.io/r/base/format.html) gives the identity as
+  `package/name@version`.
+- [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on a
+  [`getaca_info()`](https://gillescolling.com/getaca/reference/getaca_info.md)
+  result gives the provenance record as one row, under the column names
+  [`getaca_catalogue()`](https://gillescolling.com/getaca/reference/getaca_catalogue.md)
+  uses.
+- A
+  [`processor()`](https://gillescolling.com/getaca/reference/processor.md)
+  prints its id, and [`format()`](https://rdrr.io/r/base/format.html)
+  gives the id of a processor, a combiner or a reporter.
+
+### Settings
+
+- New: `getaca.stall_seconds`, `getaca.connect_seconds`,
+  `getaca.retries`, `getaca.connections`, `getaca.lock_wait_seconds` and
+  `getaca.temp_days`, each also readable from the matching `GETACA_`
+  environment variable.
+- `getaca.timeout` defaults to no limit, where it was 3600.
+
+### Under the hood
+
+- `src/process.c` answers whether a process id is running and when that
+  process started. No new dependency: `Imports` is still `curl` plus
+  three base packages.
+- See `dev_notes/adr-012-lock-liveness.md` and
+  `dev_notes/adr-013-transfers-that-take-long.md`.
+
 ## getaca 0.1.6
 
 CRAN release: 2026-09-01

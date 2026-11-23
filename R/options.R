@@ -105,5 +105,16 @@ getaca_setting <- function(name, default) {
 setting_supersede_days <- function() getaca_setting("supersede_days", 30)
 setting_verify_days    <- function() getaca_setting("verify_days", 90)
 setting_max_bytes      <- function() getaca_setting("max_bytes", 20 * 1024^3)
-setting_timeout        <- function() getaca_setting("timeout", 3600)
+setting_temp_days      <- function() getaca_setting("temp_days", 7)
+
+# Transfers. A total time of zero is libcurl's spelling of no limit.
+setting_timeout        <- function() getaca_setting("timeout", 0)
+setting_stall          <- function() getaca_setting("stall_seconds", 60)
+setting_connect        <- function() getaca_setting("connect_seconds", 30)
+setting_retries        <- function() getaca_setting("retries", 3)
+setting_connections    <- function() getaca_setting("connections", 4)
+
+# Locks. A holder on this machine is asked after directly, so the staleness
+# threshold applies only to one on another machine sharing the cache.
 setting_lock_stale     <- function() getaca_setting("lock_stale_seconds", 1800)
+setting_lock_wait      <- function() getaca_setting("lock_wait_seconds", Inf)

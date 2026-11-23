@@ -26,7 +26,7 @@ while it runs, and for how it ended, and renders them however it likes."><meta p
 
     <a class="navbar-brand me-2" href="../index.html">getaca</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -103,16 +103,23 @@ declaration gives none. <code>offset</code> is what was already on disk, which i
 non-zero when an interrupted transfer resumes.</p></dd>
 
 <dt><code>"bytes"</code></dt>
-<dd><p>Bytes have arrived. <code>bytes</code> is the cumulative total for
-this attempt including <code>offset</code>, so it can be compared against <code>total</code>
-directly. Fires often; a reporter that draws is expected to throttle.</p></dd>
+<dd><p>Bytes have arrived. <code>id</code> is the resource they belong
+to. <code>bytes</code> is the cumulative total for this attempt including <code>offset</code>,
+so it can be compared against <code>total</code> directly. Fires often; a reporter
+that draws is expected to throttle.</p></dd>
 
 <dt><code>"end"</code></dt>
-<dd><p>The attempt finished. <code>status</code> is <code>"ok"</code> or <code>"failed"</code>,
-<code>reason</code> is the failure reason or <code>NA</code>, and <code>bytes</code> is what arrived.</p></dd>
+<dd><p>The attempt finished. <code>id</code> is the resource, <code>status</code> is
+<code>"ok"</code> or <code>"failed"</code>, <code>reason</code> is the failure reason or <code>NA</code>, and <code>bytes</code>
+is what arrived.</p></dd>
 
 
-</dl><p>A reporter never affects the outcome of a retrieval. An error raised inside
+</dl><p>Several transfers may be under way at once: the parts of a series, or the
+resources of one <code><a href="getaca_prefetch.html">getaca_prefetch()</a></code> call, move together. Their events
+interleave, and <code>id</code> is what says which transfer an event belongs to. A
+mirror that is asked again, after a dropped connection or a busy server,
+ends one attempt and begins another.</p>
+<p>A reporter never affects the outcome of a retrieval. An error raised inside
 one is caught, reported once as a warning, and the reporter is switched off
 for the rest of the session's call rather than being allowed to fail a
 download that is otherwise fine.</p>

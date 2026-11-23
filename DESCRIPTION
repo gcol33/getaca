@@ -1,6 +1,6 @@
 Package: getaca
 Title: Reproducible External Data Dependencies
-Version: 0.1.6
+Version: 0.2.0
 Authors@R: c(
     person("Gilles", "Colling", email = "gilles.colling051@gmail.com",
            role = c("aut", "cre", "cph"),
@@ -48,10 +48,11 @@ Imports:
 Suggests:
     jsonlite,
     knitr,
+    parallel,
     rmarkdown,
     testthat (>= 3.0.0),
     withr,
     yaml
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0
