@@ -9,9 +9,14 @@ changes how long transfers and locks behave; `NEWS.md` has the list.
 
 ## Test environments
 
+* local: Windows 11, R-devel (2026-11-17 r90926 ucrt), `R CMD check --as-cran`
+  of the submitted tarball: Status OK
 * local: Windows 11, R 4.6.0, `R CMD check --as-cran`
 * local: Ubuntu under WSL, R 4.3.3, install and tests
-* win-builder: R-devel and R-release
+* win-builder: not available on 2026-11-23. The tarball uploaded to R-devel
+  and R-release at 18:22 was still in the upload directory at 19:53, together
+  with every other package uploaded since 17:19, so the R-devel check on
+  Windows was run locally instead.
 * GitHub Actions: macOS release, Windows release, Ubuntu r-devel, release,
   oldrel-1 and oldrel-2
 
