@@ -229,7 +229,7 @@ CRAN release: 2026-09-01
 
 - getaca drives the transfer over the curl multi interface rather than
   handing a URL to
-  [`curl::multi_download()`](https://jeroen.r-universe.dev/curl/reference/multi_download.html),
+  [`curl::multi_download()`](https://rdrr.io/pkg/curl/man/multi_download.html),
   which is what makes the byte counts reachable at all:
   `multi_download()` sets `noprogress` on the handle after the caller’s
   options, so a progress callback attached to it never runs. See

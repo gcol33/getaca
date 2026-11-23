@@ -22,3 +22,4 @@
 ^README\.Rmd$
 ^sidecars$
 ^CITATION\.cff$
+^data-raw$

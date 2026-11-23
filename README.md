@@ -1,7 +1,7 @@
 
-# getaca
+# getaca <img src="man/figures/logo.svg" align="right" height="139" alt="getaca logo" />
 
-*external data a package depends on, pinned to exact bytes*
+*downloading the data files a package cannot ship*
 
 <!-- badges: start -->
 
@@ -20,7 +20,7 @@ MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.or
 
 <p align="center">
 
-<img src="man/figures/progress.gif" width="100%" alt="A getaca transfer in the R console: one call, a progress bar carrying the share, the rate and an estimate of the time left, and the local path the call returns">
+<img src="man/figures/getaca-hero.svg" alt="SHA-256 digests drawn as 16 by 16 bit matrices. The digest a registry declares for sample.zip is in the middle. The copy from mirror 1 has one changed byte, 138 of its 256 digest bits differ, drawn red, and it is refused. The copy from mirror 2 matches bit for bit and getaca() returns its path, &lt;cache&gt;/mypkg/sample/0.1.6/raw/sample.zip." width="100%">
 </p>
 
 getaca retrieves, verifies and caches the large files an R package needs
@@ -134,6 +134,13 @@ path
 
 The cache lays the file out by package, name and version. A second call
 returns the cached copy without a transfer.
+
+A transfer reports its progress in the console:
+
+<p align="center">
+
+<img src="man/figures/progress.gif" width="100%" alt="A getaca transfer in the R console: one call, a progress bar carrying the share, the rate and an estimate of the time left, and the local path the call returns">
+</p>
 
 A resource can also carry the step that unpacks it, so the call returns
 the directory. The archive is verified first and unpacked once:

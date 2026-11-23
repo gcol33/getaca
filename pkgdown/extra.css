@@ -206,6 +206,12 @@ svg.inline-svg .svg-bg {
   fill: #DFD7CA !important;
 }
 
+/* Text in the page colour is a halo behind a label: it follows the page */
+[data-bs-theme="dark"] svg.inline-svg .svglite text[style*="fill: #F5F6F8"]:not(.preserve-color),
+[data-bs-theme="dark"] svg.inline-svg .svglite text[style*="fill: #f5f6f8"]:not(.preserve-color) {
+  fill: #343739 !important;
+}
+
 /* Rect strokes (histogram bars, etc.) keep their light-mode outline in dark */
 /* mode: the fill stays colored, so a light outline would lose the contrast */
 

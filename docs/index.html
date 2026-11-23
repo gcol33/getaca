@@ -6,6 +6,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>getaca: Reproducible External Data Dependencies • getaca</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" sizes="any" href="favicon.ico">
+<link rel="manifest" href="site.webmanifest">
 <script src="lightswitch.js"></script><script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -16,6 +21,7 @@
 ">
 <meta property="og:description" content="Declare, retrieve, verify, track and actively manage external data dependencies for R packages. Pinned to exact bytes, resolvable offline, safe during R CMD check.
 ">
+<meta property="og:image" content="https://gillescolling.com/getaca/logo.svg">
 <script>
 (function () {
   var D = String.fromCharCode(36);
@@ -89,13 +95,15 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="getaca">getaca<a class="anchor" aria-label="anchor" href="#getaca"></a>
-</h1></div>
-<p><em>external data a package depends on, pinned to exact bytes</em></p>
+<div class="page-header">
+<img src="logo.svg" class="logo" alt=""><h1 id="getaca-">getaca <a class="anchor" aria-label="anchor" href="#getaca-"></a>
+</h1>
+</div>
+<p><em>downloading the data files a package cannot ship</em></p>
 <!-- badges: start -->
 
 <p align="center">
-<img src="reference/figures/progress.gif" width="100%" alt="A getaca transfer in the R console: one call, a progress bar carrying the share, the rate and an estimate of the time left, and the local path the call returns"></p>
+<img src="reference/figures/getaca-hero.svg" alt="SHA-256 digests drawn as 16 by 16 bit matrices. The digest a registry declares for sample.zip is in the middle. The copy from mirror 1 has one changed byte, 138 of its 256 digest bits differ, drawn red, and it is refused. The copy from mirror 2 matches bit for bit and getaca() returns its path, &lt;cache&gt;/mypkg/sample/0.1.6/raw/sample.zip." width="100%"></p>
 <p>getaca retrieves, verifies and caches the large files an R package needs but cannot ship, such as a reference dataset, a trained model or an archive of examples.</p>
 <p>A package declares each file as a resource: a name, a version, the URLs that serve it and the SHA-256 checksum of its bytes (the Secure Hash Algorithm with a 256-bit digest). The declarations form a registry that ships inside the installed package. getaca resolves a request through an explicit policy, checks what arrives against the checksum, records where it came from and returns an ordinary local path, so the same installed package resolves the same bytes on every machine. You decide whether the declaration stays fixed with each release of your package or follows a remote registry that you maintain.</p>
 <p>getaca supports:</p>
@@ -179,6 +187,9 @@
 <span><span class="va">path</span></span>
 <span><span class="co">#&gt; [1] "&lt;cache&gt;/mypkg/sample/0.1.6/raw/sample.zip"</span></span></code></pre></div>
 <p>The cache lays the file out by package, name and version. A second call returns the cached copy without a transfer.</p>
+<p>A transfer reports its progress in the console:</p>
+<p align="center">
+<img src="reference/figures/progress.gif" width="100%" alt="A getaca transfer in the R console: one call, a progress bar carrying the share, the rate and an estimate of the time left, and the local path the call returns"></p>
 <p>A resource can also carry the step that unpacks it, so the call returns the directory. The archive is verified first and unpacked once:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sample_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resource.html">resource</a></span><span class="op">(</span><span class="st">"sample"</span>, <span class="st">"0.1.6"</span>, urls <span class="op">=</span> <span class="va">url</span>, sha256 <span class="op">=</span> <span class="va">sha</span>,</span>
