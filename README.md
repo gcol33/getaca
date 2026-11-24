@@ -20,7 +20,7 @@ MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.or
 
 <p align="center">
 
-<img src="man/figures/getaca-hero.svg" alt="SHA-256 digests drawn as 16 by 16 bit matrices. The digest a registry declares for sample.zip is in the middle. The copy from mirror 1 has one changed byte, 138 of its 256 digest bits differ, drawn red, and it is refused. The copy from mirror 2 matches bit for bit and getaca() returns its path, &lt;cache&gt;/mypkg/sample/0.1.6/raw/sample.zip." width="100%">
+<img src="man/figures/getaca-hero.svg" alt="SHA-256 digests drawn as 16 by 16 bit matrices. The digest a registry declares for sample.zip is in the middle. The copy from mirror 1 has one changed byte, 138 of its 256 digest bits differ, drawn red, and it is refused. The copy from mirror 2 matches bit for bit and getaca() returns its path, &lt;cache&gt;/mypkg/sample/1.0.0/raw/sample.zip." width="100%">
 </p>
 
 getaca retrieves, verifies and caches the large files an R package needs
@@ -124,12 +124,12 @@ url <- paste0("https://raw.githubusercontent.com/gcol33/getaca/v0.1.6/",
               "tests/testthat/fixtures/sample.zip")
 sha <- "87d05c681c448a4fd0a88ca6e816f2f78f84319b7f02f7477be55995fc44c259"
 
-sample_zip <- resource("sample", "0.1.6", urls = url, sha256 = sha)
+sample_zip <- resource("sample", "1.0.0", urls = url, sha256 = sha)
 reg <- registry(package = "mypkg", resources = list(sample_zip))
 
 path <- getaca("sample", registry = reg)
 path
-#> [1] "<cache>/mypkg/sample/0.1.6/raw/sample.zip"
+#> [1] "<cache>/mypkg/sample/1.0.0/raw/sample.zip"
 ```
 
 The cache lays the file out by package, name and version. A second call
@@ -146,7 +146,7 @@ A resource can also carry the step that unpacks it, so the call returns
 the directory. The archive is verified first and unpacked once:
 
 ``` r
-sample_dir <- resource("sample", "0.1.6", urls = url, sha256 = sha,
+sample_dir <- resource("sample", "1.0.0", urls = url, sha256 = sha,
                        processor = unpack())
 reg <- registry(package = "mypkg", resources = list(sample_dir))
 

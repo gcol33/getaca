@@ -7,7 +7,7 @@ declares for sample.zip is in the middle. The copy from mirror 1 has one
 changed byte, 138 of its 256 digest bits differ, drawn red, and it is
 refused. The copy from mirror 2 matches bit for bit and getaca() returns
 its path,
-\<cache\>/mypkg/sample/0.1.6/raw/sample.zip.](reference/figures/getaca-hero.svg)
+\<cache\>/mypkg/sample/1.0.0/raw/sample.zip.](reference/figures/getaca-hero.svg)
 
 getaca retrieves, verifies and caches the large files an R package needs
 but cannot ship, such as a reference dataset, a trained model or an
@@ -117,12 +117,12 @@ url <- paste0("https://raw.githubusercontent.com/gcol33/getaca/v0.1.6/",
               "tests/testthat/fixtures/sample.zip")
 sha <- "87d05c681c448a4fd0a88ca6e816f2f78f84319b7f02f7477be55995fc44c259"
 
-sample_zip <- resource("sample", "0.1.6", urls = url, sha256 = sha)
+sample_zip <- resource("sample", "1.0.0", urls = url, sha256 = sha)
 reg <- registry(package = "mypkg", resources = list(sample_zip))
 
 path <- getaca("sample", registry = reg)
 path
-#> [1] "<cache>/mypkg/sample/0.1.6/raw/sample.zip"
+#> [1] "<cache>/mypkg/sample/1.0.0/raw/sample.zip"
 ```
 
 The cache lays the file out by package, name and version. A second call
@@ -139,7 +139,7 @@ the directory. The archive is verified first and unpacked once:
 
 ``` r
 
-sample_dir <- resource("sample", "0.1.6", urls = url, sha256 = sha,
+sample_dir <- resource("sample", "1.0.0", urls = url, sha256 = sha,
                        processor = unpack())
 reg <- registry(package = "mypkg", resources = list(sample_dir))
 

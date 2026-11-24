@@ -14,7 +14,7 @@ cache <- file.path(tempdir(), "getaca-hero")
 options(getaca.cache = cache)
 Sys.setenv(NOT_CRAN = "true")
 url <- paste0("https://raw.githubusercontent.com/gcol33/getaca/v0.1.6/", fixture)
-sample_zip <- resource("sample", "0.1.6", urls = url, sha256 = declared)
+sample_zip <- resource("sample", "1.0.0", urls = url, sha256 = declared)
 reg <- registry(package = "mypkg", resources = list(sample_zip))
 path <- getaca("sample", registry = reg)
 stopifnot(unname(tools::sha256sum(path)) == declared)
@@ -32,11 +32,7 @@ damaged_file <- tempfile()
 writeBin(bytes, damaged_file)
 damaged <- unname(tools::sha256sum(damaged_file))
 
-bits <- function(digest) {
-  b <- strtoi(substring(digest, seq(1, 63, by = 2), seq(2, 64, by = 2)), 16L)
-  matrix(as.integer(vapply(b, function(x) rev(as.integer(intToBits(x))[1:8]),
-                           integer(8))), ncol = 16, byrow = TRUE)
-}
+source("data-raw/bits.R")
 declared_bits <- bits(declared)
 damaged_bits <- bits(damaged)
 differing <- sum(declared_bits != damaged_bits)
@@ -49,22 +45,6 @@ frame <- "#2B3A4A"
 agree <- "#C3CCD6"
 sans <- "'Segoe UI', Helvetica, Arial, sans-serif"
 mono <- "Consolas, 'SFMono-Regular', Menlo, monospace"
-
-# One closed subpath per horizontal run of cells selected by `mask`.
-cells_path <- function(mask, x0, y0, cell) {
-  out <- character()
-  for (i in seq_len(nrow(mask))) {
-    runs <- rle(as.integer(mask[i, ]))
-    ends <- cumsum(runs$lengths)
-    starts <- ends - runs$lengths
-    for (k in which(runs$values == 1L)) {
-      out <- c(out, sprintf("M%s %sh%sv%sh-%sz", x0 + starts[k] * cell,
-                            y0 + (i - 1) * cell, runs$lengths[k] * cell, cell,
-                            runs$lengths[k] * cell))
-    }
-  }
-  paste(out, collapse = "")
-}
 
 # A digest on a white plate; `layers` maps a fill colour to the cells it paints.
 plate <- function(x, y, cell, layers, pad = 7, stroke = 3) {
