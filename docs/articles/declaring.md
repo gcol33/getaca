@@ -303,7 +303,7 @@ when a build has to be byte-reproducible.
 registry_read(path)
 #> <getaca registry> yourpkg  (policy "bundled")
 #>   digest: sha256:2306bcc9fb14
-#>   created: 2026-11-23 23:03:48
+#>   created: 2026-11-24 13:39:32
 #>   - backbone@2026-06  9f9f9f9f9f9f  [CC-BY-4.0]
 ```
 

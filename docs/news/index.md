@@ -2,6 +2,8 @@
 
 ## getaca 0.2.0
 
+CRAN release: 2026-11-23
+
 ### Transfers that take long
 
 - A transfer is given up on for standing still, no longer for taking
